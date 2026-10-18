@@ -192,6 +192,13 @@ export default defineConfig({
           if (typeof type !== "string") return;
           const payload = message.payload;
 
+          if (type === "hostReady") {
+            if (typeof window.__ariesNotesAnnounceReady === "function") {
+              window.__ariesNotesAnnounceReady();
+            }
+            return;
+          }
+
           const editor = window.AriesNotes;
           if (!editor) return;
 
