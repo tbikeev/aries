@@ -1,15 +1,14 @@
 # Copyright (C) 2026 Max Lange
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-"""Marr partnership horoscope (time-distance offset).
+"""Partner horoscope (A. Marr time-distance offset).
 
-When the younger partner was born later, the older partner's birth moment is
-moved backward by the elapsed time between the two nativities:
+Marr describes offsetting the older partner's birth back by the elapsed time
+between the two nativities when the younger partner was born later; the chart is
+read for the younger partner's birthplace. See A. Marr, *Prediction* III, p. 10
+(Juan Perón / Evita Perón worked example → 11.03.1872 15:11:53, Buenos Aires).
 
-    t_partnership = t_older - (t_younger - t_older) = 2 * t_older - t_younger
-
-The chart is cast for the younger partner's birthplace and uses the younger
-partner's sex flag for the radix record.
+    t_partner = t_older - (t_younger - t_older) = 2 * t_older - t_younger
 """
 
 from __future__ import annotations
@@ -23,8 +22,8 @@ import mtexts
 from engine import calendar_policy
 
 
-def partnership_jd(jd_older: float, jd_younger: float) -> float:
-	"""Julian day of the Marr partnership epoch."""
+def partner_horoscope_jd(jd_older: float, jd_younger: float) -> float:
+	"""Julian day of the partner-horoscope epoch (Marr III p. 10)."""
 	return (2.0 * float(jd_older)) - float(jd_younger)
 
 
@@ -94,10 +93,10 @@ def _chart_time_from_jd(jd: float, place, reference_time) -> chart.Time:
 	)
 
 
-def partnership_datetime_tuple(older_chrt, younger_chrt) -> Tuple[int, int, int, int, int, int]:
-	"""Wall-clock components for the partnership epoch (older reference calendar)."""
+def partner_horoscope_datetime_tuple(older_chrt, younger_chrt) -> Tuple[int, int, int, int, int, int]:
+	"""Wall-clock components for the partner-horoscope epoch (older reference calendar)."""
 	older, younger = older_chrt, younger_chrt
-	jd = partnership_jd(older.time.jd, younger.time.jd)
+	jd = partner_horoscope_jd(older.time.jd, younger.time.jd)
 	time_obj = _chart_time_from_jd(jd, younger.place, older.time)
 	return (
 		int(time_obj.year),
@@ -109,34 +108,34 @@ def partnership_datetime_tuple(older_chrt, younger_chrt) -> Tuple[int, int, int,
 	)
 
 
-def build_marr_partnership_chart(chrt_a, chrt_b, opts, name=None):
-	"""Build a radix-style Marr partnership chart for two nativities."""
+def build_partner_horoscope_chart(chrt_a, chrt_b, opts, name=None):
+	"""Build a radix-style partner horoscope for two nativities (Marr III p. 10)."""
 	older, younger = classify_older_younger(chrt_a, chrt_b)
-	jd = partnership_jd(older.time.jd, younger.time.jd)
+	jd = partner_horoscope_jd(older.time.jd, younger.time.jd)
 	place = younger.place
 	time = _chart_time_from_jd(jd, place, older.time)
-	label = mtexts.txts.get("MarrPartnership", "Marr Partnership")
+	label = mtexts.txts.get("PartnerHoroscope", "Partner Horoscope")
 	default_name = "%s & %s %s" % (
 		getattr(older, "name", "") or "Partner",
 		getattr(younger, "name", "") or "Partner",
 		label,
 	)
 	chart_name = name or default_name
-	partnership = chart.Chart(
+	result = chart.Chart(
 		chart_name,
 		bool(getattr(younger, "male", True)),
 		time,
 		place,
 		chart.Chart.RADIX,
-		mtexts.txts.get("MarrPartnershipChart", "Marr partnership chart"),
+		mtexts.txts.get("PartnerHoroscopeChart", "Partner horoscope (Marr III p. 10)"),
 		copy.deepcopy(opts),
 		full=False,
 	)
-	partnership.full = True
-	partnership.is_marr_partnership = True
-	partnership.marr_partnership_source_pair = (older, younger)
-	if partnership.full:
+	result.full = True
+	result.is_partner_horoscope = True
+	result.partner_horoscope_source_pair = (older, younger)
+	if result.full:
 		from compositechart import _materialize_full_chart_state
 
-		_materialize_full_chart_state(partnership)
-	return partnership
+		_materialize_full_chart_state(result)
+	return result
