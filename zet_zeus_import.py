@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from aaf_import import record_to_v1_dict
+from aaf_import import _format_tz, _timezone_minutes, record_to_v1_dict
 
 _ZET_LINE_RE = re.compile(
 	r"^[^;]+;\s*\d{1,2}\.\d{1,2}\.\d{4};",
@@ -74,14 +74,13 @@ def _parse_zet_line(line: str, lineno: int) -> dict[str, Any]:
 		raise ValueError(f"line {lineno}: Zet line has no chart name")
 	day, month, year, bc = _parse_dmY(parts[1], lineno)
 	hour, minute, second, time_unknown = _parse_hms(parts[2], lineno)
-	place = parts[4] if len(parts) > 4 else ""
-	lat = _parse_zet_coord(parts[5], expected="lat", lineno=lineno)
-	lon = _parse_zet_coord(parts[6], expected="lon", lineno=lineno)
-	sex = parts[7].strip().upper()
-	male = _parse_sex(sex)
-	notes = parts[8].strip() if len(parts) > 8 else ""
+	place, lat_text, lon_text, sex_text, notes = _zet_place_coords_sex(parts, lineno)
+	lat = _parse_zet_coord(lat_text, expected="lat", lineno=lineno)
+	lon = _parse_zet_coord(lon_text, expected="lon", lineno=lineno)
+	male = _parse_sex(sex_text)
 	city, country = _split_place(place)
-	tz_info = _timezone_from_zet_notes(notes)
+	tz_field = parts[3] if len(parts) > 3 else ""
+	tz_info = _parse_zet_timezone(tz_field, lineno, notes)
 	return {
 		"name": name,
 		"type": "radix",
@@ -184,8 +183,75 @@ def _parse_hms(text: str, lineno: int) -> tuple[int, int, int, bool]:
 	return hour, minute, second, False
 
 
+def _looks_like_zet_coord(text: str) -> bool:
+	candidate = str(text or "").strip()
+	if not candidate:
+		return False
+	if re.fullmatch(
+		r"(\d+)\s*°\s*(\d+)\s*['′]\s*(\d+)?\s*[\"″]?\s*([NSEW])",
+		candidate,
+		re.IGNORECASE,
+	):
+		return True
+	return bool(re.fullmatch(r"\d+[nsew]\d+", candidate.lower().replace(" ", "")))
+
+
+def _zet_place_coords_sex(
+	parts: list[str],
+	lineno: int,
+) -> tuple[str, str, str, str, str]:
+	coord_indices = [index for index in range(4, len(parts)) if _looks_like_zet_coord(parts[index])]
+	if len(coord_indices) < 2:
+		raise ValueError(f"line {lineno}: Zet line missing coordinates")
+	lat_index, lon_index = coord_indices[0], coord_indices[1]
+	place = parts[4].strip() if lat_index > 4 and parts[4].strip() else ""
+	if not place and lat_index > 5:
+		for index in range(4, lat_index):
+			if parts[index].strip():
+				place = parts[index].strip()
+				break
+	lat_text = parts[lat_index]
+	lon_text = parts[lon_index]
+	sex_text = ""
+	notes = ""
+	if lon_index + 1 < len(parts):
+		sex_field = parts[lon_index + 1]
+		if lon_index + 1 == 8 and ";" in sex_field:
+			sex_text, trailing = sex_field.split(";", 1)
+			notes = trailing.strip()
+		else:
+			sex_text = sex_field
+			if lon_index + 2 < len(parts):
+				notes = parts[lon_index + 2].strip()
+			elif lon_index + 1 == 8:
+				notes = ""
+	if lon_index + 1 == 7 and len(parts) > 8:
+		notes = parts[8].strip()
+	return place, lat_text, lon_text, sex_text.strip(), notes.strip()
+
+
 def _parse_zet_coord(text: str, *, expected: str, lineno: int) -> float:
-	cleaned = str(text or "").strip().lower()
+	raw = str(text or "").strip()
+	dms = re.fullmatch(
+		r"(\d+)\s*°\s*(\d+)\s*['′]\s*(\d+)?\s*[\"″]?\s*([NSEW])",
+		raw,
+		re.IGNORECASE,
+	)
+	if dms:
+		degrees = int(dms.group(1))
+		minutes = int(dms.group(2))
+		seconds = int(dms.group(3) or 0)
+		hemisphere = dms.group(4).lower()
+		value = degrees + (minutes / 60.0) + (seconds / 3600.0)
+		if expected == "lat" and hemisphere not in {"n", "s"}:
+			raise ValueError(f"line {lineno}: invalid Zet latitude {text!r}")
+		if expected == "lon" and hemisphere not in {"e", "w"}:
+			raise ValueError(f"line {lineno}: invalid Zet longitude {text!r}")
+		if hemisphere in {"s", "w"}:
+			value = -value
+		return value
+
+	cleaned = raw.lower()
 	match = re.fullmatch(r"(\d+)([nsew])(\d+)", cleaned)
 	if not match:
 		raise ValueError(f"line {lineno}: invalid Zet {expected} {text!r}")
@@ -222,12 +288,15 @@ def _parse_zeus_coord(text: str, *, expected: str, lineno: int) -> float:
 
 
 def _parse_sex(text: str) -> bool | None:
-	marker = str(text or "").strip().upper()
+	raw = str(text or "").strip()
+	if raw in {"—", "–", "−", "-", "―"}:
+		return None
+	marker = raw.upper()
 	if marker in {"M", "MALE"}:
 		return True
 	if marker in {"F", "FEMALE"}:
 		return False
-	if marker in {"", "-", "*", "?"}:
+	if marker in {"", "*", "?"}:
 		return None
 	raise ValueError(f"unsupported sex marker {text!r}")
 
@@ -247,6 +316,37 @@ def _timezone_from_zet_notes(notes: str) -> dict[str, str]:
 	if "TIMEZONE" in upper and "LMT" in upper:
 		return {"tz": "Z", "tz_name": "LMT", "zt": "lmt"}
 	return {"tz": "Z", "tz_name": "LMT", "zt": "lmt"}
+
+
+def _parse_zet_timezone(text: str, lineno: int, notes: str) -> dict[str, str]:
+	"""Zet field 4: empty → LMT; +5, +1:50, +3:43:44 → zone offset."""
+	cleaned = str(text or "").strip()
+	if not cleaned:
+		return _timezone_from_zet_notes(notes)
+	lowered = cleaned.lower()
+	if lowered in {"l", "lmt", "*", "?"}:
+		return {"tz": "Z", "tz_name": "LMT", "zt": "lmt"}
+	compact = cleaned.replace(" ", "")
+	minutes = _zet_timezone_offset_minutes(compact, lineno)
+	if minutes is None:
+		return {"tz": "Z", "tz_name": "LMT", "zt": "lmt"}
+	if minutes == 0:
+		return {"tz": "Z", "tz_name": "", "zt": "zone"}
+	return {"tz": _format_tz(minutes), "tz_name": "", "zt": "zone"}
+
+
+def _zet_timezone_offset_minutes(text: str, lineno: int) -> int | None:
+	"""Zet exports +5, +1:50, and historical +3:43:44 style offsets."""
+	hms = re.fullmatch(r"([+-])(\d{1,2}):(\d{2}):(\d{2})", text)
+	if hms:
+		sign = 1 if hms.group(1) == "+" else -1
+		hours = int(hms.group(2))
+		minutes = int(hms.group(3))
+		seconds = int(hms.group(4))
+		if minutes >= 60 or seconds >= 60:
+			raise ValueError(f"line {lineno}: invalid Zet timezone {text!r}")
+		return sign * (hours * 60 + minutes + (1 if seconds >= 30 else 0))
+	return _timezone_minutes(text, lineno)
 
 
 def _parse_zeus_timezone(text: str, lineno: int) -> dict[str, str]:
