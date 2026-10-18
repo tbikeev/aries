@@ -5567,19 +5567,19 @@
     "fr": "Si une association durera et à qui elle profitera",
     "es": "Si una sociedad se mantendrá y a quién beneficiará"
   },
-  "MarrPartnership": {
-    "en": "Marr Partnership",
-    "it": "Partnership Marr",
-    "de": "Marr-Partnerschaft",
-    "fr": "Partenariat Marr",
-    "es": "Sociedad Marr"
+  "PartnerHoroscope": {
+    "en": "Partner Horoscope",
+    "it": "Oroscopo di coppia",
+    "de": "Partnerhoroskop",
+    "fr": "Horoscope de couple",
+    "es": "Horóscopo de pareja"
   },
-  "MarrPartnershipChart": {
-    "en": "Marr Partnership Chart",
-    "it": "Tema partnership Marr",
-    "de": "Marr-Partnerschaftshoroskop",
-    "fr": "Thème de partenariat Marr",
-    "es": "Carta de sociedad Marr"
+  "PartnerHoroscopeChart": {
+    "en": "Partner Horoscope",
+    "it": "Oroscopo di coppia (Marr III p. 10)",
+    "de": "Partnerhoroskop (Marr III S. 10)",
+    "fr": "Horoscope de couple (Marr III p. 10)",
+    "es": "Horóscopo de pareja (Marr III p. 10)"
   },
   "TipHorPregnancy": {
     "en": "Whether with child, when she conceives, sex of the child",

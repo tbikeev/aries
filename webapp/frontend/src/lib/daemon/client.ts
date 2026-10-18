@@ -8307,7 +8307,7 @@ export async function workspaceToggleComparison(
  */
 export async function workspaceSynastryComposite(
   docId: string,
-  variant?: "midpoint" | "davison" | "marr_partnership" | "synastry" | null,
+  variant?: "midpoint" | "davison" | "partner_horoscope" | "synastry" | null,
   signal?: AbortSignal,
 ): Promise<WorkspaceSynastryCompositeResult> {
   return workspacePost<WorkspaceSynastryCompositeResult>(

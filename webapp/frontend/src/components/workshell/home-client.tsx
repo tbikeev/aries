@@ -4164,7 +4164,7 @@ export function HomeClient() {
     activeDoc?.compoundKind === "composite_from_synastry";
   const activeRelationshipDocumentId = activeDoc?.id;
   const handleRelationshipModeChange = useCallback((
-    variant: "midpoint" | "davison" | "marr_partnership" | "synastry",
+    variant: "midpoint" | "davison" | "partner_horoscope" | "synastry",
   ) => {
     if (!activeRelationshipDocumentId) return;
     const finishSnapshotCommand = beginWorkspaceSnapshotCommand();
