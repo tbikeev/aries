@@ -8,6 +8,7 @@ from __future__ import annotations
 import datetime
 
 import astrology
+import chart
 
 from partner_horoscope import (
 	classify_older_younger,
@@ -21,10 +22,14 @@ class _FakeTime:
 		self.year = dt.year
 		self.month = dt.month
 		self.day = dt.day
+		self.origyear = dt.year
+		self.origmonth = dt.month
+		self.origday = dt.day
 		self.hour = dt.hour
 		self.minute = dt.minute
 		self.second = dt.second
 		self.jd = jd
+		self.bc = False
 		self.cal = 0  # GREGORIAN
 		self.plus = True
 		self.zh = 0
@@ -36,7 +41,10 @@ class _FakeTime:
 
 
 class _FakePlace:
-	pass
+	deglon = 0
+	minlon = 0
+	east = True
+	altitude = 0
 
 
 class _FakeChart:
@@ -88,3 +96,59 @@ def test_marr_prediction_iii_page_10_peron_example():
 		expected.minute,
 		expected.second,
 	)
+
+
+def test_marr_partner_epoch_stored_as_ut_not_zone_clock():
+	"""Zone-time radixes must not shift the displayed partner epoch (Perón → 15:11:53)."""
+	place_ba = chart.Place("Buenos Aires, Argentina", 34, 36, 0, False, 58, 27, 0, False, 0)
+	place_lobos = chart.Place("Lobos, Argentina", 35, 11, 0, False, 59, 6, 0, False, 0)
+	t_juan = chart.Time(
+		1895,
+		10,
+		8,
+		12,
+		4,
+		22,
+		False,
+		chart.Time.GREGORIAN,
+		chart.Time.ZONE,
+		False,
+		4,
+		0,
+		False,
+		place_lobos,
+		tzid="",
+		tzauto=False,
+	)
+	t_evita = chart.Time(
+		1919,
+		5,
+		7,
+		8,
+		56,
+		51,
+		False,
+		chart.Time.GREGORIAN,
+		chart.Time.ZONE,
+		False,
+		4,
+		0,
+		False,
+		place_ba,
+		tzid="",
+		tzauto=False,
+	)
+
+	class _Chart:
+		def __init__(self, name, male, time, place):
+			self.name = name
+			self.male = male
+			self.time = time
+			self.place = place
+
+	juan = _Chart("Peron, Juan", True, t_juan, place_lobos)
+	evita = _Chart("Peron, Evita", False, t_evita, place_ba)
+	older, younger = classify_older_younger(juan, evita)
+	tuple_ = partner_horoscope_datetime_tuple(older, younger)
+	assert tuple_[3:] == (15, 11, 53)
+	assert tuple_[:3] == (1872, 3, 11)
