@@ -27,6 +27,25 @@ def partner_horoscope_jd(jd_older: float, jd_younger: float) -> float:
 	return (2.0 * float(jd_older)) - float(jd_younger)
 
 
+def _marr_input_jd(chrt) -> float:
+	"""Julian day for Marr offset math from radix clock fields (treated as U.T.).
+
+	Marr III p. 10 subtracts the civil date/time labels of the two births as
+	universal time. That matches Zet/Astrodatabank-style exports where the same
+	clock figures are used for the partner line, independent of each radix's
+	zone/LMT conversion used for its own wheel.
+	"""
+	t = chrt.time
+	year = int(t.origyear)
+	month = int(t.origmonth)
+	day = int(t.origday)
+	hour_float = float(t.hour) + float(t.minute) / 60.0 + float(t.second) / 3600.0
+	if bool(t.bc):
+		year = 1 - year
+	calflag = astrology.SE_JUL_CAL if t.cal == chart.Time.JULIAN else astrology.SE_GREG_CAL
+	return float(astrology.swe_julday(year, month, day, hour_float, calflag))
+
+
 def classify_older_younger(chrt_a, chrt_b):
 	"""Return (older_chart, younger_chart) ordered by birth instant (UT jd)."""
 	jd_a = float(getattr(chrt_a.time, "jd", 0.0))
@@ -36,8 +55,15 @@ def classify_older_younger(chrt_a, chrt_b):
 	return chrt_b, chrt_a
 
 
-def _chart_time_from_jd(jd: float, place, reference_time) -> chart.Time:
-	cal = getattr(reference_time, "cal", chart.Time.GREGORIAN)
+def _chart_time_from_jd(jd: float, place) -> chart.Time:
+	"""Build chart time for a UT Julian day at ``place`` (Marr III p. 10).
+
+	Marr's partner epoch is computed in universal time. The resulting clock must
+	be stored as GMT/UT (``Time.GREENWICH``), not reinterpreted through either
+	partner's zone or LMT flags — doing so shifts the displayed local time (e.g.
+	Perón → 19:10 LC instead of 15:11:53).
+	"""
+	cal = chart.Time.GREGORIAN
 	if calendar_policy.calendar_for_jd(jd) == calendar_policy.CALENDAR_JULIAN:
 		cal = chart.Time.JULIAN
 	calflag = astrology.SE_JUL_CAL if cal == chart.Time.JULIAN else astrology.SE_GREG_CAL
@@ -64,14 +90,6 @@ def _chart_time_from_jd(jd: float, place, reference_time) -> chart.Time:
 	if bc:
 		year = 1 - int(year)
 
-	plus = bool(getattr(reference_time, "plus", True))
-	zh = int(getattr(reference_time, "zh", 0) or 0)
-	zm = int(getattr(reference_time, "zm", 0) or 0)
-	daylight = bool(getattr(reference_time, "daylightsaving", False))
-	tzid = str(getattr(reference_time, "tzid", "") or "")
-	tzauto = bool(getattr(reference_time, "tzauto", False))
-	zt = getattr(reference_time, "zt", chart.Time.GREENWICH)
-
 	return chart.Time(
 		int(year),
 		int(month),
@@ -81,23 +99,23 @@ def _chart_time_from_jd(jd: float, place, reference_time) -> chart.Time:
 		int(second),
 		bc,
 		cal,
-		zt,
-		plus,
-		zh,
-		zm,
-		daylight,
+		chart.Time.GREENWICH,
+		True,
+		0,
+		0,
+		False,
 		place,
-		tzauto,
-		tzid=tzid,
-		tzauto=tzauto,
+		False,
+		tzid="",
+		tzauto=False,
 	)
 
 
 def partner_horoscope_datetime_tuple(older_chrt, younger_chrt) -> Tuple[int, int, int, int, int, int]:
 	"""Wall-clock components for the partner-horoscope epoch (older reference calendar)."""
 	older, younger = older_chrt, younger_chrt
-	jd = partner_horoscope_jd(older.time.jd, younger.time.jd)
-	time_obj = _chart_time_from_jd(jd, younger.place, older.time)
+	jd = partner_horoscope_jd(_marr_input_jd(older), _marr_input_jd(younger))
+	time_obj = _chart_time_from_jd(jd, younger.place)
 	return (
 		int(time_obj.year),
 		int(time_obj.month),
@@ -111,9 +129,9 @@ def partner_horoscope_datetime_tuple(older_chrt, younger_chrt) -> Tuple[int, int
 def build_partner_horoscope_chart(chrt_a, chrt_b, opts, name=None):
 	"""Build a radix-style partner horoscope for two nativities (Marr III p. 10)."""
 	older, younger = classify_older_younger(chrt_a, chrt_b)
-	jd = partner_horoscope_jd(older.time.jd, younger.time.jd)
+	jd = partner_horoscope_jd(_marr_input_jd(older), _marr_input_jd(younger))
 	place = younger.place
-	time = _chart_time_from_jd(jd, place, older.time)
+	time = _chart_time_from_jd(jd, place)
 	label = mtexts.txts.get("PartnerHoroscope", "Partner Horoscope")
 	default_name = "%s & %s %s" % (
 		getattr(older, "name", "") or "Partner",
