@@ -29,7 +29,7 @@ type Props = {
   className?: string;
 };
 
-const NOTES_EDITOR_ASSET_VERSION = "20260809-native-edit-context-menu";
+const NOTES_EDITOR_ASSET_VERSION = "20261018-host-ready-handshake";
 
 /**
  * Per-radix notes — file-backed via the daemon. Saved charts write the
@@ -85,13 +85,14 @@ function NotesPanelInner({ sourceName, chart = null, documentId, scratch = false
     () => `${notesBaseUrl}/Res/notes/index.html?v=${NOTES_EDITOR_ASSET_VERSION}`,
     [notesBaseUrl],
   );
-  const notesEditorOrigin = React.useMemo(
-    () => {
-      if (typeof window === "undefined") return notesBaseUrl;
+  const notesEditorOrigin = React.useMemo(() => {
+    if (typeof window === "undefined") return notesBaseUrl;
+    try {
+      return new URL(notesEditorUrl).origin;
+    } catch {
       return new URL(notesEditorUrl, window.location.href).origin;
-    },
-    [notesBaseUrl, notesEditorUrl],
-  );
+    }
+  }, [notesBaseUrl, notesEditorUrl]);
   type RawEditorEvent = Record<string, unknown>;
   const notesTheme = React.useMemo(() => notesEditorTheme(theme), [theme]);
 
@@ -195,11 +196,21 @@ function NotesPanelInner({ sourceName, chart = null, documentId, scratch = false
     return queued;
   }, [sourceName]);
 
+  const notifyEditorHostReady = React.useCallback(() => {
+    const frame = iframeRef.current?.contentWindow;
+    if (!frame) return;
+    frame.postMessage({ type: "hostReady" }, notesEditorOrigin);
+    frame.postMessage({ type: "hostReady" }, "*");
+  }, [notesEditorOrigin]);
+
   const handleIframeLoad = React.useCallback(() => {
     editorReadyRef.current = false;
     setEditorReady(false);
     setError(null);
-  }, []);
+    notifyEditorHostReady();
+    window.setTimeout(notifyEditorHostReady, 0);
+    window.setTimeout(notifyEditorHostReady, 100);
+  }, [notifyEditorHostReady]);
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -358,7 +369,7 @@ function NotesPanelInner({ sourceName, chart = null, documentId, scratch = false
     [handleBlur, notesEditorOrigin, notesTheme, saveCurrent, setEditorText, setNotesPaneOpen, sendEditorMessage, syncDocumentToEditor, t],
   );
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     window.addEventListener("message", handleEditorMessage);
     return () => {
       window.removeEventListener("message", handleEditorMessage);

@@ -29,6 +29,29 @@ import './style.css';
 
 let editor = null;
 let ready = false;
+
+function announceReady() {
+  if (!ready) return;
+  post({ type: 'ready' });
+}
+
+window.__ariesNotesAnnounceReady = announceReady;
+
+window.addEventListener('message', (event) => {
+  const payload = typeof event.data === 'string'
+    ? (() => {
+        try {
+          return JSON.parse(event.data);
+        } catch {
+          return null;
+        }
+      })()
+    : event.data;
+  if (!payload || typeof payload !== 'object') return;
+  if (payload.type === 'hostReady') {
+    announceReady();
+  }
+});
 let readOnly = true;
 let suppressInput = false;
 let currentMarkdown = '';
@@ -430,7 +453,7 @@ async function createEditor() {
     pendingDocument = null;
     setDocument(payload);
   }
-  post({ type: 'ready' });
+  announceReady();
 }
 
 window.AriesNotes = {
