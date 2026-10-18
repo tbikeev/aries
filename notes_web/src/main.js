@@ -62,7 +62,8 @@ const appRoot = document.getElementById('notes-app');
 const statusNode = document.getElementById('boot-status');
 
 function post(message) {
-  const body = JSON.stringify(message);
+  const envelope = { source: 'aries-notes', payload: message };
+  const body = JSON.stringify(envelope);
   if (window.ariesNotes && typeof window.ariesNotes.postMessage === 'function') {
     window.ariesNotes.postMessage(body);
   }
