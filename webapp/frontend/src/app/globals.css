@@ -1281,11 +1281,10 @@ html {
   --aries-list-cell-y-symbolic: 8px;
   --aries-list-rule-color: var(--aries-border-subtle);
   --aries-list-stripe-bg: var(--aries-surface-subtle);
-  /* Opaque mixes only — WKWebView treats color-mix(..., transparent) as solid light fill. */
+  /* Hex only — Tailwind v4 rewrites `hex + color-mix()` into a @supports fallback of
+   * var(--aries-text-primary), which WKWebView keeps when srgb color-mix fails. */
   --aries-list-hover-bg: #353638;
-  --aries-list-hover-bg: color-mix(in srgb, var(--aries-text-primary) 6%, var(--aries-surface-subtle));
   --aries-list-selected-bg: #3a3b3e;
-  --aries-list-selected-bg: color-mix(in srgb, var(--aries-text-primary) 10%, var(--aries-surface-subtle));
   --aries-list-current-bg: var(--aries-accent);
   --aries-table-font-size-standard: var(--aries-font-size-base);
   --aries-table-row-height-standard: 31px;
@@ -1750,9 +1749,7 @@ html[data-theme-ready="pending"] body {
   --morinus-houses: rgb(120 124 132);
   --morinus-housenums: rgb(66 68 74);
   --aries-list-hover-bg: #e4e4e4;
-  --aries-list-hover-bg: color-mix(in srgb, var(--aries-text-primary) 5%, var(--aries-surface-subtle));
   --aries-list-selected-bg: #dedede;
-  --aries-list-selected-bg: color-mix(in srgb, var(--aries-text-primary) 8%, var(--aries-surface-subtle));
   --aries-table-hover-bg: color-mix(in srgb, var(--aries-text-primary) 5%, var(--aries-table-bg));
   color-scheme: light;
 }
