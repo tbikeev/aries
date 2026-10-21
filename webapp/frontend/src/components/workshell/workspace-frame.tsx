@@ -258,7 +258,7 @@ export function WorkspaceFrame({
         dateConvention={dateConvention}
       />
       <SidebarProvider
-        open={sidebarOpen}
+        open={sidebarOpen || commandSwitcherActive}
         onOpenChange={setSidebarOpen}
         className={
           "h-full min-h-0 overflow-hidden" +

@@ -7,25 +7,30 @@ import {
   computeCommandSwitcherExpandedWidth,
   slotAssignmentsFromVisibleDocumentIds,
 } from "@/shortcuts/sidebar-command-switcher";
-import { useFrameLayoutStore } from "@/stores/frame-layout-store";
-
-type SavedSidebarLayout = {
-  width: number;
-  open: boolean;
-};
 
 type SidebarCommandSwitcherState = {
   /** True while the sidebar is expanded for ⌘-hold document switching. */
   active: boolean;
   expandedWidthPx: number;
   slotByDocumentId: Record<string, number>;
-  savedLayout: SavedSidebarLayout | null;
 
-  activate: (savedLayout: SavedSidebarLayout) => void;
+  activate: () => void;
   setVisibleDocumentIds: (visibleDocumentIds: readonly string[]) => void;
   syncExpandedWidth: () => void;
-  dismiss: () => SavedSidebarLayout | null;
+  dismiss: () => void;
 };
+
+function clearSwitcherDomFlag(): void {
+  if (typeof document !== "undefined") {
+    document.documentElement.removeAttribute("data-sidebar-command-switcher");
+  }
+}
+
+function setSwitcherDomFlag(): void {
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-sidebar-command-switcher", "");
+  }
+}
 
 export const useSidebarCommandSwitcherStore = create<SidebarCommandSwitcherState>(
   (set, get) => ({
@@ -34,18 +39,14 @@ export const useSidebarCommandSwitcherStore = create<SidebarCommandSwitcherState
       typeof window !== "undefined" ? window.innerWidth : 1024,
     ),
     slotByDocumentId: {},
-    savedLayout: null,
 
-    activate: (savedLayout) => {
+    activate: () => {
       set({
         active: true,
-        savedLayout,
         expandedWidthPx: computeCommandSwitcherExpandedWidth(window.innerWidth),
         slotByDocumentId: {},
       });
-      if (typeof document !== "undefined") {
-        document.documentElement.setAttribute("data-sidebar-command-switcher", "");
-      }
+      setSwitcherDomFlag();
     },
 
     setVisibleDocumentIds: (visibleDocumentIds) => {
@@ -63,26 +64,22 @@ export const useSidebarCommandSwitcherStore = create<SidebarCommandSwitcherState
     },
 
     dismiss: () => {
-      const saved = get().savedLayout;
       set({
         active: false,
         slotByDocumentId: {},
-        savedLayout: null,
       });
-      if (typeof document !== "undefined") {
-        document.documentElement.removeAttribute("data-sidebar-command-switcher");
-      }
-      if (saved) {
-        const frame = useFrameLayoutStore.getState();
-        frame.setSidebarWidth(saved.width);
-        frame.setSidebarOpen(saved.open);
-      }
-      return saved;
+      clearSwitcherDomFlag();
     },
   }),
 );
 
 /** End the switcher when another ⌘ shortcut runs (menu, manifest, native). */
-export function dismissSidebarCommandSwitcher(): SavedSidebarLayout | null {
-  return useSidebarCommandSwitcherStore.getState().dismiss();
+export function dismissSidebarCommandSwitcher(): void {
+  useSidebarCommandSwitcherStore.getState().dismiss();
+}
+
+/** Hard reset for hook teardown and stuck-state recovery. */
+export function resetSidebarCommandSwitcher(): void {
+  useSidebarCommandSwitcherStore.getState().dismiss();
+  clearSwitcherDomFlag();
 }

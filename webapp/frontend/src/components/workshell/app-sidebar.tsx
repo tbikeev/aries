@@ -47,7 +47,10 @@ import { applyImmediateWorkspaceCommandResult } from "@/stores/daemon-workspace-
 import { runWorkspaceDocumentSnapshotCommand } from "@/stores/workspace-command-snapshot-gate";
 import { findRadixSiblingLaunchParent } from "@/components/workshell/chart-launch-parent";
 import { useFrameLayoutStore } from "@/stores/frame-layout-store";
-import { commandSlotShortcutLabel } from "@/shortcuts/sidebar-command-switcher";
+import {
+  commandSlotAriaShortcut,
+  commandSlotShortcutLabel,
+} from "@/shortcuts/sidebar-command-switcher";
 import { useSidebarCommandSwitcherStore } from "@/stores/sidebar-command-switcher-store";
 import { SidebarCommandSwitcherSlotSync } from "@/components/workshell/sidebar-command-switcher-slots";
 import { useT, useTFallback, type TFunc } from "@/lib/i18n/i18n";
@@ -287,13 +290,18 @@ function DocumentsGroup({
   );
 }
 
-function useDocumentCommandSlotShortcut(documentId: string): string | undefined {
+function useDocumentCommandSlotShortcut(
+  documentId: string,
+): { display: string; aria: string } | undefined {
   const active = useSidebarCommandSwitcherStore((s) => s.active);
   const slot = useSidebarCommandSwitcherStore(
     (s) => s.slotByDocumentId[documentId],
   );
   if (!active || slot == null) return undefined;
-  return commandSlotShortcutLabel(slot);
+  return {
+    display: commandSlotShortcutLabel(slot),
+    aria: commandSlotAriaShortcut(slot),
+  };
 }
 
 function StaticDocumentsGroup({
@@ -366,7 +374,8 @@ export function DocumentSidebarRow({
         <NavRow
           documentId={doc.id}
           label={documentRowLabel(doc, dirty, t)}
-          shortcut={commandShortcut}
+          shortcut={commandShortcut?.display}
+          ariaKeyShortcuts={commandShortcut?.aria}
           isActive={isActive}
           depth={depth}
           dirty={dirty}
@@ -884,6 +893,7 @@ type NavRowProps = {
   actionId?: string;
   documentId?: string;
   shortcut?: string | null;
+  ariaKeyShortcuts?: string;
   isActive?: boolean;
   depth?: number;
   dirty?: boolean;
@@ -905,6 +915,7 @@ export function NavRow({
   actionId,
   documentId,
   shortcut,
+  ariaKeyShortcuts: ariaKeyShortcutsProp,
   isActive,
   depth = 0,
   dirty,
@@ -931,7 +942,9 @@ export function NavRow({
   const shortcutMaskImage = shortcutOverlayWidth
     ? shortcutFadeMask(shortcutOverlayWidth)
     : undefined;
-  const ariaKeyShortcuts = disabled ? undefined : normalizeAriaKeyShortcuts(shortcut);
+  const ariaKeyShortcuts = disabled
+    ? undefined
+    : ariaKeyShortcutsProp ?? normalizeAriaKeyShortcuts(shortcut);
   // The shortcut is hover/focus information, not a permanent layout column.
   // Give the idle label the full row; CSS fades only the part beneath the
   // overlaid hint while it is visible. Document close buttons remain reserved.

@@ -13,21 +13,31 @@ const moduleUrl = pathToFileURL(
 
 const {
   SIDEBAR_COMMAND_HOLD_MS,
-  commandDigitToSlotIndex,
+  commandDigitCodeToSlotIndex,
   commandSlotShortcutLabel,
+  commandSlotAriaShortcut,
   computeCommandSwitcherExpandedWidth,
   slotAssignmentsFromVisibleDocumentIds,
   resolveDocumentIdForCommandSlot,
-  isMetaOrControlKey,
+  isMetaPhysicalKey,
+  isCommandHoldModifier,
+  shouldReserveCommandDigitFromManifestDismiss,
 } = await import(moduleUrl);
 
 assert.equal(SIDEBAR_COMMAND_HOLD_MS, 150);
-assert.equal(commandDigitToSlotIndex("1"), 0);
-assert.equal(commandDigitToSlotIndex("9"), 8);
-assert.equal(commandDigitToSlotIndex("0"), 9);
-assert.equal(commandDigitToSlotIndex("a"), null);
+assert.equal(commandDigitCodeToSlotIndex("Digit1"), 0);
+assert.equal(commandDigitCodeToSlotIndex("Digit9"), 8);
+assert.equal(commandDigitCodeToSlotIndex("Digit0"), 9);
+assert.equal(commandDigitCodeToSlotIndex("Key1"), null);
+assert.equal(
+  commandDigitCodeToSlotIndex("Digit1"),
+  0,
+  "AZERTY & key must not be used — code Digit1 maps slot 0",
+);
 assert.equal(commandSlotShortcutLabel(0), "⌘1");
 assert.equal(commandSlotShortcutLabel(9), "⌘0");
+assert.equal(commandSlotAriaShortcut(0), "Meta+1");
+assert.equal(commandSlotAriaShortcut(9), "Meta+0");
 assert.equal(computeCommandSwitcherExpandedWidth(1200), 1200);
 assert.deepEqual(
   slotAssignmentsFromVisibleDocumentIds(["a", "b", "c"]),
@@ -37,8 +47,32 @@ assert.equal(
   resolveDocumentIdForCommandSlot(1, { x: 0, y: 1 }),
   "y",
 );
-assert.equal(isMetaOrControlKey("MetaLeft"), true);
-assert.equal(isMetaOrControlKey("KeyA"), false);
+assert.equal(isMetaPhysicalKey("MetaLeft"), true);
+assert.equal(isMetaPhysicalKey("ControlLeft"), false);
+assert.equal(isCommandHoldModifier({ metaKey: true, ctrlKey: false }), true);
+assert.equal(isCommandHoldModifier({ metaKey: true, ctrlKey: true }), false);
+assert.equal(isCommandHoldModifier({ metaKey: false, ctrlKey: true }), false);
+assert.equal(
+  shouldReserveCommandDigitFromManifestDismiss(
+    { metaKey: true, ctrlKey: false, code: "Digit2" },
+    true,
+  ),
+  true,
+);
+assert.equal(
+  shouldReserveCommandDigitFromManifestDismiss(
+    { metaKey: true, ctrlKey: false, code: "KeyS" },
+    true,
+  ),
+  false,
+);
+
+const storeSource = readFileSync(
+  join(root, "src/stores/sidebar-command-switcher-store.ts"),
+  "utf8",
+);
+assert.doesNotMatch(storeSource, /setSidebarWidth/);
+assert.doesNotMatch(storeSource, /setSidebarOpen/);
 
 const homeClient = readFileSync(
   join(root, "src/components/workshell/home-client.tsx"),
@@ -46,7 +80,20 @@ const homeClient = readFileSync(
 );
 assert.match(homeClient, /useSidebarCommandSwitcher\(\{ onActivateDocument: handleSelect \}\)/);
 
+const sidebar = readFileSync(
+  join(root, "src/components/workshell/app-sidebar.tsx"),
+  "utf8",
+);
+assert.match(sidebar, /ariaKeyShortcuts=\{commandShortcut\?\.aria\}/);
+
 const globals = readFileSync(join(root, "src/app/globals.css"), "utf8");
 assert.match(globals, /\[data-sidebar-command-switcher\][\s\S]*aries-sidebar-navrow--command-slot/);
+assert.match(globals, /prefers-reduced-motion: reduce/);
+
+const nativeMenu = readFileSync(
+  join(root, "src-tauri/native-menu-manifest.json"),
+  "utf8",
+);
+assert.doesNotMatch(nativeMenu, /CmdOrCtrl\+[0-9]/);
 
 console.log("sidebar-command-switcher.test.mjs: ok");
