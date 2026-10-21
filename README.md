@@ -23,6 +23,7 @@ official supported installers.
 | `Cmd/Ctrl + Shift + C` | Copy chart as PNG |
 | `Cmd/Ctrl + W` | Close active document |
 | `Cmd/Ctrl + B` | Toggle sidebar |
+| Hold `Cmd/Ctrl` | Expand chart list; `Cmd/Ctrl`+`1`…`0` switch visible charts |
 | `Cmd/Ctrl + F` | Search |
 | `Cmd/Ctrl + Y` | Synastry |
 | `Cmd/Ctrl + G` | Cycle the secondary-ring view |
