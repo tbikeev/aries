@@ -4,19 +4,23 @@
 import { create } from "zustand";
 
 import {
-  computeCommandSwitcherExpandedWidth,
+  computeCommandSwitcherFitWidth,
+  measureCommandSwitcherContentWidth,
+  readShellSidebarWidthPx,
   slotAssignmentsFromVisibleDocumentIds,
 } from "@/shortcuts/sidebar-command-switcher";
 
 type SidebarCommandSwitcherState = {
   /** True while the sidebar is expanded for ⌘-hold document switching. */
   active: boolean;
+  /** Sidebar column width captured when ⌘-hold began (never shrink below this). */
+  baselineWidthPx: number;
   expandedWidthPx: number;
   slotByDocumentId: Record<string, number>;
 
   activate: () => void;
   setVisibleDocumentIds: (visibleDocumentIds: readonly string[]) => void;
-  syncExpandedWidth: () => void;
+  syncExpandedWidthFromDom: (scrollRoot: HTMLElement | null) => void;
   dismiss: () => void;
 };
 
@@ -35,15 +39,18 @@ function setSwitcherDomFlag(): void {
 export const useSidebarCommandSwitcherStore = create<SidebarCommandSwitcherState>(
   (set, get) => ({
     active: false,
-    expandedWidthPx: computeCommandSwitcherExpandedWidth(
-      typeof window !== "undefined" ? window.innerWidth : 1024,
-    ),
+    baselineWidthPx: 272,
+    expandedWidthPx: 272,
     slotByDocumentId: {},
 
     activate: () => {
+      const baseline = readShellSidebarWidthPx(
+        typeof document !== "undefined" ? document : undefined,
+      );
       set({
         active: true,
-        expandedWidthPx: computeCommandSwitcherExpandedWidth(window.innerWidth),
+        baselineWidthPx: baseline,
+        expandedWidthPx: baseline,
         slotByDocumentId: {},
       });
       setSwitcherDomFlag();
@@ -56,10 +63,16 @@ export const useSidebarCommandSwitcherStore = create<SidebarCommandSwitcherState
       });
     },
 
-    syncExpandedWidth: () => {
+    syncExpandedWidthFromDom: (scrollRoot) => {
       if (!get().active) return;
+      const { baselineWidthPx } = get();
+      const contentNeedPx = measureCommandSwitcherContentWidth(scrollRoot);
       set({
-        expandedWidthPx: computeCommandSwitcherExpandedWidth(window.innerWidth),
+        expandedWidthPx: computeCommandSwitcherFitWidth({
+          baselineWidthPx,
+          contentNeedPx,
+          windowInnerWidth: window.innerWidth,
+        }),
       });
     },
 

@@ -55,9 +55,114 @@ export function commandSlotAriaShortcut(slotIndex: number): string {
   return `Meta+${digit}`;
 }
 
-export function computeCommandSwitcherExpandedWidth(windowInnerWidth: number): number {
-  if (!Number.isFinite(windowInnerWidth) || windowInnerWidth <= 0) return 320;
-  return Math.max(320, Math.floor(windowInnerWidth));
+/** Hard cap for ⌘-hold expansion (px). */
+export const SIDEBAR_COMMAND_EXPAND_MAX_PX = 480;
+
+/** Never expand past this fraction of the window width. */
+export const SIDEBAR_COMMAND_EXPAND_MAX_WINDOW_FRACTION = 0.5;
+
+export function commandSwitcherExpandCapPx(windowInnerWidth: number): number {
+  if (!Number.isFinite(windowInnerWidth) || windowInnerWidth <= 0) {
+    return SIDEBAR_COMMAND_EXPAND_MAX_PX;
+  }
+  const halfWindow = Math.floor(windowInnerWidth * SIDEBAR_COMMAND_EXPAND_MAX_WINDOW_FRACTION);
+  return Math.min(SIDEBAR_COMMAND_EXPAND_MAX_PX, halfWindow);
+}
+
+export type CommandSwitcherRowMeasure = {
+  paddingLeftPx: number;
+  paddingRightPx: number;
+  labelScrollWidthPx: number;
+  hintScrollWidthPx: number;
+  closeButtonWidthPx: number;
+};
+
+/** Width one document row needs so label + badge + chrome fit without truncation. */
+export function measureSidebarRowContentNeedPx(row: CommandSwitcherRowMeasure): number {
+  const hintGapPx = row.hintScrollWidthPx > 0 ? 8 : 0;
+  return (
+    row.paddingLeftPx +
+    row.labelScrollWidthPx +
+    hintGapPx +
+    row.hintScrollWidthPx +
+    row.paddingRightPx +
+    row.closeButtonWidthPx
+  );
+}
+
+export function computeCommandSwitcherFitWidth(input: {
+  baselineWidthPx: number;
+  contentNeedPx: number;
+  windowInnerWidth: number;
+  scrollRootHorizontalPaddingPx?: number;
+}): number {
+  const baseline = Number.isFinite(input.baselineWidthPx)
+    ? Math.max(0, input.baselineWidthPx)
+    : 0;
+  const cap = commandSwitcherExpandCapPx(input.windowInnerWidth);
+  const shellPadding = input.scrollRootHorizontalPaddingPx ?? 0;
+  const target = Math.ceil(input.contentNeedPx + shellPadding);
+  const clamped = Math.min(cap, target);
+  return Math.max(baseline, clamped);
+}
+
+export function readShellSidebarWidthPx(doc: Document | undefined): number {
+  if (!doc) return 272;
+  const shell = doc.querySelector<HTMLElement>(".app-shell");
+  if (!shell) return 272;
+  const raw = doc.defaultView?.getComputedStyle(shell).getPropertyValue("--sidebar-width").trim();
+  const parsed = raw ? parseFloat(raw) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : 272;
+}
+
+function parseCssPx(value: string): number {
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function measureRowElementContentNeed(row: HTMLElement): number {
+  const button = row.querySelector<HTMLElement>('[data-slot="sidebar-menu-button"]');
+  if (!button) return 0;
+  const label =
+    row.querySelector<HTMLElement>(".aries-sidebar-navrow-label-faded") ??
+    row.querySelector<HTMLElement>(".aries-sidebar-navrow-label");
+  const hint = row.querySelector<HTMLElement>(".aries-sidebar-shortcut-hint");
+  const closeButton = row.querySelector<HTMLElement>(
+    'button[type="button"][aria-label]',
+  );
+  const style = button.ownerDocument.defaultView?.getComputedStyle(button);
+  if (!style) return 0;
+  return measureSidebarRowContentNeedPx({
+    paddingLeftPx: parseCssPx(style.paddingLeft),
+    paddingRightPx: parseCssPx(style.paddingRight),
+    labelScrollWidthPx: label?.scrollWidth ?? 0,
+    hintScrollWidthPx: hint?.scrollWidth ?? 0,
+    closeButtonWidthPx: closeButton ? closeButton.offsetWidth : 0,
+  });
+}
+
+/** Widest visible document row in the sidebar scroller (+ horizontal content padding). */
+export function measureCommandSwitcherContentWidth(
+  scrollRoot: HTMLElement | null,
+): number {
+  if (!scrollRoot) return 0;
+  const rootRect = scrollRoot.getBoundingClientRect();
+  const rows = scrollRoot.querySelectorAll<HTMLElement>(
+    "[data-aries-sidebar-document-row]",
+  );
+  let maxRow = 0;
+  for (const row of rows) {
+    const rect = row.getBoundingClientRect();
+    if (rect.bottom <= rootRect.top + 1 || rect.top >= rootRect.bottom - 1) {
+      continue;
+    }
+    maxRow = Math.max(maxRow, measureRowElementContentNeed(row));
+  }
+  const rootStyle = scrollRoot.ownerDocument.defaultView?.getComputedStyle(scrollRoot);
+  const shellPadding = rootStyle
+    ? parseCssPx(rootStyle.paddingLeft) + parseCssPx(rootStyle.paddingRight)
+    : 0;
+  return maxRow + shellPadding;
 }
 
 export function slotAssignmentsFromVisibleDocumentIds(

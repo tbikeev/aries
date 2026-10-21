@@ -16,7 +16,10 @@ const {
   commandDigitCodeToSlotIndex,
   commandSlotShortcutLabel,
   commandSlotAriaShortcut,
-  computeCommandSwitcherExpandedWidth,
+  SIDEBAR_COMMAND_EXPAND_MAX_PX,
+  commandSwitcherExpandCapPx,
+  computeCommandSwitcherFitWidth,
+  measureSidebarRowContentNeedPx,
   slotAssignmentsFromVisibleDocumentIds,
   resolveDocumentIdForCommandSlot,
   isMetaPhysicalKey,
@@ -38,7 +41,54 @@ assert.equal(commandSlotShortcutLabel(0), "⌘1");
 assert.equal(commandSlotShortcutLabel(9), "⌘0");
 assert.equal(commandSlotAriaShortcut(0), "Meta+1");
 assert.equal(commandSlotAriaShortcut(9), "Meta+0");
-assert.equal(computeCommandSwitcherExpandedWidth(1200), 1200);
+assert.equal(commandSwitcherExpandCapPx(1200), 480);
+assert.equal(commandSwitcherExpandCapPx(800), 400);
+assert.equal(commandSwitcherExpandCapPx(600), 300);
+assert.equal(
+  measureSidebarRowContentNeedPx({
+    paddingLeftPx: 12,
+    paddingRightPx: 12,
+    labelScrollWidthPx: 220,
+    hintScrollWidthPx: 28,
+    closeButtonWidthPx: 20,
+  }),
+  12 + 220 + 8 + 28 + 12 + 20,
+);
+assert.equal(
+  computeCommandSwitcherFitWidth({
+    baselineWidthPx: 272,
+    contentNeedPx: 200,
+    windowInnerWidth: 1200,
+  }),
+  272,
+  "content narrower than baseline must not shrink",
+);
+assert.equal(
+  computeCommandSwitcherFitWidth({
+    baselineWidthPx: 272,
+    contentNeedPx: 420,
+    windowInnerWidth: 1200,
+  }),
+  420,
+);
+assert.equal(
+  computeCommandSwitcherFitWidth({
+    baselineWidthPx: 272,
+    contentNeedPx: 900,
+    windowInnerWidth: 1200,
+  }),
+  SIDEBAR_COMMAND_EXPAND_MAX_PX,
+  "must clamp to cap even when content is wider",
+);
+assert.equal(
+  computeCommandSwitcherFitWidth({
+    baselineWidthPx: 400,
+    contentNeedPx: 900,
+    windowInnerWidth: 2000,
+  }),
+  480,
+  "baseline can sit below cap when content demands more",
+);
 assert.deepEqual(
   slotAssignmentsFromVisibleDocumentIds(["a", "b", "c"]),
   { a: 0, b: 1, c: 2 },

@@ -21,8 +21,8 @@ export function SidebarCommandSwitcherSlotSync({
   const setVisibleDocumentIds = useSidebarCommandSwitcherStore(
     (s) => s.setVisibleDocumentIds,
   );
-  const syncExpandedWidth = useSidebarCommandSwitcherStore(
-    (s) => s.syncExpandedWidth,
+  const syncExpandedWidthFromDom = useSidebarCommandSwitcherStore(
+    (s) => s.syncExpandedWidthFromDom,
   );
 
   React.useEffect(() => {
@@ -41,8 +41,11 @@ export function SidebarCommandSwitcherSlotSync({
       if (raf !== 0) return;
       raf = window.requestAnimationFrame(() => {
         raf = 0;
-        syncExpandedWidth();
         measure();
+        // Slot badges paint on the next frame; measure width after that.
+        window.requestAnimationFrame(() => {
+          syncExpandedWidthFromDom(scrollRootRef.current);
+        });
       });
     };
 
@@ -65,7 +68,7 @@ export function SidebarCommandSwitcherSlotSync({
       observer?.disconnect();
       window.cancelAnimationFrame(raf);
     };
-  }, [active, scrollRootRef, setVisibleDocumentIds, syncExpandedWidth]);
+  }, [active, scrollRootRef, setVisibleDocumentIds, syncExpandedWidthFromDom]);
 
   return null;
 }
