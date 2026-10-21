@@ -7,6 +7,7 @@ import { useEffect } from "react";
 
 import type { ShortcutEntry, WorkspaceManifest } from "@/lib/daemon/client";
 import { spotlightShortcutCoolingDown } from "@/shortcuts/spotlight-cooldown";
+import { dismissSidebarCommandSwitcher } from "@/stores/sidebar-command-switcher-store";
 
 type DispatchShortcutCommand = (commandId: string) => void;
 type CommandEnabledPredicate = (commandId: string) => boolean;
@@ -100,6 +101,9 @@ export function useManifestShortcutDispatch(
       gesture: ShortcutGesture,
       preventDefault: () => void,
     ) => {
+      if (gesture.metaKey || gesture.ctrlKey) {
+        dismissSidebarCommandSwitcher();
+      }
       if (
         !gesture.metaKey &&
         !gesture.ctrlKey &&

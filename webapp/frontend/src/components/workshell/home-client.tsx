@@ -215,6 +215,8 @@ import {
 import { renderChartSurfaceExport } from "@/lib/chart/chart-export-renderer";
 import { useShortcut } from "@/shortcuts/use-shortcut";
 import { useManifestShortcutDispatch } from "@/shortcuts/manifest-shortcuts";
+import { useSidebarCommandSwitcher } from "@/shortcuts/use-sidebar-command-switcher";
+import { dismissSidebarCommandSwitcher } from "@/stores/sidebar-command-switcher-store";
 import { noteSpotlightDismissed } from "@/shortcuts/spotlight-cooldown";
 import {
   enabledActionIds,
@@ -3407,6 +3409,7 @@ export function HomeClient() {
 
   const dispatchManifestCommand = useCallback(
     (command: AriesMenuCommand) => {
+      dismissSidebarCommandSwitcher();
       // Recent Charts entries are runtime-built native items, not manifest
       // rows — resolve through the daemon reopen door before the manifest
       // gate (wx onRecentChartMenu, morin.py:15740-15744).
@@ -3953,6 +3956,7 @@ export function HomeClient() {
   // overlay truth and key bindings cannot diverge. Reference-only/deferred rows
   // remain bound:false and do not register here.
   useManifestShortcutDispatch(manifest, dispatchManifestCommand, commandIsRuntimeEnabled);
+  useSidebarCommandSwitcher({ onActivateDocument: handleSelect });
 
   useShortcut("r", "any", (event) => {
     if (event.ctrlKey || event.metaKey) openHereNow();

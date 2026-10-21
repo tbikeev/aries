@@ -47,6 +47,9 @@ import { applyImmediateWorkspaceCommandResult } from "@/stores/daemon-workspace-
 import { runWorkspaceDocumentSnapshotCommand } from "@/stores/workspace-command-snapshot-gate";
 import { findRadixSiblingLaunchParent } from "@/components/workshell/chart-launch-parent";
 import { useFrameLayoutStore } from "@/stores/frame-layout-store";
+import { commandSlotShortcutLabel } from "@/shortcuts/sidebar-command-switcher";
+import { useSidebarCommandSwitcherStore } from "@/stores/sidebar-command-switcher-store";
+import { SidebarCommandSwitcherSlotSync } from "@/components/workshell/sidebar-command-switcher-slots";
 import { useT, useTFallback, type TFunc } from "@/lib/i18n/i18n";
 import type {
   SidebarAction,
@@ -124,6 +127,7 @@ function AppSidebarComponent({
   harmonicChartMode,
 }: Props) {
   const dragReady = useHydrated();
+  const sidebarScrollRef = React.useRef<HTMLDivElement | null>(null);
   const openEclipsesPane = useWorkspaceStore((s) => s.openEclipsesPane);
   const setInspectorOpen = useFrameLayoutStore((s) => s.setInspectorOpen);
   const setNotesPaneOpen = useFrameLayoutStore((s) => s.setNotesPaneOpen);
@@ -162,7 +166,11 @@ function AppSidebarComponent({
         aria-hidden="true"
         className="h-px shrink-0 bg-[color:var(--aries-sidebar-section-rule)]"
       />
-      <SidebarContent className="gap-0 px-[var(--morinus-nav-side-margin)]">
+      <SidebarContent
+        ref={sidebarScrollRef}
+        className="gap-0 px-[var(--morinus-nav-side-margin)]"
+      >
+        <SidebarCommandSwitcherSlotSync scrollRootRef={sidebarScrollRef} />
         <DocumentsGroup
           documents={documents}
           activeDocumentId={activeDocumentId}
@@ -279,6 +287,15 @@ function DocumentsGroup({
   );
 }
 
+function useDocumentCommandSlotShortcut(documentId: string): string | undefined {
+  const active = useSidebarCommandSwitcherStore((s) => s.active);
+  const slot = useSidebarCommandSwitcherStore(
+    (s) => s.slotByDocumentId[documentId],
+  );
+  if (!active || slot == null) return undefined;
+  return commandSlotShortcutLabel(slot);
+}
+
 function StaticDocumentsGroup({
   flat,
   activeDocumentId,
@@ -295,26 +312,74 @@ function StaticDocumentsGroup({
     <SidebarGroup className="px-0 pb-0 pt-[var(--aries-control-padding-y)]">
       <SidebarGroupContent>
         <SidebarMenu className="gap-0">
-          {flat.map(({ node, depth }) => {
-            const dirty = node.doc.dirty === true;
-            return (
-              <SidebarMenuItem key={node.doc.id}>
-                <DocumentRowContextMenu docId={node.doc.id}>
-                  <NavRow
-                    label={documentRowLabel(node.doc, dirty, t)}
-                    isActive={node.doc.id === activeDocumentId}
-                    depth={depth}
-                    dirty={dirty}
-                    onClick={() => onSelect(node.doc.id)}
-                    onClose={() => onClose(node.doc.id)}
-                  />
-                </DocumentRowContextMenu>
-              </SidebarMenuItem>
-            );
-          })}
+          {flat.map(({ node, depth }) => (
+            <DocumentSidebarRow
+              key={node.doc.id}
+              doc={node.doc}
+              depth={depth}
+              isActive={node.doc.id === activeDocumentId}
+              onSelect={() => onSelect(node.doc.id)}
+              onClose={() => onClose(node.doc.id)}
+              t={t}
+            />
+          ))}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
+  );
+}
+
+export function DocumentSidebarRow({
+  doc,
+  depth,
+  isActive,
+  onSelect,
+  onClose,
+  t,
+  dragAttributes,
+  dragListeners,
+  preview,
+  dropIndicator,
+  previewTargetLabel,
+  sortableStyle,
+  sortableRef,
+}: {
+  doc: WorkspaceDocument;
+  depth: number;
+  isActive: boolean;
+  onSelect: () => void;
+  onClose?: () => void;
+  t: TFunc;
+  dragAttributes?: React.HTMLAttributes<HTMLButtonElement>;
+  dragListeners?: React.HTMLAttributes<HTMLButtonElement>;
+  preview?: { kind: DragPreviewKind; sourceLabel: string } | null;
+  dropIndicator?: DropIndicatorPosition | null;
+  previewTargetLabel?: string;
+  sortableStyle?: React.CSSProperties;
+  sortableRef?: React.Ref<HTMLLIElement>;
+}) {
+  const dirty = doc.dirty === true;
+  const commandShortcut = useDocumentCommandSlotShortcut(doc.id);
+  return (
+    <SidebarMenuItem ref={sortableRef} style={sortableStyle}>
+      <DocumentRowContextMenu docId={doc.id}>
+        <NavRow
+          documentId={doc.id}
+          label={documentRowLabel(doc, dirty, t)}
+          shortcut={commandShortcut}
+          isActive={isActive}
+          depth={depth}
+          dirty={dirty}
+          onClick={onSelect}
+          onClose={onClose}
+          dragAttributes={dragAttributes}
+          dragListeners={dragListeners}
+          preview={preview}
+          dropIndicator={dropIndicator}
+          previewTargetLabel={previewTargetLabel}
+        />
+      </DocumentRowContextMenu>
+    </SidebarMenuItem>
   );
 }
 
@@ -817,6 +882,7 @@ export function HarmonicLauncherContextMenu({
 type NavRowProps = {
   label: string;
   actionId?: string;
+  documentId?: string;
   shortcut?: string | null;
   isActive?: boolean;
   depth?: number;
@@ -837,6 +903,7 @@ type NavRowProps = {
 export function NavRow({
   label,
   actionId,
+  documentId,
   shortcut,
   isActive,
   depth = 0,
@@ -855,7 +922,9 @@ export function NavRow({
   const shortcutHint = shortcut?.trim();
   const shortcutChords = shortcutHint ? shortcutDisplayChords(shortcutHint) : [];
   const shortcutDisplay = shortcutChords.map((chord) => chord.join("")).join("/");
-  const showShortcutHint = shortcutChords.length > 0 && !disabled && !onClose;
+  const commandSwitcherPinned = Boolean(documentId && shortcutChords.length > 0);
+  const showShortcutHint =
+    shortcutChords.length > 0 && !disabled && (!onClose || commandSwitcherPinned);
   const shortcutOverlayWidth = showShortcutHint
     ? shortcutDisplayWidth(shortcutChords)
     : null;
@@ -898,7 +967,14 @@ export function NavRow({
       className={cn(
         "group/navrow relative",
         showShortcutHint && "aries-sidebar-navrow--shortcut",
+        commandSwitcherPinned && "aries-sidebar-navrow--command-slot",
       )}
+      {...(documentId
+        ? {
+            "data-aries-sidebar-document-row": "",
+            "data-aries-sidebar-document-id": documentId,
+          }
+        : {})}
     >
       <SidebarMenuButton
         data-aries-sidebar-action-id={actionId}

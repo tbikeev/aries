@@ -48,11 +48,10 @@ import {
 import { useT, useTFallback } from "@/lib/i18n/i18n";
 import type { WorkspaceDocument } from "@/stores/workspace-store";
 import {
-  DocumentRowContextMenu,
+  DocumentSidebarRow,
   HarmonicLauncherContextMenu,
   NavRow,
   SolarAverageLauncherContextMenu,
-  documentRowLabel,
   type DropIndicatorPosition,
   type FlatDocumentNode,
   type ReturnAverageKind,
@@ -579,7 +578,6 @@ function SortableDocItem({
   const t = useT();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: doc.id });
-  const label = documentRowLabel(doc, dirty, t);
   const freezeDragSource = isDragging && Boolean(conversionActive);
   const style: React.CSSProperties = {
     transform: freezeDragSource ? undefined : CSS.Transform.toString(transform),
@@ -590,23 +588,21 @@ function SortableDocItem({
   };
 
   return (
-    <SidebarMenuItem ref={setNodeRef} style={style}>
-      <DocumentRowContextMenu docId={doc.id}>
-        <NavRow
-          label={label}
-          isActive={isActive}
-          depth={depth}
-          dirty={dirty}
-          onClick={onSelect}
-          onClose={onClose}
-          dragAttributes={attributes}
-          dragListeners={listeners}
-          preview={isDragging ? null : preview}
-          dropIndicator={isDragging ? null : dropIndicator}
-          previewTargetLabel={doc.title}
-        />
-      </DocumentRowContextMenu>
-    </SidebarMenuItem>
+    <DocumentSidebarRow
+      doc={doc}
+      depth={depth}
+      isActive={isActive}
+      onSelect={onSelect}
+      onClose={onClose}
+      t={t}
+      dragAttributes={attributes}
+      dragListeners={listeners}
+      preview={isDragging ? null : preview}
+      dropIndicator={isDragging ? null : dropIndicator}
+      previewTargetLabel={doc.title}
+      sortableStyle={style}
+      sortableRef={setNodeRef}
+    />
   );
 }
 

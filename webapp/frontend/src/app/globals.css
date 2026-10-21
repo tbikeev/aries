@@ -2941,6 +2941,24 @@ html[data-theme-ready="pending"] body {
   .aries-sidebar-shortcut-hint {
   opacity: 1;
 }
+[data-sidebar-command-switcher] .aries-sidebar-navrow--command-slot .aries-sidebar-navrow-label-faded {
+  opacity: 1;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+[data-sidebar-command-switcher] .aries-sidebar-navrow--command-slot .aries-sidebar-navrow-label {
+  opacity: 0;
+}
+[data-sidebar-command-switcher] .aries-sidebar-navrow--command-slot .aries-sidebar-shortcut-hint {
+  opacity: 1;
+}
+[data-sidebar-command-switcher] .aries-sidebar-navrow--command-slot .group\/navrow > button[aria-label][type="button"] {
+  opacity: 0 !important;
+  pointer-events: none;
+}
 .app-shell [data-slot="sidebar-container"] {
   top: 0;
   bottom: var(--morinus-status-height);
