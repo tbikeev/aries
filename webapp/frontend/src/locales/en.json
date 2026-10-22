@@ -1786,6 +1786,7 @@
   "settings.wheelChartStyle": "Wheel appearance",
   "WheelChartStyleDefault": "Default (dark wheel)",
   "WheelChartStyleClassicLight": "Classic light",
+  "optmenu.wheelAppearance": "Wheel appearance",
   "settings.leaderColumns": "Straight house lines",
   "settings.routedCuspLines": "Routed house lines",
   "settings.signLockedCusps": "Broken lines, planets stay in sign",

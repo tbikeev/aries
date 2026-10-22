@@ -20,6 +20,7 @@ const {
   classicLightHouseNameRadius,
   wrapWheelCssValueReader,
   HOUSE_GLYPHS_CLASSIC_LIGHT,
+  WHEEL_CHART_STYLE_CATALOG,
 } = await import(
   `data:text/javascript;base64,${Buffer.from(javascript).toString("base64")}`
 );
@@ -44,6 +45,13 @@ const basePalette = {
   planets: Array.from({ length: 13 }, () => "rgb(205 205 209)"),
   aspects: Array.from({ length: 14 }, () => "rgb(205 205 209)"),
 };
+
+test("wheel chart style catalog covers every normalized value", () => {
+  assert.deepEqual(
+    WHEEL_CHART_STYLE_CATALOG.map((entry) => entry.value),
+    ["default", "classic_light"],
+  );
+});
 
 test("wheel chart style normalizes unknown values to default", () => {
   assert.equal(normalizeWheelChartStyle(undefined), "default");

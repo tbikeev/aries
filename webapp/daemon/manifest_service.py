@@ -713,6 +713,30 @@ def _live_wheel_styles() -> list[dict]:
         return []
 
 
+def _wheel_appearance_menu_checks() -> list[dict]:
+    return [
+        _quick_check(
+            "quick.options.wheel-chart-style:default",
+            "Default (dark wheel)",
+            label_key="WheelChartStyleDefault",
+        ),
+        _quick_check(
+            "quick.options.wheel-chart-style:classic_light",
+            "Classic light",
+            label_key="WheelChartStyleClassicLight",
+        ),
+    ]
+
+
+def _wheel_appearance_submenu(menu_id: str) -> dict:
+    return _quick_submenu(
+        menu_id,
+        "Wheel appearance",
+        _wheel_appearance_menu_checks(),
+        label_key="optmenu.wheelAppearance",
+    )
+
+
 def _theme_presets_submenu(theme_presets: list[dict] | None = None) -> dict:
     children = []
     if theme_presets is None:
@@ -735,6 +759,8 @@ def _theme_presets_submenu(theme_presets: list[dict] | None = None) -> dict:
         label = str(preset.get("label") or name)
         children.append(_quick_check(f"quick.options.theme-preset:{name}", label))
     children.extend([
+        {"type": "separator"},
+        _wheel_appearance_submenu("menu.options.quick.theme-presets.wheel-appearance"),
         {"type": "separator"},
         _quick_check(
             "quick.options.colors:follow_os_theme",
@@ -811,6 +837,8 @@ def _options_menu_children(theme_presets: list[dict] | None = None, wheel_styles
                 ],
                 label_key="optmenu.angloDenseLabelLayout",
             ),
+            {"type": "separator"},
+            _wheel_appearance_submenu("menu.options.quick.wheel-layout.wheel-appearance"),
         ]),
         {"type": "separator"},
         _quick_submenu("menu.options.quick.node", "Node calculation", _quick_radio(

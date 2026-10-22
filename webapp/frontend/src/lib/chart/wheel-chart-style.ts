@@ -11,6 +11,16 @@ export const WHEEL_CHART_STYLE_DEFAULT: WheelChartStyle = "default";
 
 export const WHEEL_CHART_STYLE_VALUES = ["default", "classic_light"] as const;
 
+/** Fallback when an older daemon omits catalog.wheelChartStyles. */
+export const WHEEL_CHART_STYLE_CATALOG = [
+  { value: "default", label: "Default (dark wheel)", labelKey: "WheelChartStyleDefault" },
+  { value: "classic_light", label: "Classic light", labelKey: "WheelChartStyleClassicLight" },
+] as const satisfies ReadonlyArray<{
+  value: WheelChartStyle;
+  label: string;
+  labelKey: string;
+}>;
+
 export function normalizeWheelChartStyle(value: unknown): WheelChartStyle {
   return value === "classic_light" ? "classic_light" : WHEEL_CHART_STYLE_DEFAULT;
 }
