@@ -219,27 +219,6 @@ export function ChartEventsPanel({ documentId }: { documentId: string }) {
     setDeleting(row);
   };
 
-  React.useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Backspace" || event.repeat || pending || deleting || !selectedEventKey) return;
-      if (!selectedEventKey.startsWith(`${documentId}:`)) return;
-      const eventId = selectedEventKey.slice(documentId.length + 1);
-      const row = filtered.find((item) => item.id === eventId);
-      if (!row) return;
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [data-aries-surface="popover"]')) {
-        return;
-      }
-      const pane = scrollerRef.current?.closest('[data-right-inspector-pane="chart-events"]');
-      if (!pane) return;
-      if (target && !pane.contains(target)) return;
-      event.preventDefault();
-      confirmRemove(row);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [confirmRemove, deleting, documentId, filtered, pending, selectedEventKey]);
-
   const toggleSelectedId = (eventId: string) => {
     setSelectedIds((current) => {
       const next = new Set(current);
@@ -432,11 +411,19 @@ export function ChartEventsPanel({ documentId }: { documentId: string }) {
                     <React.Fragment key={keys[index]}>
                     <SidebarListRow data-event-row={row.id} className={`${LIST_ROW_CLASSES.hover} border-b-0`}
                       data-state={selectedEventKey === `${documentId}:${row.id}` ? "selected" : undefined}
+                      tabIndex={-1}
                       onClick={(event) => {
                         setSelectedEventKey(`${documentId}:${row.id}`);
                         if (selectMode && !(event.target as HTMLElement).closest("input[type=checkbox], button, textarea, a, [role=button]")) {
                           toggleSelectedId(row.id);
                         }
+                        event.currentTarget.focus();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Backspace" || event.repeat || pending || deleting
+                          || selectedEventKey !== `${documentId}:${row.id}`
+                          || (event.target as HTMLElement).closest('input, textarea, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [data-aries-surface="popover"]')) return;
+                        event.preventDefault(); event.stopPropagation(); confirmRemove(row);
                       }}
                       onDoubleClick={() => { if (!selectMode) void openEvent(row); }} onContextMenu={(event) => {
                         if ((event.target as HTMLElement).closest("[data-event-tag]")) return;
