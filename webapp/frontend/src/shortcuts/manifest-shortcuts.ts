@@ -7,6 +7,11 @@ import { useEffect } from "react";
 
 import type { ShortcutEntry, WorkspaceManifest } from "@/lib/daemon/client";
 import { spotlightShortcutCoolingDown } from "@/shortcuts/spotlight-cooldown";
+import { shouldReserveCommandDigitFromManifestDismiss } from "@/shortcuts/sidebar-command-switcher";
+import {
+  dismissSidebarCommandSwitcher,
+  useSidebarCommandSwitcherStore,
+} from "@/stores/sidebar-command-switcher-store";
 
 type DispatchShortcutCommand = (commandId: string) => void;
 type CommandEnabledPredicate = (commandId: string) => boolean;
@@ -140,6 +145,16 @@ export function useManifestShortcutDispatch(
       );
     if (rows.length === 0) return;
 
+    const maybeDismissCommandSwitcher = (event: KeyboardEvent) => {
+      const switcherActive = useSidebarCommandSwitcherStore.getState().active;
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        !shouldReserveCommandDigitFromManifestDismiss(event, switcherActive)
+      ) {
+        dismissSidebarCommandSwitcher();
+      }
+    };
+
     const dispatchGesture = (
       gesture: ShortcutGesture,
       preventDefault: () => void,
@@ -179,6 +194,7 @@ export function useManifestShortcutDispatch(
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat || !targetAllowsShortcut(event.target)) return;
       if (!chartScopeIsClear()) return;
+      maybeDismissCommandSwitcher(event);
       dispatchGesture(keyboardGestureFromEvent(event), () => event.preventDefault());
     };
 

@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import type { ChartRenderSnapshot } from "@/lib/chart/types";
 import type { WorkspaceManifest } from "@/lib/daemon/client";
 import { rightPanePriorityLayout, useFrameLayoutStore } from "@/stores/frame-layout-store";
+import { useSidebarCommandSwitcherStore } from "@/stores/sidebar-command-switcher-store";
 import { useWorkspaceStore, type WorkspaceDocument } from "@/stores/workspace-store";
 import type { SettingsTabId } from "./settings-dialog";
 import {
@@ -165,14 +166,20 @@ export function WorkspaceFrame({
     activeAstrocartDocumentId,
     featureCatalogPane,
   });
-  const effectiveSidebarWidth = activeRightPane
-    ? rightPanePriorityLayout(
-        sidebarOpen,
-        sidebarWidth,
-        rightPaneWidth,
-        activeRightPane,
-      ).sidebarWidth
-    : sidebarWidth;
+  const commandSwitcherActive = useSidebarCommandSwitcherStore((s) => s.active);
+  const commandSwitcherWidth = useSidebarCommandSwitcherStore(
+    (s) => s.expandedWidthPx,
+  );
+  const effectiveSidebarWidth = commandSwitcherActive
+    ? commandSwitcherWidth
+    : activeRightPane
+      ? rightPanePriorityLayout(
+          sidebarOpen,
+          sidebarWidth,
+          rightPaneWidth,
+          activeRightPane,
+        ).sidebarWidth
+      : sidebarWidth;
   const lastKeyHintEdgeRevealRef = React.useRef(0);
   const lastKeyHintEdgePlacementRef = React.useRef<KeyHintPlacement | null>(null);
   const handleShellPointerMove = React.useCallback(
@@ -251,7 +258,7 @@ export function WorkspaceFrame({
         dateConvention={dateConvention}
       />
       <SidebarProvider
-        open={sidebarOpen}
+        open={sidebarOpen || commandSwitcherActive}
         onOpenChange={setSidebarOpen}
         className={
           "h-full min-h-0 overflow-hidden" +

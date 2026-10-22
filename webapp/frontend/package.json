@@ -41,7 +41,7 @@
     "side-by-side-refresh-test": "node --test ./scripts/side-by-side-refresh.test.mjs",
     "harmonic-projection-coherence-test": "node --test ./scripts/harmonic-projection-coherence.test.mjs",
     "chart-clipboard-contract-test": "node --test ./scripts/chart-clipboard-contract.test.mjs",
-    "layout-chrome-contract-test": "node --test ./scripts/layout-chrome-contract.test.mjs ./scripts/table-print-palette.test.mjs ./scripts/table-export-latency.test.mjs ./scripts/transit-list-export.test.mjs",
+    "layout-chrome-contract-test": "node --experimental-strip-types --test ./scripts/layout-chrome-contract.test.mjs ./scripts/sidebar-command-switcher.test.mjs ./scripts/sidebar-command-switcher-runtime.test.mjs ./scripts/table-print-palette.test.mjs ./scripts/table-export-latency.test.mjs ./scripts/transit-list-export.test.mjs",
     "style-token-contract-test": "node --test ./scripts/style-token-contract.test.mjs",
     "wheel-geometry-preset-test": "node --test ./scripts/wheel-geometry-preset-contract.test.mjs",
     "wheel-factory-baseline-test": "node --test ./scripts/wheel-factory-baseline-contract.test.mjs ./scripts/wheel-composition-contract.test.mjs",

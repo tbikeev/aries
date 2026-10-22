@@ -14,6 +14,7 @@ import {
   useFrameLayoutStore,
 } from "@/stores/frame-layout-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useSidebarCommandSwitcherStore } from "@/stores/sidebar-command-switcher-store";
 import { activeRightPaneModule } from "./right-pane-layout";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n";
@@ -100,14 +101,20 @@ export function SidebarSash({
     activeAstrocartDocumentId,
     featureCatalogPane,
   });
-  const visualWidth = activeRightPane
-    ? rightPanePriorityLayout(
-        sidebarOpen,
-        width,
-        rightPaneWidth,
-        activeRightPane,
-      ).sidebarWidth
-    : width;
+  const commandSwitcherActive = useSidebarCommandSwitcherStore((s) => s.active);
+  const commandSwitcherWidth = useSidebarCommandSwitcherStore(
+    (s) => s.expandedWidthPx,
+  );
+  const visualWidth = commandSwitcherActive
+    ? commandSwitcherWidth
+    : activeRightPane
+      ? rightPanePriorityLayout(
+          sidebarOpen,
+          width,
+          rightPaneWidth,
+          activeRightPane,
+        ).sidebarWidth
+      : width;
 
   // The desktop navigator is pinned to the window's left edge; the splitter
   // width is therefore the pointer x-coordinate in viewport space.
@@ -359,7 +366,7 @@ export function SidebarSash({
     };
   }, [sidebarOpen]);
 
-  if (!sidebarOpen || !sashReady) return null;
+  if (!sidebarOpen || !sashReady || commandSwitcherActive) return null;
 
   return (
     <div

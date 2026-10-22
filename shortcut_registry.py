@@ -141,6 +141,7 @@ SHORTCUT_HELP_GROUPS = (
 			('Tab', 'compare', 'derived charts only'),
 			('Esc', 'close panel / overlay', None),
 			('⇧ ⇧', 'open spotlight', 'double-tap shift'),
+			('Hold ⌘', 'expand chart list and switch by ⌘1…⌘0', 'visible rows'),
 		),
 	},
 )
