@@ -28,6 +28,12 @@ import {
   wheelTypographyProfileForTheme,
 } from "@/lib/chart/wheel-render-style";
 import { assembleWheelGeometryPreview, resolveWheelGeometryPresetStyle, resolveWheelPresetAuthoringOverrides } from "@/lib/chart/wheel-geometry-preset";
+import {
+  applyWheelChartStylePalette,
+  mergeWheelChartStyleAppearance,
+  normalizeWheelChartStyle,
+  wrapWheelCssValueReader,
+} from "@/lib/chart/wheel-chart-style";
 import { isWheelGeometryKey } from "@/lib/chart/wheel-geometry-ownership";
 import {
   WHEEL_AUTHORING_OVERRIDE_PREFIX,
@@ -960,13 +966,14 @@ function WheelChartCanvas({
     [inheritAppTheme, settledTheme, settingsColorPreview],
   );
 
+  const wheelChartStyle = normalizeWheelChartStyle(chart.primaryChart.options.wheelChartStyle);
   const palette = useMemo(
-    () => ({
+    () => applyWheelChartStylePalette({
       ...(inheritAppTheme ? readPaletteFromTheme(effectiveTheme) : neutralChartPalette()),
       ...(chart.primaryChart.palette ?? {}),
       ...readPaletteProfileOverrides(effectiveTheme),
-    }),
-    [chart, effectiveTheme, inheritAppTheme],
+    }, wheelChartStyle),
+    [chart, effectiveTheme, inheritAppTheme, wheelChartStyle],
   );
   const renderSnapshot = useMemo(
     () => withZodiacFieldOpacityPreview(
@@ -1020,10 +1027,10 @@ function WheelChartCanvas({
     () => ({
       profile: wheelTypographyProfileForTheme(chart.primaryChart.options.theme),
       presets: chart.primaryChart.options.wheelGeometryPresets,
-      appearanceOverrides: {
+      appearanceOverrides: mergeWheelChartStyleAppearance({
         ...(effectiveTheme?.profileOverrides?.wheelAuthoring ?? {}),
         ...(styleWorkingPreviewActive ? styleSemanticOverrides : {}),
-      },
+      }, wheelChartStyle),
       preview: assembleWheelGeometryPreview({
         geometryProfile, geometryOverrides, syncedGeometryOverrides,
         wheelPresetState: {revision: geometryBaseRevision}, revision: styleEditorRevision,
@@ -1033,6 +1040,7 @@ function WheelChartCanvas({
     [
       chart.primaryChart.options.theme,
       chart.primaryChart.options.wheelGeometryPresets,
+      chart.primaryChart.options.wheelChartStyle,
       effectiveTheme?.profileOverrides?.wheelAuthoring,
       styleWorkingPreviewActive,
       styleSemanticOverrides,
@@ -1105,9 +1113,12 @@ function WheelChartCanvas({
   const renderStyle = useMemo(
     () =>
       resolveWheelGeometryPresetStyle(
-        (cssVar) => styleWorkingPreviewActive
-          ? styleCssOverrides[cssVar] ?? effectiveTheme?.chartPalette?.[cssVar]
-          : effectiveTheme?.chartPalette?.[cssVar],
+        wrapWheelCssValueReader(
+          (cssVar) => styleWorkingPreviewActive
+            ? styleCssOverrides[cssVar] ?? effectiveTheme?.chartPalette?.[cssVar]
+            : effectiveTheme?.chartPalette?.[cssVar],
+          wheelChartStyle,
+        ),
         {
           palette,
           revision: `${styleRevision}:editor-${styleEditorRevision}:fonts-${fontAssetRevision}`,
@@ -1137,6 +1148,7 @@ function WheelChartCanvas({
       chartAspectSymbolFont,
       fontAssetRevision,
       effectiveTheme?.chartPalette,
+      wheelChartStyle,
     ],
   );
   const setTrackedFlagAnchor = useCallback((next: FlagAnchor | null) => {

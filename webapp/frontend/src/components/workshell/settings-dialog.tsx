@@ -9,6 +9,10 @@ import { WheelPresetControls } from "./wheel-preset-controls";
 import { useShallow } from "zustand/react/shallow";
 import { flushWheelGeometry } from "@/lib/daemon/wheel-preset-sync";
 import { wheelTypographyProfileForTheme } from "@/lib/chart/wheel-render-style";
+import {
+  WHEEL_CHART_STYLE_CATALOG,
+  normalizeWheelChartStyle,
+} from "@/lib/chart/wheel-chart-style";
 import { settingsColorPreviewMatchesTheme } from "@/lib/chart/palette";
 import * as React from "react";
 
@@ -2161,6 +2165,20 @@ function AppearanceTab({ opts, sendPatch, onBeforeWheelAction }: TabProps & {onB
           </Select>
         </Row>
       ) : null}
+      <SectionLabel>{t("settings.chartWheelStyle")}</SectionLabel>
+      <Row label={t("settings.wheelChartStyle")}>
+        <Select
+          value={normalizeWheelChartStyle(d.wheel_chart_style)}
+          width={220}
+          onChange={(v) => setStr("wheel_chart_style", v)}
+        >
+          {(cat.wheelChartStyles?.length ? cat.wheelChartStyles : WHEEL_CHART_STYLE_CATALOG).map((entry) => (
+            <option key={entry.value} value={entry.value}>
+              {entry.labelKey ? t(entry.labelKey) : entry.label}
+            </option>
+          ))}
+        </Select>
+      </Row>
       <Row label={t("settings.angleArrowheads")}>
         <Toggle
           checked={d.showanglearrowheads}

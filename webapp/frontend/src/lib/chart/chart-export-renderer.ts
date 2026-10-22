@@ -23,6 +23,12 @@ import {
 } from "./wheel-render-style";
 import { applyPdfRasterPreset } from "./pdf-raster-presets";
 import { resolveWheelGeometryPresetStyle, type WheelGeometryPresetInput } from "./wheel-geometry-preset";
+import {
+  applyWheelChartStylePalette,
+  mergeWheelChartStyleAppearance,
+  normalizeWheelChartStyle,
+  wrapWheelCssValueReader,
+} from "./wheel-chart-style";
 import type {
   Chart,
   ChartPalette,
@@ -115,11 +121,12 @@ function resolveScreenStyle(
 } {
   const resolvedTheme = resolvedThemeForExport(theme);
   const readValue = resolvedThemeTokenReader(resolvedTheme);
-  const palette = {
+  const wheelChartStyle = normalizeWheelChartStyle(chart.primaryChart.options.wheelChartStyle);
+  const palette = applyWheelChartStylePalette({
     ...readPaletteFromTheme(resolvedTheme),
     ...(chart.primaryChart.palette ?? {}),
     ...readPaletteProfileOverrides(resolvedTheme),
-  };
+  }, wheelChartStyle);
   const snapshot = applyProfileColorsToSnapshot(chart, resolvedTheme);
   const inheritedText = morinusTextFontFromTokens(resolvedTheme?.appTokens);
   const wheelText = readValue("--aries-wheel-font-text")?.trim();
@@ -130,7 +137,7 @@ function resolveScreenStyle(
   const fontSymbols =
     wheelSymbols && !wheelSymbols.startsWith("var(") ? wheelSymbols : inheritedSymbols;
   const style = resolveWheelGeometryPresetStyle(
-    readValue,
+    wrapWheelCssValueReader(readValue, wheelChartStyle),
     {
       palette,
       revision: `${resolvedTheme?.styleRevision ?? "base"}:chart-export`,
@@ -145,7 +152,10 @@ function resolveScreenStyle(
     {
       profile: wheelTypographyProfileForTheme(chart.primaryChart.options.theme),
       presets: chart.primaryChart.options.wheelGeometryPresets,
-      appearanceOverrides: resolvedTheme?.profileOverrides?.wheelAuthoring ?? {},
+      appearanceOverrides: mergeWheelChartStyleAppearance(
+        resolvedTheme?.profileOverrides?.wheelAuthoring ?? {},
+        wheelChartStyle,
+      ),
       preview: geometryPreview,
     },
   );
