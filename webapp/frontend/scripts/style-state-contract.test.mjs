@@ -113,6 +113,8 @@ test("theme appearance and independent wheel presets reach live canvas and expor
   assert.match(chartExport, /resolveWheelGeometryPresetStyle\(/);
   assert.match(chartExport, /presets: chart\.primaryChart\.options\.wheelGeometryPresets/);
   assert.match(chartExport, /resolvedTheme\?\.profileOverrides\?\.wheelAuthoring/);
+  assert.match(canvas, /normalizeWheelChartStyle\(chart\.primaryChart\.options\.wheelChartStyle\)/);
+  assert.match(chartExport, /normalizeWheelChartStyle\(chart\.primaryChart\.options\.wheelChartStyle\)/);
 });
 
 test("chart export receives the live transient aspect visibility state", () => {

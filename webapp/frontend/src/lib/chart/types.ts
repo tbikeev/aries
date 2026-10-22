@@ -380,6 +380,7 @@ export interface Chart {
     /** Independent wheel geometry; saved themes recall frozen copies here. */
     wheelGeometryPresets?: WheelGeometryPresetSelections;
     angloDenseLabelLayout?: "leader-columns" | "routed-cusps" | "sign-locked";
+    wheelChartStyle?: "default" | "classic_light";
     ascmcSize?: number;
     chartRingThickness?: number;
     showLoF?: boolean;

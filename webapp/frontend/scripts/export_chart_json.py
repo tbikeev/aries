@@ -1743,6 +1743,11 @@ def export_chart(
         "sign-locked",
     ):
         anglo_dense_label_layout = "routed-cusps"
+    wheel_chart_style = str(
+        getattr(render_options, "wheel_chart_style", "default") or "default"
+    )
+    if wheel_chart_style not in ("default", "classic_light"):
+        wheel_chart_style = "default"
     overlay_payload = phase(
         "overlay",
         lambda: export_overlay(
@@ -1792,6 +1797,7 @@ def export_chart(
         "wheelComposition": effective_composition(chrt.options),
         "wheelGeometryPresets": getattr(chrt.options, "wheel_geometry_presets", {}),
         "angloDenseLabelLayout": anglo_dense_label_layout,
+        "wheelChartStyle": wheel_chart_style,
         "ascmcSize": int(getattr(chrt.options, "ascmcsize", 5)),
         "chartRingThickness": int(getattr(chrt.options, "chartringthickness", 3)),
         "showLoF": bool(getattr(chrt.options, "showlof", True)),

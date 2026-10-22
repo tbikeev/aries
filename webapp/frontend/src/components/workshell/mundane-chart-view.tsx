@@ -12,6 +12,12 @@ import { CanvasDraw } from "@/lib/chart/canvas-draw";
 import { paintProjectedOuterRing, resolveProjectedOuterRing } from "@/lib/chart/draw-chart";
 import { identityFrame } from "@/lib/chart/wheel-projection";
 import { resolveWheelGeometryPresetStyle } from "@/lib/chart/wheel-geometry-preset";
+import {
+  applyWheelChartStylePalette,
+  mergeWheelChartStyleAppearance,
+  normalizeWheelChartStyle,
+  wrapWheelCssValueReader,
+} from "@/lib/chart/wheel-chart-style";
 import { DEFAULT_WHEEL_RENDER_STYLE, wheelTypographyProfileForTheme, type WheelRenderStyle } from "@/lib/chart/wheel-render-style";
 import type { ChartRenderSnapshot } from "@/lib/chart/types";
 import { resolveChartPaintTarget } from "@/lib/chart/outer-glyph-lane";
@@ -1046,12 +1052,23 @@ export function MundaneChartView({
     const textFontFamily = css.getPropertyValue("--morinus-font-text").trim() || "'FreeSans', ui-sans-serif, system-ui, sans-serif";
     const symbolFontFamily = css.getPropertyValue("--aries-font-symbols").trim() || '"AriesMorinus"';
     if (effectiveSnapshot) {
+      const wheelChartStyle = normalizeWheelChartStyle(
+        effectiveSnapshot.primaryChart.options.wheelChartStyle,
+      );
       setOuterStyle(resolveWheelGeometryPresetStyle(
-        (key) => css.getPropertyValue(key).trim(),
-        { revision: styleRevision, palette: readPalette(host), fontUi: textFontFamily, fontSymbols: symbolFontFamily },
+        wrapWheelCssValueReader((key) => css.getPropertyValue(key).trim(), wheelChartStyle),
+        {
+          revision: styleRevision,
+          palette: applyWheelChartStylePalette(readPalette(host), wheelChartStyle),
+          fontUi: textFontFamily,
+          fontSymbols: symbolFontFamily,
+        },
         { profile: wheelTypographyProfileForTheme(effectiveSnapshot.primaryChart.options.theme),
           presets: effectiveSnapshot.primaryChart.options.wheelGeometryPresets,
-          appearanceOverrides: theme?.profileOverrides?.wheelAuthoring },
+          appearanceOverrides: mergeWheelChartStyleAppearance(
+            theme?.profileOverrides?.wheelAuthoring ?? {},
+            wheelChartStyle,
+          ) },
       ));
     }
     setRenderStyle(resolveMundaneRenderStyle(host, {
@@ -1060,7 +1077,7 @@ export function MundaneChartView({
       fontUi: textFontFamily,
       fontSymbols: symbolFontFamily,
     }));
-  }, [styleRevision, outerProfile, outerPreset?.id, outerPreset?.revision, theme?.profileOverrides?.wheelAuthoring]);
+  }, [styleRevision, outerProfile, outerPreset?.id, outerPreset?.revision, theme?.profileOverrides?.wheelAuthoring, effectiveSnapshot?.primaryChart.options.wheelChartStyle]);
 
   React.useEffect(() => {
     const wrap = wrapRef.current;

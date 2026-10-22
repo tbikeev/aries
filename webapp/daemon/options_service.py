@@ -916,6 +916,7 @@ _DISPLAY_OVERLAY_ONLY_FIELDS = {
     'housesystem',
     'theme',
     'anglo_dense_label_layout',
+    'wheel_chart_style',
     # Body visibility changes the retained list projection, never the
     # canonical point universe or its calculated aspect rows.
     'transcendental',
@@ -1019,7 +1020,7 @@ _RETAINED_LIST_DATA_IGNORED_PAYLOAD_GROUPS = {
 _DISPLAY_INT_SLIDER_FIELDS = ('ascmcsize', 'chartringthickness')
 _DISPLAY_FLOAT_SLIDER_FIELDS = ()
 # Enum string fields persisted by their canonical option names.
-_DISPLAY_ENUM_STR_FIELDS = ('keyprompts_style', 'dateconvention', 'anglo_dense_label_layout')
+_DISPLAY_ENUM_STR_FIELDS = ('keyprompts_style', 'dateconvention', 'anglo_dense_label_layout', 'wheel_chart_style')
 _DATE_CONVENTION_CATALOG = (
     {'value': dateformat.DATE_CONVENTION_CURRENT, 'label': 'YYYY-MM-DD'},
     {'value': dateformat.DATE_CONVENTION_DMY, 'label': 'DD.MM.YYYY'},
@@ -1317,6 +1318,12 @@ _ANGLO_DENSE_LABEL_LAYOUT_CATALOG = (
 _ANGLO_DENSE_LABEL_LAYOUT_VALUES = {
     item['value'] for item in _ANGLO_DENSE_LABEL_LAYOUT_CATALOG
 }
+
+_WHEEL_CHART_STYLE_CATALOG = (
+    {'value': 'default', 'label': 'Default (dark wheel)', 'labelKey': 'WheelChartStyleDefault'},
+    {'value': 'classic_light', 'label': 'Classic light', 'labelKey': 'WheelChartStyleClassicLight'},
+)
+_WHEEL_CHART_STYLE_VALUES = {item['value'] for item in _WHEEL_CHART_STYLE_CATALOG}
 
 # Lunar Mansions zodiac mode (manazil_zodiac, options.py:318). Values are the
 # manazil.ZODIAC_MODES strings verbatim (manazil.py:50-54); labels are verbatim
@@ -5044,6 +5051,7 @@ class OptionsService:
             'themeLayouts': _localized(_THEME_LAYOUT_CATALOG),
             'wheelStyles': copy.deepcopy(getattr(opts, 'wheel_style_catalog', [])),
             'angloDenseLabelLayouts': [dict(item) for item in _ANGLO_DENSE_LABEL_LAYOUT_CATALOG],
+            'wheelChartStyles': [dict(item) for item in _WHEEL_CHART_STYLE_CATALOG],
             'mansionZodiacModes': _localized(_MANSION_ZODIAC_CATALOG),
             'speculumPlacidianCols': _localized(_SPECULUM_PLACIDIAN_COLS),
             'speculumRegiomontanCols': _localized(_SPECULUM_REGIOMONTAN_COLS),
@@ -5244,6 +5252,9 @@ class OptionsService:
             elif attr == 'anglo_dense_label_layout':
                 value = str(getattr(opts, attr, 'leader-columns') or 'leader-columns')
                 out[attr] = value if value in _ANGLO_DENSE_LABEL_LAYOUT_VALUES else 'routed-cusps'
+            elif attr == 'wheel_chart_style':
+                value = str(getattr(opts, attr, 'default') or 'default')
+                out[attr] = value if value in _WHEEL_CHART_STYLE_VALUES else 'default'
             else:
                 out[attr] = str(getattr(opts, attr, '') or '')
         # fontfamily — coerce unknown stored values to the default profile.
@@ -6728,6 +6739,8 @@ class OptionsService:
                     continue
                 if attr == 'dateconvention':
                     val = dateformat.coerce_date_convention(val)
+                if attr == 'wheel_chart_style' and val not in _WHEEL_CHART_STYLE_VALUES:
+                    continue
                 if attr == 'anglo_dense_label_layout' and val not in _ANGLO_DENSE_LABEL_LAYOUT_VALUES:
                     continue
                 setattr(opts, attr, val)

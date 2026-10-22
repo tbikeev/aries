@@ -4348,6 +4348,7 @@ export type OptionsDisplay = {
   usetradfixstarnamespdlist: boolean; // trad fixstar names in PD list (options.py:168)
   theme: number; // wheel LAYOUT 0–4 (catalog.themeLayouts — DISTINCT from colour theme)
   anglo_dense_label_layout: "leader-columns" | "routed-cusps" | "sign-locked";
+  wheel_chart_style: "default" | "classic_light";
   phasismode: number; // Phasis enum 0/1/2/3 (catalog.phasisModes)
   solarconditionmode: number; // solar-condition doctrine/profile (catalog.solarConditionModes)
   showcazimi: boolean; // show Cazimi rows in radix overlay
@@ -4864,6 +4865,7 @@ export type OptionsCatalog = {
   themeLayouts: EnumChoice[]; // wheel layout choice (theme 0–4)
   wheelStyles?: Array<Pick<WheelPreset, "id" | "name" | "layout" | "factory">>;
   angloDenseLabelLayouts: StringEnumChoice[];
+  wheelChartStyles: StringEnumChoice[];
   mansionZodiacModes: StringEnumChoice[]; // manazil_zodiac choices (str values)
   speculumPlacidianCols: SpeculumColMeta[]; // Placidian speculum column oracle
   speculumRegiomontanCols: SpeculumColMeta[]; // Regiomontan speculum column oracle

@@ -2128,6 +2128,21 @@ function AppearanceTab({ opts, sendPatch, onBeforeWheelAction }: TabProps & {onB
         <Toggle checked={d.morin_antiscia} onChange={(v) => setBool("morin_antiscia", v)} />
       </Row>
 
+      <SectionLabel>{t("settings.chartWheelStyle")}</SectionLabel>
+      <Row label={t("settings.wheelChartStyle")}>
+        <Select
+          value={d.wheel_chart_style}
+          width={220}
+          onChange={(v) => setStr("wheel_chart_style", v)}
+        >
+          {cat.wheelChartStyles.map((entry) => (
+            <option key={entry.value} value={entry.value}>
+              {entry.labelKey ? t(entry.labelKey) : entry.label}
+            </option>
+          ))}
+        </Select>
+      </Row>
+
       <SectionLabel>{t("settings.chartLayout")}</SectionLabel>
       <Row label={t("settings.subChartsAsBiwheels")}>
         <Toggle
