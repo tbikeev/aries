@@ -8,7 +8,7 @@
   "counts": {
     "tokens": 1515,
     "cssTokens": 1491,
-    "cssDeclarations": 1587,
+    "cssDeclarations": 1588,
     "runtimeOnlyTokens": 14,
     "externalTokens": 10,
     "public": 1106,
@@ -9753,7 +9753,6 @@
         "src/components/workshell/app-theme-controls.tsx",
         "src/components/workshell/chart-canvas.tsx",
         "src/components/workshell/chart-style-panel.tsx",
-        "src/components/workshell/notes-panel.tsx",
         "src/components/workshell/strip-view.tsx",
         "src/components/workshell/workspace-frame.tsx",
         "src/lib/chart/chart-export-registry.ts",
@@ -9836,7 +9835,6 @@
         "src/components/workshell/home-client.tsx",
         "src/components/workshell/list-column-layout.tsx",
         "src/components/workshell/list-controls.tsx",
-        "src/components/workshell/notes-panel.tsx",
         "src/components/workshell/resizable-table-columns.tsx",
         "src/components/workshell/retained-pane-shell.tsx",
         "src/components/workshell/save-to-collection-dialog.tsx",
@@ -10532,6 +10530,7 @@
         "src/components/workshell/ambient-spotlight.tsx",
         "src/components/workshell/chart-editor-dialog.tsx",
         "src/components/workshell/chart-event-tags.tsx",
+        "src/components/workshell/chart-flash-hint.tsx",
         "src/components/workshell/chart-hover-flag.tsx",
         "src/components/workshell/license-management-panel.tsx",
         "src/components/workshell/mundane-chart-view.tsx",
@@ -10622,6 +10621,7 @@
         "src/components/ui/tooltip.tsx",
         "src/components/workshell/app-sidebar-sortable.tsx",
         "src/components/workshell/app-sidebar.tsx",
+        "src/components/workshell/chart-flash-hint.tsx",
         "src/components/workshell/chart-hover-flag.tsx",
         "src/components/workshell/home-client.tsx",
         "src/components/workshell/license-management-panel.tsx",
@@ -13901,6 +13901,7 @@
         "src/components/workshell/chart-context-menu.tsx",
         "src/components/workshell/chart-editor-dialog.tsx",
         "src/components/workshell/chart-event-tags.tsx",
+        "src/components/workshell/chart-flash-hint.tsx",
         "src/components/workshell/chart-hover-flag.tsx",
         "src/components/workshell/chart-style-panel.tsx",
         "src/components/workshell/decennials-view.tsx",
@@ -14077,7 +14078,6 @@
       "consumerFiles": [
         "src/app/globals.css",
         "src/components/workshell/app-theme-controls.tsx",
-        "src/components/workshell/notes-panel.tsx",
         "src/components/workshell/strip-view.tsx",
         "src/components/workshell/theme-provider.tsx",
         "src/lib/chart/astrocart-ui-font.ts",
@@ -14411,9 +14411,10 @@
       "scope": "component",
       "type": "color",
       "unit": "",
-      "default": "color-mix(in srgb, var(--aries-inspector-text) 2%, transparent)",
+      "default": "color-mix(in srgb, var(--aries-inspector-text) 8%, var(--aries-surface-subtle))",
       "dependencies": [
-        "--aries-inspector-text"
+        "--aries-inspector-text",
+        "--aries-surface-subtle"
       ],
       "selectors": [
         ":root"
@@ -14421,7 +14422,7 @@
       "declarations": [
         {
           "selector": ":root",
-          "value": "color-mix(in srgb, var(--aries-inspector-text) 2%, transparent)"
+          "value": "color-mix(in srgb, var(--aries-inspector-text) 8%, var(--aries-surface-subtle))"
         }
       ],
       "consumerFiles": [
@@ -21338,6 +21339,7 @@
       "consumerFiles": [
         "src/components/workshell/aspect-list-panel.tsx",
         "src/components/workshell/chart-events-panel.tsx",
+        "src/components/workshell/chart-flash-hint.tsx",
         "src/components/workshell/list-controls.tsx",
         "src/components/workshell/side-by-side-charts.tsx",
         "src/components/workshell/transit-list-filter-drawer.tsx",
@@ -21711,6 +21713,7 @@
         "src/components/ui/tooltip.tsx",
         "src/components/workshell/chart-editor-dialog.tsx",
         "src/components/workshell/chart-event-tags.tsx",
+        "src/components/workshell/chart-flash-hint.tsx",
         "src/components/workshell/settings-dialog.tsx",
         "src/components/workshell/style-lab-color-picker.tsx",
         "src/components/workshell/system-chart-picker.tsx",
@@ -21748,6 +21751,7 @@
         "src/components/ui/tooltip.tsx",
         "src/components/workshell/chart-editor-dialog.tsx",
         "src/components/workshell/chart-event-tags.tsx",
+        "src/components/workshell/chart-flash-hint.tsx",
         "src/components/workshell/settings-dialog.tsx",
         "src/components/workshell/style-lab-color-picker.tsx",
         "src/components/workshell/system-chart-picker.tsx",
@@ -22022,6 +22026,7 @@
         "src/components/ui/tooltip.tsx",
         "src/components/workshell/app-theme-preview.tsx",
         "src/components/workshell/chart-event-tags.tsx",
+        "src/components/workshell/chart-flash-hint.tsx",
         "src/components/workshell/chart-style-panel.tsx",
         "src/components/workshell/settings-dialog.tsx",
         "src/components/workshell/style-lab-color-picker.tsx",
@@ -27573,7 +27578,6 @@
         "src/components/workshell/home-client.tsx",
         "src/components/workshell/list-column-layout.tsx",
         "src/components/workshell/list-controls.tsx",
-        "src/components/workshell/notes-panel.tsx",
         "src/components/workshell/retained-pane-shell.tsx",
         "src/components/workshell/save-to-collection-dialog.tsx",
         "src/components/workshell/sectioned-table-view.tsx",
@@ -27620,7 +27624,6 @@
         "src/components/workshell/astrocart-controls.tsx",
         "src/components/workshell/list-column-layout.tsx",
         "src/components/workshell/list-controls.tsx",
-        "src/components/workshell/notes-panel.tsx",
         "src/lib/theme/app-material-runtime.ts"
       ],
       "legacyId": "surfaceSubtle",
@@ -28036,17 +28039,23 @@
       "scope": "component",
       "type": "color",
       "unit": "",
-      "default": "color-mix(in srgb, var(--aries-text-primary) 8%, transparent)",
+      "default": "color-mix(in srgb, var(--aries-text-primary) 6%, var(--aries-table-bg))",
       "dependencies": [
+        "--aries-table-bg",
         "--aries-text-primary"
       ],
       "selectors": [
-        ":root"
+        ":root",
+        ".day"
       ],
       "declarations": [
         {
           "selector": ":root",
-          "value": "color-mix(in srgb, var(--aries-text-primary) 8%, transparent)"
+          "value": "color-mix(in srgb, var(--aries-text-primary) 6%, var(--aries-table-bg))"
+        },
+        {
+          "selector": ".day",
+          "value": "color-mix(in srgb, var(--aries-text-primary) 5%, var(--aries-table-bg))"
         }
       ],
       "consumerFiles": [
@@ -28690,8 +28699,7 @@
       "consumerFiles": [
         "src/app/globals.css",
         "src/components/workshell/app-sidebar.tsx",
-        "src/components/workshell/appearance-panel.tsx",
-        "src/components/workshell/notes-panel.tsx"
+        "src/components/workshell/appearance-panel.tsx"
       ],
       "legacyId": "textDim",
       "migrationAuthority": "legacy-preview-v1",
@@ -28742,7 +28750,6 @@
         "src/components/workshell/home-client.tsx",
         "src/components/workshell/list-column-layout.tsx",
         "src/components/workshell/list-controls.tsx",
-        "src/components/workshell/notes-panel.tsx",
         "src/components/workshell/profections-view.tsx",
         "src/components/workshell/retained-pane-shell.tsx",
         "src/components/workshell/save-to-collection-dialog.tsx",
@@ -28806,7 +28813,6 @@
         "src/components/workshell/home-client.tsx",
         "src/components/workshell/list-column-layout.tsx",
         "src/components/workshell/list-controls.tsx",
-        "src/components/workshell/notes-panel.tsx",
         "src/components/workshell/profections-view.tsx",
         "src/components/workshell/retained-pane-shell.tsx",
         "src/components/workshell/save-to-collection-dialog.tsx",
@@ -42170,7 +42176,6 @@
       "consumerFiles": [
         "src/app/globals.css",
         "src/app/layout.tsx",
-        "src/components/workshell/notes-panel.tsx",
         "src/components/workshell/workspace-content.tsx",
         "src/lib/shell/chart-picker-window.ts"
       ]
@@ -42212,8 +42217,7 @@
       "consumerFiles": [
         "src/app/globals.css",
         "src/components/workshell/chart-hover-flag.tsx",
-        "src/components/workshell/mundane-chart-view.tsx",
-        "src/components/workshell/notes-panel.tsx"
+        "src/components/workshell/mundane-chart-view.tsx"
       ]
     },
     {
@@ -42251,8 +42255,7 @@
         }
       ],
       "consumerFiles": [
-        "src/app/globals.css",
-        "src/components/workshell/notes-panel.tsx"
+        "src/app/globals.css"
       ]
     },
     {
@@ -43309,9 +43312,7 @@
           "value": "var(--aries-font-ui)"
         }
       ],
-      "consumerFiles": [
-        "src/components/workshell/notes-panel.tsx"
-      ]
+      "consumerFiles": []
     },
     {
       "id": "--foreground",
@@ -43349,8 +43350,7 @@
         }
       ],
       "consumerFiles": [
-        "src/app/globals.css",
-        "src/components/workshell/notes-panel.tsx"
+        "src/app/globals.css"
       ]
     },
     {
@@ -43420,7 +43420,6 @@
       ],
       "consumerFiles": [
         "src/app/globals.css",
-        "src/components/workshell/notes-panel.tsx",
         "src/lib/chart/astrolabe-render-style.ts",
         "src/lib/chart/palette.ts",
         "src/lib/chart/wheel-render-style.ts",
@@ -45364,8 +45363,7 @@
       ],
       "consumerFiles": [
         "src/app/globals.css",
-        "src/components/ui/button.tsx",
-        "src/components/workshell/notes-panel.tsx"
+        "src/components/ui/button.tsx"
       ]
     },
     {
@@ -45403,8 +45401,7 @@
         }
       ],
       "consumerFiles": [
-        "src/app/globals.css",
-        "src/components/workshell/notes-panel.tsx"
+        "src/app/globals.css"
       ]
     },
     {

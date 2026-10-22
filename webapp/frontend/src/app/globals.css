@@ -1295,7 +1295,7 @@ html {
   --aries-table-bg: var(--aries-data-body-background);
   --aries-table-header-bg: var(--aries-data-header-background);
   --aries-table-rule-color: var(--aries-border-subtle);
-  --aries-table-hover-bg: color-mix(in srgb, var(--aries-text-primary) 8%, transparent);
+  --aries-table-hover-bg: color-mix(in srgb, var(--aries-text-primary) 6%, var(--aries-table-bg));
   --aries-table-current-bg: var(--aries-accent);
   --aries-search-date-weight: 600;
   --aries-search-time-weight: 300;
@@ -1552,7 +1552,7 @@ html {
   --aries-inspector-interactive-color: color-mix(in srgb, var(--aries-inspector-text) 50%, var(--aries-background));
   --aries-inspector-tertiary-color: color-mix(in srgb, var(--aries-inspector-text) 35%, var(--aries-background));
   --aries-inspector-divider-color: color-mix(in srgb, var(--aries-border-subtle) 40%, transparent);
-  --aries-inspector-card-background: color-mix(in srgb, var(--aries-inspector-text) 2%, transparent);
+  --aries-inspector-card-background: color-mix(in srgb, var(--aries-inspector-text) 8%, var(--aries-surface-subtle));
   --aries-inspector-card-border-color: var(--aries-inspector-divider-color);
   --aries-inspector-background: color-mix(in srgb, var(--aries-background) 95%, transparent);
   --aries-status-text: var(--aries-sidebar-text);
@@ -1750,6 +1750,7 @@ html[data-theme-ready="pending"] body {
   --morinus-housenums: rgb(66 68 74);
   --aries-list-hover-bg: #e4e4e4;
   --aries-list-selected-bg: #dedede;
+  --aries-table-hover-bg: color-mix(in srgb, var(--aries-text-primary) 5%, var(--aries-table-bg));
   color-scheme: light;
 }
 

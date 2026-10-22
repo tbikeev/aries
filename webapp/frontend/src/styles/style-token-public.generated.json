@@ -10836,7 +10836,7 @@
       "scope": "app",
       "type": "color",
       "unit": "",
-      "default": "color-mix(in srgb, var(--aries-inspector-text) 2%, transparent)",
+      "default": "color-mix(in srgb, var(--aries-inspector-text) 8%, var(--aries-surface-subtle))",
       "effectiveAuthority": "css-root",
       "editTarget": "webapp/frontend/src/app/globals.css :root --aries-inspector-card-background",
       "affectedSurfaces": [
@@ -10848,7 +10848,8 @@
         "Verify dense inspector content and both light and dark palettes after changing this role."
       ],
       "dependencies": [
-        "--aries-inspector-text"
+        "--aries-inspector-text",
+        "--aries-surface-subtle"
       ]
     },
     {
