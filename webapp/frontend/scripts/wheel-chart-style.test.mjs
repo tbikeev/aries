@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import ts from "typescript";
 import { readFile } from "node:fs/promises";
+import { compositionModuleUrl } from "./wheel-composition-test-loader.mjs";
 
 const source = await readFile(
   new URL("../src/lib/chart/wheel-chart-style.ts", import.meta.url),
@@ -68,7 +69,8 @@ test("classic light palette and authoring overrides are isolated from default", 
   assert.deepEqual(mergeWheelChartStyleAppearance({}, "default"), {});
   const authoring = mergeWheelChartStyleAppearance({ "authoring.wheel.base.fills.houseField.fillPattern": "paper" }, "classic_light");
   assert.equal(authoring["authoring.wheel.base.fills.zodiacBand.fillPattern"], "solid");
-  assert.equal(authoring["authoring.wheel.base.fills.houseField.fillPattern"], "solid");
+  assert.deepEqual(authoring["authoring.wheel.base.fills.houseField.backgroundColor"], [255, 255, 255]);
+  assert.deepEqual(authoring["authoring.wheel.base.fills.glyphField.backgroundColor"], [200, 220, 245]);
 });
 
 test("classic light house labels use full Roman numerals outside the zodiac band", () => {
@@ -82,4 +84,82 @@ test("wheel css reader wrapper applies morinus overrides only for classic light"
   const classic = wrapWheelCssValueReader(() => "from-theme", "classic_light");
   assert.equal(classic("--morinus-frame"), "rgb(0 102 204)");
   assert.equal(classic("--morinus-unknown"), "from-theme");
+});
+
+async function loadWheelGeometryApi() {
+  let layoutSource = await readFile(
+    new URL("../src/lib/chart/wheel-layout-model.ts", import.meta.url),
+    "utf8",
+  );
+  layoutSource = layoutSource.replaceAll('"./wheel-composition"', `"${compositionModuleUrl}"`);
+  let layoutJavascript = ts.transpileModule(layoutSource, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  layoutJavascript = layoutJavascript
+    .replaceAll('"./wheel-composition"', `"${compositionModuleUrl}"`)
+    .replaceAll('"../chart/wheel-composition"', `"${compositionModuleUrl}"`);
+  const layoutUrl = `data:text/javascript;base64,${Buffer.from(layoutJavascript).toString("base64")}`;
+  const wheelSource = await readFile(
+    new URL("../src/lib/chart/wheel-render-style.ts", import.meta.url),
+    "utf8",
+  );
+  let wheelJavascript = ts.transpileModule(wheelSource, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  wheelJavascript = wheelJavascript
+    .replaceAll('"./wheel-layout-model"', `"${layoutUrl}"`)
+    .replaceAll('"./wheel-composition"', `"${compositionModuleUrl}"`);
+  const wheelUrl = `data:text/javascript;base64,${Buffer.from(wheelJavascript).toString("base64")}`;
+  const wheel = await import(wheelUrl);
+  const layout = await import(layoutUrl);
+  return { wheel, layout };
+}
+
+test("classic light ring geometry matches ZET-like stacking", async () => {
+  const { wheel, layout } = await loadWheelGeometryApi();
+  const maxRadius = 400;
+  const baseInput = {
+    profile: "classic",
+    maxRadius,
+    hasOuterRing: true,
+    showTerms: false,
+    showDecans: false,
+    showHouses: true,
+    showPositions: true,
+    wheelChartStyle: "classic_light",
+  };
+  const single = wheel.resolveWheelRingSet(wheel.DEFAULT_WHEEL_RENDER_STYLE, {
+    ...baseInput,
+    mode: "single",
+    comparisonWithOuterHouses: false,
+  });
+  assert.ok(Math.abs(single.rAsp / maxRadius - 0.8) < 0.01, "aspect zone starts near 80% radius");
+  assert.ok(single.rPlanet <= single.r0 && single.rPlanet >= single.rAsp, "natal planets inside zodiac");
+  assert.ok(single.r30 === maxRadius, "zodiac sits on the wheel rim");
+
+  const comparison = wheel.resolveWheelRingSet(wheel.DEFAULT_WHEEL_RENDER_STYLE, {
+    ...baseInput,
+    mode: "comparison",
+    comparisonWithOuterHouses: true,
+  });
+  assert.ok(comparison.rOuterPlanet > comparison.rPlanet, "outer chart ring is outside natal ring");
+  assert.ok(comparison.rOuterPlanet <= comparison.r0, "comparison planets stay inside zodiac");
+  const ringWidth = (comparison.r0 - comparison.rAsp) / 2;
+  assert.ok(
+    Math.abs(comparison.rOuterPlanet - (comparison.r0 - ringWidth / 2)) < 0.5,
+    "outer planet lane is centered in the outer ring",
+  );
+  assert.ok(
+    Math.abs(comparison.rPlanet - (comparison.r0 - ringWidth * 1.5)) < 0.5,
+    "inner planet lane is centered in the inner ring",
+  );
+
+  const canonical = layout.resolveCanonicalWheelLayout(wheel.DEFAULT_WHEEL_RENDER_STYLE, {
+    ...baseInput,
+    mode: "comparison",
+    comparisonWithOuterHouses: true,
+  });
+  assert.deepEqual({ ...canonical.rings }, { ...comparison });
+  assert.deepEqual(canonical.violations, []);
+  assert.equal(layout.wheelLayoutFamily({ ...baseInput, mode: "comparison" }), "classicSingle");
 });

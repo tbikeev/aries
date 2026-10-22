@@ -934,6 +934,7 @@ export function wheelGeometryInputForSnapshot(
     composition: chart.options.wheelComposition,
     profile: wheelTypographyProfile(chart),
     mode: comparison ? "comparison" : "single",
+    wheelChartStyle: wheelChartStyleFor(chart),
     maxRadius,
     hasOuterRing: comparison || snapshot.outerRingMode !== "none",
     showTerms: hasWheelRing(chart, "terms"),
@@ -8779,6 +8780,23 @@ export function resolveChartOuterPaintEnvelope(
   const style = projectWheelAuthoringStyle(sourceStyle, referenceRadius, profile);
   const restrainedAngloComparison = usesRestrainedAngloComparison(snapshot, chart);
   const ringset = resolveWheelRingSet(style, wheelGeometryInputForSnapshot(snapshot, referenceRadius));
+  if (classicLightWheel(chart)) {
+    const houseLabelPad = resolveWheelTypographyMetrics(style, profile, referenceRadius).houseLabelSize / 2;
+    const outerPaintRadius = Math.max(
+      ringset.r30,
+      classicLightHouseNameRadius(ringset) + houseLabelPad,
+    );
+    const paintRadiusScale =
+      outerPaintRadius * resolveWheelScale(sourceStyle, profile) / referenceRadius;
+    return Object.freeze({
+      targetScale: resolvePaintEnvelopeScale(
+        outerPaintRadius * resolveWheelScale(sourceStyle, profile),
+        referenceRadius,
+      ),
+      paintRadiusScale,
+      avoidTitlebar: true,
+    });
+  }
   if (!hasOuterRing && !wheelOpenCuspLabelBand(ringset)) {
     return Object.freeze({targetScale: 1, paintRadiusScale: 1, avoidTitlebar: false});
   }

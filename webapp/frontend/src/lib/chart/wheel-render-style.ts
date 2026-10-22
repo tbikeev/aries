@@ -318,10 +318,14 @@ export interface WheelGeometryProfiles {
   readonly biwheel: BiwheelGeometryProfile;
 }
 
+export type WheelGeometryChartStyle = "default" | "classic_light";
+
 export interface WheelGeometryInput {
   readonly composition?: WheelComposition;
   readonly profile: WheelTypographyProfile;
   readonly mode: WheelGeometryMode;
+  /** Classic light uses ZET-like ring stacking; default keeps factory geometry. */
+  readonly wheelChartStyle?: WheelGeometryChartStyle;
   readonly maxRadius: number;
   readonly hasOuterRing: boolean;
   readonly showTerms: boolean;
@@ -2918,6 +2922,9 @@ export function resolveWheelRingSet(
 ): Readonly<WheelRingSet> {
   const canonical = resolveCanonicalWheelRingSet(style, input);
   const legacy = applyPaintedRingRadiusOverrides(style, input, canonical);
+  if (input.wheelChartStyle === "classic_light") {
+    return composeWheelBands(style, input, legacy);
+  }
   if (!input.hasOuterRing && input.mode !== "comparison") return composeWheelBands(style, input, legacy);
   const typography = resolveWheelTypographyMetrics(style, input.profile, input.maxRadius);
   const glyphSize = input.mode === "comparison"
