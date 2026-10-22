@@ -35,6 +35,12 @@ import {
   wheelTypographyProfileForTheme,
 } from "@/lib/chart/wheel-render-style";
 import { assembleWheelGeometryPreview, resolveWheelGeometryPresetStyle } from "@/lib/chart/wheel-geometry-preset";
+import {
+  applyWheelChartStylePalette,
+  mergeWheelChartStyleAppearance,
+  normalizeWheelChartStyle,
+  wrapWheelCssValueReader,
+} from "@/lib/chart/wheel-chart-style";
 import { useChartStyleEditorStore } from "@/stores/chart-style-editor-store";
 import { cn } from "@/lib/utils";
 import { useFrameLayoutStore } from "@/stores/frame-layout-store";
@@ -143,17 +149,18 @@ export function MultiwheelChartCanvas({
     ),
     [chart, theme, inheritAppTheme, zodiacFieldOpacityPreview],
   );
-  const palette = useMemo(() => ({
+  const wheelChartStyle = normalizeWheelChartStyle(chart.primaryChart.options.wheelChartStyle);
+  const palette = useMemo(() => applyWheelChartStylePalette({
     ...readPaletteFromTheme(theme),
     ...(chart.primaryChart.palette ?? {}),
     ...readPaletteProfileOverrides(theme),
-  }), [chart.primaryChart.palette, theme]);
+  }, wheelChartStyle), [chart.primaryChart.palette, theme, wheelChartStyle]);
   const fontUi = morinusTextFontFromTokens(theme?.appTokens);
   const fontSymbols = theme?.appTokens?.["--aries-font-symbols"]?.trim()
     || '"AriesMorinus"';
   const wheelRenderStyle = useMemo(
     () => resolveWheelGeometryPresetStyle(
-      (cssVar) => theme?.chartPalette?.[cssVar],
+      wrapWheelCssValueReader((cssVar) => theme?.chartPalette?.[cssVar], wheelChartStyle),
       {
         palette,
         revision: `${theme?.styleRevision ?? 0}:editor-${editorRevision}`,
@@ -163,7 +170,10 @@ export function MultiwheelChartCanvas({
       {
         profile: wheelTypographyProfileForTheme(chart.primaryChart.options.theme),
         presets: chart.primaryChart.options.wheelGeometryPresets,
-        appearanceOverrides: theme?.profileOverrides?.wheelAuthoring ?? {},
+        appearanceOverrides: mergeWheelChartStyleAppearance(
+          theme?.profileOverrides?.wheelAuthoring ?? {},
+          wheelChartStyle,
+        ),
         preview: assembleWheelGeometryPreview({
           geometryProfile, geometryOverrides, syncedGeometryOverrides,
           wheelPresetState: {revision: geometryBaseRevision}, revision: editorRevision,
@@ -171,7 +181,7 @@ export function MultiwheelChartCanvas({
         }),
       },
     ),
-    [fontSymbols, fontUi, palette, theme, chart.primaryChart.options, geometryProfile, geometryOverrides, syncedGeometryOverrides, geometryBaseRevision, gestureActive, editorRevision],
+    [fontSymbols, fontUi, palette, theme, chart.primaryChart.options, wheelChartStyle, geometryProfile, geometryOverrides, syncedGeometryOverrides, geometryBaseRevision, gestureActive, editorRevision],
   );
 
   const setTrackedFlagAnchor = useCallback((next: FlagAnchor | null) => {

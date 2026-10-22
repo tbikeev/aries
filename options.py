@@ -70,6 +70,12 @@ class Options:
 		ANGLO_DENSE_LABEL_LAYOUT_ROUTED_CUSPS,
 		ANGLO_DENSE_LABEL_LAYOUT_SIGN_LOCKED,
 	)
+	WHEEL_CHART_STYLE_DEFAULT = 'default'
+	WHEEL_CHART_STYLE_CLASSIC_LIGHT = 'classic_light'
+	WHEEL_CHART_STYLES = (
+		WHEEL_CHART_STYLE_DEFAULT,
+		WHEEL_CHART_STYLE_CLASSIC_LIGHT,
+	)
 	NONE = 0
 	FIXSTARS = 1
 	ANTIS = 2
@@ -188,6 +194,7 @@ class Options:
 		self.def_theme = self.theme = 0
 		self.wheel_compositions = {}
 		self.def_anglo_dense_label_layout = self.anglo_dense_label_layout = self.ANGLO_DENSE_LABEL_LAYOUT_ROUTED_CUSPS
+		self.def_wheel_chart_style = self.wheel_chart_style = self.WHEEL_CHART_STYLE_DEFAULT
 		self.def_ascmcsize = self.ascmcsize = 5
 		self.def_tablesize = self.tablesize = 0.75
 		self.def_chartringthickness = self.chartringthickness = _tokens.CHART_RING_THICKNESS
@@ -1673,6 +1680,7 @@ class Options:
 		self.bw = self.def_bw
 		self.theme = self.def_theme
 		self.anglo_dense_label_layout = self.def_anglo_dense_label_layout
+		self.wheel_chart_style = self.def_wheel_chart_style
 		self.wheel_compositions = {}
 		self.ascmcsize = self.def_ascmcsize
 		self.tablesize = self.def_tablesize
@@ -3201,6 +3209,14 @@ class Options:
 			except Exception:
 				# Append-only migration: retain the previous shared calculation choice.
 				self.solar_arc_angle_method = self.progressed_angle_method
+			try:
+				value = str(pickle.load(f))
+				self.wheel_chart_style = (
+					value if value in self.WHEEL_CHART_STYLES
+					else self.def_wheel_chart_style
+				)
+			except Exception:
+				self.wheel_chart_style = self.def_wheel_chart_style
 			f.close()
 		except IOError:
 			res = False
@@ -4135,6 +4151,7 @@ class Options:
 			pickle.dump(self.multiwheel_open_at_three, f)
 			pickle.dump(self.solar_arc_angle_mode, f)
 			pickle.dump(self.solar_arc_angle_method, f)
+			pickle.dump(str(self.wheel_chart_style), f)
 			f.close()
 			return True
 		except IOError:

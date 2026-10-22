@@ -625,6 +625,7 @@ export function wheelLayoutFamily(input: WheelGeometryInput): WheelLayoutFamily 
       ? "angloComparisonWithHouses"
       : "angloComparisonNoHouses";
   }
+  if (input.wheelChartStyle === "classic_light") return "classicSingle";
   return input.mode === "comparison" ? "classicComparison" : "classicSingle";
 }
 
@@ -801,6 +802,131 @@ function interiorThird(from: number, to: number): readonly [number, number] {
   return [from + third, from + third * 2];
 }
 
+/** ZET-like radial recipe for Classic light (classic/compact profiles only). */
+const CLASSIC_LIGHT_ZODIAC_THICKNESS = 0.0375;
+/** Outer rim reserved for zodiac + planet rings (~20% of radius). */
+const CLASSIC_LIGHT_RIM_STACK = 0.2;
+const CLASSIC_LIGHT_HUB_BASE = 0.03;
+const CLASSIC_LIGHT_HOUSE_THICKNESS = 0.015;
+const CLASSIC_LIGHT_TERM_THICKNESS = 0.035;
+const CLASSIC_LIGHT_DECAN_THICKNESS = 0.035;
+
+function resolveClassicLightFamilyLayout(
+  style: WheelRenderStyle,
+  input: WheelGeometryInput,
+): { edges: Partial<Record<WheelBandId, BandEdges>>; rings: MutableRings } {
+  const { maxRadius } = input;
+  const classic = style.geometry.classic;
+  const comparison = input.mode === "comparison";
+  const rings: MutableRings = {};
+  const edges: Partial<Record<WheelBandId, BandEdges>> = {};
+
+  const r30 = maxRadius;
+  const zodiacThickness = CLASSIC_LIGHT_ZODIAC_THICKNESS * maxRadius;
+  const rAsp = maxRadius * (1 - CLASSIC_LIGHT_RIM_STACK);
+  const termSector = input.showTerms ? CLASSIC_LIGHT_TERM_THICKNESS * maxRadius : 0;
+  const decanSector = input.showDecans ? CLASSIC_LIGHT_DECAN_THICKNESS * maxRadius : 0;
+  let r0 = r30 - zodiacThickness;
+  edges.margin = { outer: maxRadius, inner: maxRadius, visible: false };
+
+  edges.zodiac = { outer: r30, inner: r0, visible: true };
+  rings.r30 = r30;
+  rings.r0 = r0;
+  rings.rSign = r30 - zodiacThickness / 2;
+  rings.rASCMC = rings.rSign;
+  rings.rArrow = rings.rSign + classic.arrowLength * maxRadius;
+
+  const degreeTick = classic.degreeTickLength * maxRadius;
+  const zodiacBand = r30 - r0;
+  rings.rOuter0 = r30;
+  rings.rOuter10 = resolveWheelRulerTerminal(
+    style,
+    input.profile,
+    "zodiacOuter",
+    zodiacBand,
+    r30,
+    -1,
+    ((r30 - degreeTick) - degreeTick) - degreeTick,
+  );
+  [rings.rOuter1, rings.rOuter5] = interiorThird(rings.rOuter0, rings.rOuter10);
+  rings.r10 = resolveWheelRulerTerminal(
+    style,
+    input.profile,
+    "zodiacInner",
+    zodiacBand,
+    r0,
+    1,
+    ((r0 + degreeTick) + degreeTick) + degreeTick,
+  );
+  [rings.r1, rings.r5] = interiorThird(r0, rings.r10);
+
+  const rDecans = r0 - termSector;
+  const rInner = rDecans - decanSector;
+  edges.terms = { outer: r0, inner: rDecans, visible: input.showTerms };
+  edges.decans = { outer: rDecans, inner: rInner, visible: input.showDecans };
+  rings.rTerms = r0;
+  rings.rTermsPlanet = r0 - termSector / 2;
+  rings.rDecans = rDecans;
+  rings.rDecansPlanet = rInner + decanSector / 2;
+  rings.rInner = rInner;
+
+  const bodiesOuter = rInner;
+  const planetStack = Math.max(0, bodiesOuter - rAsp);
+  const ringCount = comparison ? 2 : 1;
+  const ringWidth = planetStack / ringCount;
+  const innerBodiesInner = bodiesOuter - ringWidth * ringCount;
+
+  edges.bodies = { outer: bodiesOuter, inner: innerBodiesInner, visible: true };
+  rings.rAsp = rAsp;
+  rings.rPlanet = comparison
+    ? innerBodiesInner + ringWidth / 2
+    : bodiesOuter - ringWidth / 2;
+  rings.rLLine = bodiesOuter - classic.planetLineLength * maxRadius;
+  rings.rLLine2 = innerBodiesInner + classic.planetLineLength * maxRadius;
+  rings.rRetr = rings.rLLine2 + classic.retrogradeOffset * maxRadius;
+
+  if (comparison) {
+    const outerRingOuter = bodiesOuter;
+    const outerRingInner = bodiesOuter - ringWidth;
+    rings.rOuterPlanet = outerRingOuter - ringWidth / 2;
+    rings.rOuterLine = outerRingInner + classic.planetLineLength * maxRadius;
+    rings.rOuterRetr = rings.rOuterLine + classic.retrogradeOffset * maxRadius;
+    rings.rOuterASCMC = rings.rSign;
+    rings.rOuterArrow = rings.rArrow;
+    rings.rOuterMin = innerBodiesInner;
+    rings.rOuterMax = maxRadius;
+    rings.rOuterHouse = maxRadius;
+    rings.rOuterHouseName = maxRadius;
+    rings.rAntis = rings.rPlanet;
+    rings.rAntisLines = rings.rLLine2;
+  } else {
+    rings.rOuterLine = maxRadius * classic.outer.line;
+    rings.rAntis = maxRadius * classic.outer.projectedLabel;
+    rings.rAntisLines = maxRadius * classic.outer.projectedLine;
+  }
+
+  const density = Number(input.showTerms) + Number(input.showDecans);
+  const laneTable = comparison
+    ? classic.comparisonPositionLanes
+    : classic.singlePositionLanes;
+  const lane = laneTable[density];
+  rings.rPos = maxRadius * lane.position;
+  rings.rAspAscMC = maxRadius * lane.aspectAngle;
+  rings.rPosAscMC = maxRadius * lane.positionAngle;
+  rings.rPosHouses = maxRadius * lane.positionHouses;
+
+  const rBase = maxRadius * CLASSIC_LIGHT_HUB_BASE;
+  const rHouse = rBase + CLASSIC_LIGHT_HOUSE_THICKNESS * maxRadius;
+  edges.aspects = { outer: rAsp, inner: rHouse, visible: true };
+  edges.houses = { outer: rHouse, inner: rBase, visible: input.showHouses };
+  edges.hub = { outer: rBase, inner: 0, visible: true };
+  rings.rBase = rBase;
+  rings.rHouse = rHouse;
+  rings.rHouseName = maxRadius * classic.inner.houseName;
+
+  return { edges, rings };
+}
+
 /**
  * Canonical classic/compact layout as a band walk. Transcribed from
  * `resolveClassicBaseRings` and the classic/compact branches of
@@ -810,6 +936,9 @@ function resolveClassicFamilyLayout(
   style: WheelRenderStyle,
   input: WheelGeometryInput,
 ): { edges: Partial<Record<WheelBandId, BandEdges>>; rings: MutableRings } {
+  if (input.wheelChartStyle === "classic_light" && !isAngloFamilyProfile(input.profile)) {
+    return resolveClassicLightFamilyLayout(style, input);
+  }
   const { maxRadius } = input;
   const classic = style.geometry.classic;
   const compact = style.geometry.compact;

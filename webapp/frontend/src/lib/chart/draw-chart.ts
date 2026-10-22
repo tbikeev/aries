@@ -89,6 +89,14 @@ import {
   aspectGlyph,
   signGlyph,
 } from "./glyphs";
+import {
+  classicLightHorizontalAxisColor,
+  classicLightHouseNameRadius,
+  classicLightMeridianAxisColor,
+  HOUSE_GLYPHS_CLASSIC_LIGHT,
+  isClassicLightWheelChartStyle,
+  normalizeWheelChartStyle,
+} from "./wheel-chart-style";
 import type {
   Chart,
   ChartAspect,
@@ -312,6 +320,14 @@ function angleArrowheadsVisible(chart: Chart): boolean {
 
 function cusplessAscMcLabelsVisible(chart: Chart): boolean {
   return chart.options.showCusplessAscMcLabels !== false;
+}
+
+function wheelChartStyleFor(chart: Chart) {
+  return normalizeWheelChartStyle(chart.options.wheelChartStyle);
+}
+
+function classicLightWheel(chart: Chart): boolean {
+  return isClassicLightWheelChartStyle(wheelChartStyleFor(chart));
 }
 
 // Continuous proportional scaling — port of graphchart.py:_scaled_line_w
@@ -918,6 +934,7 @@ export function wheelGeometryInputForSnapshot(
     composition: chart.options.wheelComposition,
     profile: wheelTypographyProfile(chart),
     mode: comparison ? "comparison" : "single",
+    wheelChartStyle: wheelChartStyleFor(chart),
     maxRadius,
     hasOuterRing: comparison || snapshot.outerRingMode !== "none",
     showTerms: hasWheelRing(chart, "terms"),
@@ -2108,6 +2125,19 @@ function layoutHouseName(
       classId,
     };
   }
+  if (classicLightWheel(chart)) {
+    const text = HOUSE_GLYPHS_CLASSIC_LIGHT[houseIndex];
+    const [w, h] = draw.textsize(text, typographyTextOpts(paint));
+    return {
+      x: pt[0] - w / 2,
+      y: pt[1] - h / 2,
+      w,
+      h,
+      text,
+      ...positionedTextPaint(paint),
+      classId,
+    };
+  }
   let xOffset = layoutUnit * style.labels.houseClassicOffsetScale;
   let yOffset = layoutUnit * style.labels.houseClassicOffsetScale;
   if (houseIndex === 0 || houseIndex === 1) {
@@ -2382,8 +2412,13 @@ function drawAscMC(
     } else {
       const p1 = polar(center, ringset.rBase, lon, asc);
       const p2 = polar(center, shaftRadius, lon, asc);
+      const axisColor = classicLightWheel(chart)
+        ? index <= 1
+          ? classicLightHorizontalAxisColor()
+          : classicLightMeridianAxisColor()
+        : style.elementColors.angleRay;
       draw.line([p1, p2], {
-        fill: style.elementColors.angleRay,
+        fill: axisColor,
         ...semanticLinePaint(style, "angle", width),
       });
     }
@@ -8745,6 +8780,23 @@ export function resolveChartOuterPaintEnvelope(
   const style = projectWheelAuthoringStyle(sourceStyle, referenceRadius, profile);
   const restrainedAngloComparison = usesRestrainedAngloComparison(snapshot, chart);
   const ringset = resolveWheelRingSet(style, wheelGeometryInputForSnapshot(snapshot, referenceRadius));
+  if (classicLightWheel(chart)) {
+    const houseLabelPad = resolveWheelTypographyMetrics(style, profile, referenceRadius).houseLabelSize / 2;
+    const outerPaintRadius = Math.max(
+      ringset.r30,
+      classicLightHouseNameRadius(ringset) + houseLabelPad,
+    );
+    const paintRadiusScale =
+      outerPaintRadius * resolveWheelScale(sourceStyle, profile) / referenceRadius;
+    return Object.freeze({
+      targetScale: resolvePaintEnvelopeScale(
+        outerPaintRadius * resolveWheelScale(sourceStyle, profile),
+        referenceRadius,
+      ),
+      paintRadiusScale,
+      avoidTitlebar: true,
+    });
+  }
   if (!hasOuterRing && !wheelOpenCuspLabelBand(ringset)) {
     return Object.freeze({targetScale: 1, paintRadiusScale: 1, avoidTitlebar: false});
   }
@@ -9046,7 +9098,9 @@ export function drawSnapshotLayer(
       drawHouseNames(
         draw,
         center,
-        ringset,
+        classicLightWheel(chart)
+          ? ({ ...ringset, rHouseName: classicLightHouseNameRadius(ringset) } as RingSet)
+          : ringset,
         asc,
         chart,
         palette,
@@ -9054,7 +9108,7 @@ export function drawSnapshotLayer(
         typography.houseLabelSize,
         typography.layoutUnit,
         style,
-        "houses.inner.label",
+        classicLightWheel(chart) ? "houses.outer.label" : "houses.inner.label",
       );
       const outerHouseNameRadius =
         ringset.rOuterHouseName ?? ringset.rOuterArrow ?? ringset.rOuterASCMC;

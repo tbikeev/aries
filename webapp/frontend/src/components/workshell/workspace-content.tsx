@@ -35,6 +35,11 @@ import {
   readPaletteProfileOverrides,
 } from "@/lib/chart/palette";
 import {
+  applyWheelChartStylePalette,
+  normalizeWheelChartStyle,
+  wrapWheelCssValueReader,
+} from "@/lib/chart/wheel-chart-style";
+import {
   projectWheelAuthoringStyle,
   resolveWheelOverlayMetrics,
   resolveWheelRenderStyleFromTokens,
@@ -5738,19 +5743,20 @@ export function ChartSurface({
     primaryCornerLines?.topLeft?.length || primaryCornerLines?.bottomLeft?.length
       ? primaryChart
       : displayChart;
+  const wheelChartStyle = normalizeWheelChartStyle(primaryChart.options.wheelChartStyle);
   const palette = React.useMemo(
-    () => ({
+    () => applyWheelChartStylePalette({
       ...readPaletteFromTheme(theme),
       ...resolvePalette(primaryChart),
       ...readPaletteProfileOverrides(theme),
-    }),
-    [primaryChart, theme],
+    }, wheelChartStyle),
+    [primaryChart, theme, wheelChartStyle],
   );
   const chartTextFont = morinusTextFontFromTokens(theme?.appTokens);
   const wheelStyle = React.useMemo(
     () =>
       resolveWheelRenderStyleFromTokens(
-        (cssVar) => theme?.chartPalette?.[cssVar],
+        wrapWheelCssValueReader((cssVar) => theme?.chartPalette?.[cssVar], wheelChartStyle),
         {
           palette,
           revision: styleRevision,
@@ -5758,7 +5764,7 @@ export function ChartSurface({
           fontUi: chartTextFont,
         },
       ),
-    [chartTextFont, palette, styleRevision, theme?.chartPalette],
+    [chartTextFont, palette, styleRevision, theme?.chartPalette, wheelChartStyle],
   );
   const overlayStyle = wheelStyle.overlays;
   // Partial overlay modes keep the live wheel cheap while the snapshot cache

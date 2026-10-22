@@ -586,6 +586,10 @@ function nativeQuickOptionPatch(command: string, opts: OptionsPayload): OptionsP
   ) {
     return { display: { anglo_dense_label_layout: value } };
   }
+  value = quickCommandValue(command, "quick.options.wheel-chart-style:");
+  if (value === "default" || value === "classic_light") {
+    return { display: { wheel_chart_style: value } };
+  }
 
   value = quickCommandValue(command, "quick.options.fortuna:");
   if (value !== null) return { planetsPoints: { lotoffortune: Number(value) } };
@@ -717,6 +721,14 @@ function nativeQuickOptionCheckedStates(opts: OptionsPayload): ShellMenuCheckedS
     "quick.options.anglo-dense-label-layout",
     opts.catalog.angloDenseLabelLayouts.map((entry) => entry.value),
     opts.display.anglo_dense_label_layout,
+  );
+  radio(
+    "quick.options.wheel-chart-style",
+    (opts.catalog.wheelChartStyles?.length
+      ? opts.catalog.wheelChartStyles
+      : [{ value: "default" }, { value: "classic_light" }]
+    ).map((entry) => entry.value),
+    opts.display.wheel_chart_style ?? "default",
   );
   radio("quick.options.fortuna", opts.catalog.fortunaModes.map((entry) => entry.value), opts.planetsPoints.lotoffortune);
   radio("quick.options.syzygy", opts.catalog.syzygyModes.map((entry) => entry.value), opts.planetsPoints.syzmoon);
