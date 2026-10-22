@@ -9879,6 +9879,7 @@
       ],
       "consumerFiles": [
         "src/app/globals.css",
+        "src/components/workshell/inspector-panel.tsx",
         "src/lib/theme/app-material-runtime.ts"
       ]
     },
@@ -10695,6 +10696,7 @@
       ],
       "consumerFiles": [
         "src/app/globals.css",
+        "src/components/workshell/inspector-panel.tsx",
         "src/lib/theme/app-material-runtime.ts"
       ]
     },
@@ -27622,6 +27624,7 @@
       "consumerFiles": [
         "src/app/globals.css",
         "src/components/workshell/astrocart-controls.tsx",
+        "src/components/workshell/inspector-panel.tsx",
         "src/components/workshell/list-column-layout.tsx",
         "src/components/workshell/list-controls.tsx",
         "src/lib/theme/app-material-runtime.ts"
@@ -43422,12 +43425,14 @@
         "src/app/globals.css",
         "src/lib/chart/astrolabe-render-style.ts",
         "src/lib/chart/palette.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/chart/wheel-render-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts",
         "src/lib/theme/chart-key-color.ts"
       ],
       "runtimeProviderFiles": [
-        "src/lib/chart/astrolabe-render-style.ts"
+        "src/lib/chart/astrolabe-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -43882,11 +43887,13 @@
         "src/lib/chart/ephemeris-render-style.ts",
         "src/lib/chart/palette.ts",
         "src/lib/chart/strip-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts",
         "src/lib/theme/chart-key-color.ts"
       ],
       "runtimeProviderFiles": [
-        "src/lib/chart/astrolabe-render-style.ts"
+        "src/lib/chart/astrolabe-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -44608,12 +44615,14 @@
         "src/lib/chart/ephemeris-render-style.ts",
         "src/lib/chart/palette.ts",
         "src/lib/chart/strip-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/chart/wheel-render-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts",
         "src/lib/theme/chart-key-color.ts"
       ],
       "runtimeProviderFiles": [
-        "src/lib/chart/astrolabe-render-style.ts"
+        "src/lib/chart/astrolabe-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -44788,8 +44797,12 @@
       "consumerFiles": [
         "src/app/globals.css",
         "src/lib/chart/palette.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/chart/wheel-render-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts"
+      ],
+      "runtimeProviderFiles": [
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -44824,12 +44837,14 @@
         "src/lib/chart/astrolabe-render-style.ts",
         "src/lib/chart/ephemeris-render-style.ts",
         "src/lib/chart/palette.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/chart/wheel-render-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts",
         "src/lib/theme/chart-key-color.ts"
       ],
       "runtimeProviderFiles": [
-        "src/lib/chart/astrolabe-render-style.ts"
+        "src/lib/chart/astrolabe-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -44915,11 +44930,13 @@
         "src/app/globals.css",
         "src/lib/chart/astrolabe-render-style.ts",
         "src/lib/chart/palette.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts",
         "src/lib/theme/chart-key-color.ts"
       ],
       "runtimeProviderFiles": [
-        "src/lib/chart/astrolabe-render-style.ts"
+        "src/lib/chart/astrolabe-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -45187,9 +45204,13 @@
         "src/app/globals.css",
         "src/lib/chart/ephemeris-render-style.ts",
         "src/lib/chart/palette.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/chart/wheel-render-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts",
         "src/lib/theme/chart-key-color.ts"
+      ],
+      "runtimeProviderFiles": [
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -45283,10 +45304,12 @@
         "src/lib/chart/ephemeris-render-style.ts",
         "src/lib/chart/palette.ts",
         "src/lib/chart/strip-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts"
       ],
       "runtimeProviderFiles": [
-        "src/lib/chart/astrolabe-render-style.ts"
+        "src/lib/chart/astrolabe-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -45323,8 +45346,12 @@
         "src/app/globals.css",
         "src/lib/chart/palette.ts",
         "src/lib/chart/strip-render-style.ts",
+        "src/lib/chart/wheel-chart-style.ts",
         "src/lib/chart/wheel-render-style.ts",
         "src/lib/style-lab/wheel-style-scene.ts"
+      ],
+      "runtimeProviderFiles": [
+        "src/lib/chart/wheel-chart-style.ts"
       ]
     },
     {
@@ -46181,7 +46208,8 @@
         "src/components/ui/sidebar.tsx",
         "src/components/workshell/sidebar-sash.tsx",
         "src/components/workshell/workspace-content.tsx",
-        "src/components/workshell/workspace-frame.tsx"
+        "src/components/workshell/workspace-frame.tsx",
+        "src/shortcuts/sidebar-command-switcher.ts"
       ],
       "runtimeProviderFiles": [
         "src/components/ui/sidebar.tsx",

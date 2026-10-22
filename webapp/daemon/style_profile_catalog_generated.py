@@ -1427,7 +1427,7 @@ _CATALOG = json.loads(r'''{
       "scope": "app",
       "type": "color",
       "unit": "",
-      "default": "color-mix(in srgb, var(--aries-inspector-text) 2%, transparent)",
+      "default": "color-mix(in srgb, var(--aries-inspector-text) 8%, var(--aries-surface-subtle))",
       "bounds": null,
       "label": "Inspector card background",
       "description": "Background fill for inspector alert cards.",
