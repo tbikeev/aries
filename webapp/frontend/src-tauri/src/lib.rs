@@ -724,6 +724,41 @@ fn write_dev_daemon_connection(
     fs::rename(temporary, path)
 }
 
+fn dev_user_opts_dir() -> Option<PathBuf> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        return std::env::var_os("HOME").map(|home| {
+            PathBuf::from(home)
+                .join("Library")
+                .join("Application Support")
+                .join("Aries Dev")
+                .join("Opts")
+        });
+    }
+    #[cfg(target_os = "windows")]
+    {
+        return std::env::var_os("APPDATA")
+            .map(PathBuf::from)
+            .or_else(|| {
+                std::env::var_os("USERPROFILE")
+                    .map(|home| PathBuf::from(home).join("AppData").join("Roaming"))
+            })
+            .map(|base| base.join("Aries Dev").join("Opts"));
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        return std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| {
+                std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config"))
+            })
+            .map(|base| base.join("Aries Dev").join("Opts"));
+    }
+}
+
 fn apply_daemon_environment(
     command: &mut Command,
     port: u16,
@@ -745,6 +780,11 @@ fn apply_daemon_environment(
         .env("ARIES_DAEMON_PARENT_PID", daemon_parent_pid())
         .env("ARIES_DAEMON_BASE_DIR", base_dir)
         .env("ARIES_DAEMON_CORS_ORIGINS", cors_origins);
+    if std::env::var_os("ARIES_USER_OPTS_DIR").is_none() {
+        if let Some(path) = dev_user_opts_dir() {
+            command.env("ARIES_USER_OPTS_DIR", path);
+        }
+    }
     if let Some(path) = native_socket_path {
         command.env("ARIES_DAEMON_SOCKET", path);
     }

@@ -44,6 +44,15 @@ def legacy_app_support_dir() -> str:
 
 
 def user_opts_dir(app_name: str = APP_NAME) -> str:
+	"""User-owned options directory (themes, wheel presets, *.opt pickles).
+
+	``ARIES_USER_OPTS_DIR`` overrides the default ``~/Library/Application Support/Aries/Opts``
+	path so a source build can keep experimental state separate from a shipping app
+	that shares the same bundle id but reads the production support folder.
+	"""
+	override = os.environ.get("ARIES_USER_OPTS_DIR", "").strip()
+	if override:
+		return override
 	return os.path.join(app_support_dir(app_name), "Opts")
 
 
