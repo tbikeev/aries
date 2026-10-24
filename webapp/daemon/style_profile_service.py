@@ -510,22 +510,44 @@ def normalize_imported_style_profile(payload: Any) -> dict:
     return validate_style_profile(normalized_payload)
 
 
-def _color_to_css(value: list) -> str:
+def _color_to_css(value: list | tuple) -> str:
     if len(value) == 3:
         return f"rgb({value[0]} {value[1]} {value[2]})"
+    if len(value) != 4:
+        raise StyleProfileError("color override must be an RGB or RGBA array")
     alpha = f"{float(value[3]) * 100:g}%"
     return f"rgb({value[0]} {value[1]} {value[2]} / {alpha})"
+
+
+def _color_override_to_css(
+    semantic_id: str,
+    value: Any,
+    overrides: Mapping[str, Any],
+) -> str:
+    alias = color_alias_target(value)
+    if alias is not None:
+        target = STYLE_PROFILE_TOKENS.get(alias)
+        if target is None or target.get("type") != "color":
+            raise StyleProfileError(f"{semantic_id} follows unknown style token: {alias}")
+        css_var = str(target.get("cssVar") or "").strip()
+        if not css_var:
+            raise StyleProfileError(f"{semantic_id} follows a token without CSS output")
+        return f"var({css_var})"
+    if not isinstance(value, (list, tuple)):
+        raise StyleProfileError(f"{semantic_id} must be an RGB or RGBA array")
+    return _color_to_css(value)
 
 
 def style_profile_css_overrides(profile: Optional[Mapping[str, Any]]) -> dict[str, str]:
     """Resolve validated typed overrides to their concrete CSS declarations."""
     if not profile:
         return {}
+    overrides = profile.get("overrides") or {}
     result = {}
-    for semantic_id, value in profile.get("overrides", {}).items():
+    for semantic_id, value in overrides.items():
         token = STYLE_PROFILE_TOKENS[semantic_id]
         if token["type"] == "color":
-            rendered = _color_to_css(value)
+            rendered = _color_override_to_css(str(semantic_id), value, overrides)
         elif token["type"] == "number":
             rendered = f"{value:g}{token.get('unit') or ''}" if isinstance(value, float) else f"{value}{token.get('unit') or ''}"
         else:
