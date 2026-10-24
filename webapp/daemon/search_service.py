@@ -80,6 +80,11 @@ TECHNIQUE_DEFS = (
     (searchquery.SearchQuery.TECHNIQUE_SECONDARY_DIRECTIONS, "SecProgressions", "Sec. Progressions"),
     (searchquery.SearchQuery.TECHNIQUE_PRIMARY_DIRECTIONS, "PrimaryDirections", "Primary Directions"),
     (searchquery.SearchQuery.TECHNIQUE_MUNDANE_WEATHER, "CelestialWeather", "Celestial Weather"),
+    (
+        searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER,
+        "ConverseCelestialWeather",
+        "Converse Celestial Weather",
+    ),
     (searchquery.SearchQuery.TECHNIQUE_HELIACAL_PHASES, "HeliacalPhases", "Heliacal Phases"),
     (searchquery.SearchQuery.TECHNIQUE_LUNATIONS, "SynodicCycles", "Synodic Cycles"),
     (searchquery.SearchQuery.TECHNIQUE_ECLIPSES, "Eclipses", "Eclipses"),

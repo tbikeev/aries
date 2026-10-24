@@ -1014,6 +1014,14 @@
     "ru": "Небесная погода",
     "de": "Himmlisches Wetter"
   },
+  "ConverseCelestialWeather": {
+    "en": "Converse Celestial Weather",
+    "fr": "Météo céleste converse",
+    "es": "Clima celeste converso",
+    "it": "Meteo celeste converso",
+    "ru": "Обратная небесная погода",
+    "de": "Konverse Himmelswetter"
+  },
   "ChartMoment": {
     "en": "Chart moment",
     "fr": "Moment du thème",

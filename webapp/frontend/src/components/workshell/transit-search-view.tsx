@@ -192,6 +192,7 @@ const TECHNIQUE_DISPLAY_LABEL_KEYS: Record<string, string> = {
   secondary_directions: "search.techSecondaryProgressions",
   primary_directions: "search.techPrimaryDirections",
   mundane_weather: "search.techCelestialWeather",
+  converse_mundane_weather: "search.techConverseCelestialWeather",
   heliacal_phases: "search.techHeliacalPhases",
   lunations: "search.techLunations",
   eclipses: "search.techEclipses",
@@ -1133,6 +1134,23 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     [runDateRangeSearch],
   );
 
+  const runTodaySearch = React.useCallback(() => {
+    const today = new Date();
+    const fromDate = isoDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    runDateRangeSearch(fromDate, fromDate);
+  }, [runDateRangeSearch]);
+
+  const runYesterdayTodayTomorrowSearch = React.useCallback(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const fromDate = isoDate(yesterday.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate());
+    const toDate = isoDate(tomorrow.getFullYear(), tomorrow.getMonth() + 1, tomorrow.getDate());
+    runDateRangeSearch(fromDate, toDate);
+  }, [runDateRangeSearch]);
+
   const runThisMonthSearch = React.useCallback(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -1646,6 +1664,26 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           </div>
           <div className="flex shrink-0 items-center gap-[var(--aries-control-gap-compact)]">
             <ListLayoutPresetControl />
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              className="px-[var(--aries-control-gap)] text-[length:var(--aries-font-size-small)] tabular-nums whitespace-nowrap"
+              onClick={runTodaySearch}
+              title={t("search.todayTooltip")}
+            >
+              {t("search.todayShort")}
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              className="px-[var(--aries-control-gap)] text-[length:var(--aries-font-size-small)] tabular-nums whitespace-nowrap"
+              onClick={runYesterdayTodayTomorrowSearch}
+              title={t("search.yesterdayTodayTomorrowTooltip")}
+            >
+              {t("search.yesterdayTodayTomorrowShort")}
+            </Button>
             <Button
               type="button"
               size="xs"
@@ -2385,6 +2423,7 @@ function TechniqueGroup({
     { id: "sign_changes", label: t("search.techIngressSynodic") },
     byId.get("profections"),
     byId.get("mundane_weather"),
+    byId.get("converse_mundane_weather"),
     byId.get("heliacal_phases"),
     byId.get("lunations"),
     byId.get("eclipses"),
@@ -3293,7 +3332,14 @@ function techniqueDisplayLabel(row: TransitSearchRow, t: TFunc): string {
   }
   const key = TECHNIQUE_DISPLAY_LABEL_KEYS[row.technique];
   const base = key ? t(key) : row.techniqueLabel;
-  if (row.isSignChange || row.metadata.station || row.metadata.cazimi || row.metadata.heliacal || row.technique === "mundane_weather") {
+  if (
+    row.isSignChange
+    || row.metadata.station
+    || row.metadata.cazimi
+    || row.metadata.heliacal
+    || row.technique === "mundane_weather"
+    || row.technique === "converse_mundane_weather"
+  ) {
     return base;
   }
   return row.techniqueLabel || base;
@@ -3638,7 +3684,11 @@ function projectTransitSearchRows(
     const signIngress = row.metadata.sign_change === true;
     // Celestial Weather emits each moving pair once in catalog order, which
     // can be the reverse of the selected From/To roles.
-    if (row.technique === "mundane_weather" && row.promittorId && row.significatorId) {
+    if (
+      (row.technique === "mundane_weather" || row.technique === "converse_mundane_weather")
+      && row.promittorId
+      && row.significatorId
+    ) {
       const selectedPair = promittors.has(row.promittorId) && significators.has(row.significatorId);
       const selectedReversePair = promittors.has(row.significatorId) && significators.has(row.promittorId);
       if (!selectedPair && !selectedReversePair) return false;

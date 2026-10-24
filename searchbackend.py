@@ -142,6 +142,7 @@ CURSOR_TECHNIQUES = (
 	searchquery.SearchQuery.TECHNIQUE_SECONDARY_DIRECTIONS,
 	searchquery.SearchQuery.TECHNIQUE_PRIMARY_DIRECTIONS,
 	searchquery.SearchQuery.TECHNIQUE_MUNDANE_WEATHER,
+	searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER,
 	searchquery.SearchQuery.TECHNIQUE_HELIACAL_PHASES,
 	searchquery.SearchQuery.TECHNIQUE_LUNATIONS,
 	searchquery.SearchQuery.TECHNIQUE_ECLIPSES,
@@ -411,6 +412,13 @@ def search_progress(catalog, chrt, query, start_date, end_date, limit):
 		raw_rows.extend(_search_mundane_weather(catalog, chrt, query, start_jd, end_jd, runtime, compiled))
 		yield (
 			searchquery.SearchQuery.TECHNIQUE_MUNDANE_WEATHER,
+			*_prepare_search_rows(raw_rows, catalog, chrt, query, runtime, limit),
+		)
+
+	if searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER in query.techniques:
+		raw_rows.extend(_search_converse_mundane_weather(catalog, chrt, query, start_jd, end_jd, runtime, compiled))
+		yield (
+			searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER,
 			*_prepare_search_rows(raw_rows, catalog, chrt, query, runtime, limit),
 		)
 
@@ -916,6 +924,10 @@ def _search_date_window(
 		raw_rows.extend(_search_mundane_weather(catalog, chrt, query, start_jd, end_jd, runtime, compiled))
 	if should_cancel is not None and should_cancel():
 		raise _SearchCursorCancelled()
+	if searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER in query.techniques:
+		raw_rows.extend(_search_converse_mundane_weather(catalog, chrt, query, start_jd, end_jd, runtime, compiled))
+	if should_cancel is not None and should_cancel():
+		raise _SearchCursorCancelled()
 	if searchquery.SearchQuery.TECHNIQUE_HELIACAL_PHASES in query.techniques:
 		raw_rows.extend(_search_heliacal_phases(
 			catalog,
@@ -1128,6 +1140,34 @@ def _search_converse_transits(catalog, chrt, query, display_start_jd, display_en
 		_fill_row_from_jd(row, catalog, display_jd, calflag)
 		row.technique = searchquery.SearchQuery.TECHNIQUE_CONVERSE_TRANSITS
 		row.can_open_chart = True
+		out.append(row)
+	return out
+
+
+def _search_converse_mundane_weather(catalog, chrt, query, display_start_jd, display_end_jd, runtime=None, compiled=None):
+	try:
+		birth_jd = float(chrt.time.jd)
+	except Exception:
+		return []
+	converse_start_jd = converse_transits.mirrored_jd(birth_jd, display_end_jd)
+	converse_end_jd = converse_transits.mirrored_jd(birth_jd, display_start_jd)
+	rows = _search_mundane_weather(catalog, chrt, query, converse_start_jd, converse_end_jd, runtime, compiled)
+	calflag = _calendar_flag(chrt)
+	out = []
+	for row in rows:
+		if row.event_jd is None:
+			continue
+		converse_jd = float(row.event_jd)
+		display_jd = converse_transits.mirrored_jd(birth_jd, converse_jd)
+		if display_jd < display_start_jd or display_jd >= display_end_jd:
+			continue
+		converse_tuple = _jd_to_datetime_tuple(converse_jd, calflag)
+		row.metadata['converse_mundane_weather_jd'] = converse_jd
+		row.metadata['converse_mundane_weather_datetime'] = converse_tuple
+		row.metadata['converse_mundane_weather_date'] = '%04d-%02d-%02d' % (converse_tuple[0], converse_tuple[1], converse_tuple[2])
+		row.metadata['converse_mundane_weather_time'] = '%02d:%02d:%02d' % (converse_tuple[3], converse_tuple[4], converse_tuple[5])
+		_fill_row_from_jd(row, catalog, display_jd, calflag)
+		row.technique = searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER
 		out.append(row)
 	return out
 
@@ -3472,6 +3512,26 @@ def _apply_sign_change_row_display_payloads(row, radix_catalog, chrt, runtime):
 	row.metadata['sig_display'] = _weather_sign_payload(entered_sign, chrt)
 
 
+def _apply_converse_mundane_weather_row_display_payloads(row, radix_catalog, chrt, runtime):
+	if row.metadata.get('sign_change'):
+		_apply_sign_change_row_display_payloads(row, radix_catalog, chrt, runtime)
+		return
+
+	pair_jd = row.metadata.get('converse_mundane_weather_jd', row.event_jd)
+	prom_payload = _build_live_row_object_display(radix_catalog, row.promittor_id, chrt, pair_jd, runtime)
+	sig_payload = _build_live_row_object_display(radix_catalog, row.significator_id, chrt, pair_jd, runtime)
+
+	if prom_payload is not None:
+		row.metadata['prom_display'] = prom_payload
+		if prom_payload.get('state_suffix'):
+			row.promittor_label = '%s%s' % (row.promittor_label, prom_payload['state_suffix'])
+
+	if sig_payload is not None:
+		row.metadata['sig_display'] = sig_payload
+		if sig_payload.get('state_suffix'):
+			row.significator_label = '%s%s' % (row.significator_label, sig_payload['state_suffix'])
+
+
 def _apply_live_pair_row_display_payloads(row, radix_catalog, chrt, runtime):
 	if row.metadata.get('sign_change'):
 		_apply_sign_change_row_display_payloads(row, radix_catalog, chrt, runtime)
@@ -3632,6 +3692,8 @@ def _hydrate_result_display_payloads(rows, catalog, chrt, runtime):
 			)
 		elif row.technique == searchquery.SearchQuery.TECHNIQUE_MUNDANE_WEATHER:
 			_apply_live_pair_row_display_payloads(row, catalog, chrt, runtime)
+		elif row.technique == searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER:
+			_apply_converse_mundane_weather_row_display_payloads(row, catalog, chrt, runtime)
 		elif row.technique in (
 			searchquery.SearchQuery.TECHNIQUE_LUNATIONS,
 			searchquery.SearchQuery.TECHNIQUE_ECLIPSES,
@@ -3728,6 +3790,7 @@ def _annotate_rows_by_moon_phase(rows, catalog, chrt, runtime):
 		searchquery.SearchQuery.TECHNIQUE_TRANSITS,
 		searchquery.SearchQuery.TECHNIQUE_CONVERSE_TRANSITS,
 		searchquery.SearchQuery.TECHNIQUE_MUNDANE_WEATHER,
+		searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER,
 		searchquery.SearchQuery.TECHNIQUE_INGRESS_SYNODIC,
 	)
 	for row in rows:
@@ -3738,7 +3801,12 @@ def _annotate_rows_by_moon_phase(rows, catalog, chrt, runtime):
 			continue
 		if row.technique not in supported or row.event_jd is None:
 			continue
-		phase_jd = float(row.metadata.get('converse_transit_jd', row.event_jd))
+		phase_jd = float(
+			row.metadata.get(
+				'converse_transit_jd',
+				row.metadata.get('converse_mundane_weather_jd', row.event_jd),
+			)
+		)
 		moon_lon = runtime.live_object_longitude(moon, chrt, phase_jd)
 		sun_lon = runtime.live_object_longitude(sun, chrt, phase_jd)
 		if moon_lon is None or sun_lon is None:
@@ -5354,6 +5422,8 @@ def _search_technique_label(technique):
 		return mtexts.txts.get('PrimaryDirections', 'Primary Directions')
 	if technique == searchquery.SearchQuery.TECHNIQUE_MUNDANE_WEATHER:
 		return mtexts.txts.get('CelestialWeather', 'Celestial Weather')
+	if technique == searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER:
+		return mtexts.txts.get('ConverseCelestialWeather', 'Converse Celestial Weather')
 	if technique == searchquery.SearchQuery.TECHNIQUE_HELIACAL_PHASES:
 		return mtexts.txts.get('HeliacalPhases', 'Heliacal Phases')
 	if technique == searchquery.SearchQuery.TECHNIQUE_LUNATIONS:
