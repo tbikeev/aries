@@ -87,7 +87,9 @@ import {
 import { semanticChartColor } from "@/lib/theme/semantic-color";
 import { radixPaneOwner } from "@/lib/radix-pane-state";
 import {
-  buildRetCc0Lookup,
+  buildSearchPerformanceLookup,
+  parseSearchPerformanceHorizonDays,
+  SEARCH_PERFORMANCE_HORIZONS,
   formatPerformancePct,
   formatMeanReturnPct,
   formatSearchPerformanceSummaryLine,
@@ -97,6 +99,7 @@ import {
   searchPerformanceAnomalies,
   summarizeSearchPerformance,
   type SearchOhlcSeries,
+  type SearchPerformanceHorizonDays,
   type SearchPerformanceSummary,
   type SearchPerformanceLookup,
 } from "@/lib/search-ohlc";
@@ -163,6 +166,7 @@ type TransitSearchCacheEntry = {
   timeDisplay: EventTimeDisplayMeta | null;
   rangeStream: SearchRangeStream | null;
   ohlc?: SearchOhlcSeries | null;
+  ohlcHorizonDays?: SearchPerformanceHorizonDays;
 };
 type SearchRangeStream = {
   queryKey: string;
@@ -305,11 +309,14 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const [settingsOpen, setSettingsOpen] = React.useState(initialCache?.ui?.settingsOpen ?? false);
   const [filtersOpen, setFiltersOpen] = React.useState(initialCache?.ui?.filtersOpen ?? true);
   const [ohlcSeries, setOhlcSeries] = React.useState<SearchOhlcSeries | null>(() => initialCache?.ohlc ?? null);
+  const [ohlcHorizonDays, setOhlcHorizonDays] = React.useState<SearchPerformanceHorizonDays>(() =>
+    parseSearchPerformanceHorizonDays(initialCache?.ohlcHorizonDays),
+  );
   const [ohlcError, setOhlcError] = React.useState<string | null>(null);
   const ohlcInputRef = React.useRef<HTMLInputElement | null>(null);
   const performanceLookup = React.useMemo(
-    () => buildRetCc0Lookup(ohlcSeries?.closes),
-    [ohlcSeries],
+    () => buildSearchPerformanceLookup(ohlcSeries?.closes, ohlcHorizonDays),
+    [ohlcHorizonDays, ohlcSeries],
   );
   const ohlcSpan = React.useMemo(
     () => ohlcCloseDateSpan(ohlcSeries?.closes ?? null),
@@ -352,9 +359,10 @@ export function TransitSearchView(props: TransitSearchViewProps) {
         }),
         ui: { sort, selectedRowKeys: [...selectedRowKeys], filtersOpen, settingsOpen, scrollTop: retainedScrollTopRef.current },
         ohlc: ohlcSeries,
+        ohlcHorizonDays,
       });
     },
-    [catalogContextKey, optionsSeq, searchLoading, sort, selectedRowKeys, filtersOpen, settingsOpen, contextMode, significatorId, chartRole, customPointsKey, ohlcSeries],
+    [catalogContextKey, optionsSeq, searchLoading, sort, selectedRowKeys, filtersOpen, settingsOpen, contextMode, significatorId, chartRole, customPointsKey, ohlcHorizonDays, ohlcSeries],
   );
 
   React.useEffect(() => {
@@ -1727,6 +1735,8 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       ) : null}
       <OhlcFilterGroup
         series={ohlcSeries}
+        horizonDays={ohlcHorizonDays}
+        onHorizonChange={setOhlcHorizonDays}
         error={ohlcError}
         inputRef={ohlcInputRef}
         onChooseFile={() => ohlcInputRef.current?.click()}
@@ -1821,7 +1831,11 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                   {performanceSummary ? (
                     <>
                       {" · "}
-                      <SearchPerformanceHeaderStats summary={performanceSummary} t={t} />
+                      <SearchPerformanceHeaderStats
+                        summary={performanceSummary}
+                        horizonDays={performanceLookup.horizonDays}
+                        t={t}
+                      />
                     </>
                   ) : null}
                 </>
@@ -1897,6 +1911,11 @@ export function TransitSearchView(props: TransitSearchViewProps) {
             >
               {t("search.ohlcSpan")}
             </Button>
+            <OhlcHorizonToggle
+              disabled={!ohlcSeries || searchLoading}
+              horizonDays={ohlcHorizonDays}
+              onChange={setOhlcHorizonDays}
+            />
             {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
               <Button
                 key={year}
@@ -2371,7 +2390,7 @@ function LoadingDots() {
 }
 
 function performanceRetForRow(isoDate: string, lookup: SearchPerformanceLookup): number | null {
-  return lookup.retCc0(isoDate);
+  return lookup.returnForEventDay(isoDate);
 }
 
 function transitSearchSortValue(
@@ -2596,11 +2615,45 @@ function SelectionGroup({
   );
 }
 
+function OhlcHorizonToggle({
+  horizonDays,
+  onChange,
+  disabled,
+}: {
+  horizonDays: SearchPerformanceHorizonDays;
+  onChange: (horizon: SearchPerformanceHorizonDays) => void;
+  disabled?: boolean;
+}) {
+  const t = useT();
+  return (
+    <span
+      className="inline-flex items-center gap-px rounded-[var(--aries-radius-control-compact)] border border-border/50 p-px"
+      title={t("search.ohlcHorizonTooltip")}
+    >
+      {SEARCH_PERFORMANCE_HORIZONS.map((days) => (
+        <Button
+          key={days}
+          type="button"
+          size="xs"
+          variant={horizonDays === days ? "secondary" : "ghost"}
+          disabled={disabled}
+          className="h-[var(--aries-control-height-compact)] px-[var(--aries-control-gap)] text-[length:var(--aries-font-size-small)] tabular-nums"
+          onClick={() => onChange(days)}
+        >
+          {t("search.ohlcHorizonDays").replace("{days}", String(days))}
+        </Button>
+      ))}
+    </span>
+  );
+}
+
 function SearchPerformanceHeaderStats({
   summary,
+  horizonDays,
   t,
 }: {
   summary: SearchPerformanceSummary;
+  horizonDays: SearchPerformanceHorizonDays;
   t: (key: string, ...args: unknown[]) => string;
 }) {
   const anomalies = searchPerformanceAnomalies(summary);
@@ -2612,7 +2665,13 @@ function SearchPerformanceHeaderStats({
 
   return (
     <span className="inline text-foreground">
-      <span className="font-medium">{t("search.performanceHeader")}</span>
+      <span className="font-medium">
+        {t("search.performanceHeader")}
+        {" "}
+        <span className="text-muted-foreground font-normal">
+          ({t("search.ohlcHorizonDays").replace("{days}", String(horizonDays))})
+        </span>
+      </span>
       {" "}
       <span
         className={cn(
@@ -2645,7 +2704,11 @@ function SearchPerformanceHeaderStats({
             && !excessNegative
             && "rounded-[var(--aries-radius-control-compact)] bg-amber-500/15 px-1 py-px font-semibold text-amber-950 ring-1 ring-amber-500/45 dark:text-amber-100",
         )}
-        title={t("search.performanceReturnTooltip")}
+        title={
+          anomalies.return
+            ? t("search.performanceReturnAnomalyTooltip")
+            : t("search.performanceReturnTooltip")
+        }
       >
         μ {formatMeanReturnPct(summary.hitMeanReturn)} vs {formatMeanReturnPct(summary.baselineMeanReturn)}
         {" · "}
@@ -2657,9 +2720,6 @@ function SearchPerformanceHeaderStats({
             pμ={summary.pReturnTwoSided.toFixed(3)}
           </>
         ) : null}
-        {anomalies.return ? (
-          <span className="sr-only">{t("search.performanceReturnAnomalyTooltip")}</span>
-        ) : null}
       </span>
     </span>
   );
@@ -2667,6 +2727,8 @@ function SearchPerformanceHeaderStats({
 
 function OhlcFilterGroup({
   series,
+  horizonDays,
+  onHorizonChange,
   error,
   inputRef,
   onChooseFile,
@@ -2674,6 +2736,8 @@ function OhlcFilterGroup({
   onClear,
 }: {
   series: SearchOhlcSeries | null;
+  horizonDays: SearchPerformanceHorizonDays;
+  onHorizonChange: (horizon: SearchPerformanceHorizonDays) => void;
   error: string | null;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onChooseFile: () => void;
@@ -2714,6 +2778,14 @@ function OhlcFilterGroup({
           if (file) onFileSelected(file);
         }}
       />
+      <div className="flex flex-wrap items-center gap-[var(--aries-control-gap-compact)]">
+        <span className="text-xs text-muted-foreground">{t("search.ohlcHorizonLabel")}</span>
+        <OhlcHorizonToggle
+          disabled={!series}
+          horizonDays={horizonDays}
+          onChange={onHorizonChange}
+        />
+      </div>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </section>
   );

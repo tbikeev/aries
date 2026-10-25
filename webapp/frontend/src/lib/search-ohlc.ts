@@ -1,7 +1,15 @@
 // Copyright (C) 2026 Max Lange
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-/** Daily OHLC series for optional Search performance column (listing-date ret_cc0). */
+/** Daily OHLC series for optional Search performance column (forward return from transit day close). */
+
+export const SEARCH_PERFORMANCE_HORIZONS = [1, 3, 7] as const;
+export type SearchPerformanceHorizonDays = (typeof SEARCH_PERFORMANCE_HORIZONS)[number];
+
+export function parseSearchPerformanceHorizonDays(value: unknown): SearchPerformanceHorizonDays {
+  if (value === 3 || value === 7) return value;
+  return 1;
+}
 
 export type SearchOhlcSeries = {
   fileName: string;
@@ -20,13 +28,14 @@ export type SearchOhlcParseResult =
   | { ok: false; error: string };
 
 export type SearchPerformanceLookup = {
-  /** Log close-to-close return on listing date, or null if unknown */
-  retCc0: (isoDate: string) => number | null;
-  /** Positive-day rate among all ret_cc0 days in [fromIso, toIso] (search baseline). */
+  horizonDays: SearchPerformanceHorizonDays;
+  /** Log return from close on event day to close N trading sessions later. */
+  returnForEventDay: (anchorIsoDate: string) => number | null;
+  /** Positive-day rate among forward returns in [fromIso, toIso] (search baseline). */
   baselinePosRateBetween: (fromIso: string, toIso: string) => { rate: number; days: number };
   /** Mean log return and day count in [fromIso, toIso]. */
   baselineMeanReturnBetween: (fromIso: string, toIso: string) => { mean: number; days: number };
-  /** Log returns on non-hit calendar days within [fromIso, toIso]. */
+  /** Forward returns on non-hit anchor days within [fromIso, toIso]. */
   controlReturnsBetween: (
     fromIso: string,
     toIso: string,
@@ -308,30 +317,43 @@ export function searchPerformanceAnomalies(summary: SearchPerformanceSummary): {
   return { count, return: returnAnomaly };
 }
 
-export function buildRetCc0Lookup(closes: Record<string, number> | null | undefined): SearchPerformanceLookup {
+function buildForwardReturnByAnchor(
+  closes: Record<string, number>,
+  horizonDays: SearchPerformanceHorizonDays,
+): Map<string, number> {
+  const dates = Object.keys(closes).filter((key) => ISO_DATE.test(key)).sort();
+  const retByAnchor = new Map<string, number>();
+  for (let index = 0; index < dates.length; index += 1) {
+    const endIndex = index + horizonDays;
+    if (endIndex >= dates.length) continue;
+    const p0 = closes[dates[index]];
+    const p1 = closes[dates[endIndex]];
+    if (p0 > 0 && p1 > 0) {
+      retByAnchor.set(dates[index], Math.log(p1 / p0));
+    }
+  }
+  return retByAnchor;
+}
+
+export function buildSearchPerformanceLookup(
+  closes: Record<string, number> | null | undefined,
+  horizonDays: SearchPerformanceHorizonDays = 1,
+): SearchPerformanceLookup {
   const emptyBaseline = () => ({ rate: 0.5, days: 0 });
   const emptyMean = () => ({ mean: 0, days: 0 });
   if (!closes) {
     return {
-      retCc0: () => null,
+      horizonDays,
+      returnForEventDay: () => null,
       baselinePosRateBetween: emptyBaseline,
       baselineMeanReturnBetween: emptyMean,
       controlReturnsBetween: () => [],
     };
   }
-  const dates = Object.keys(closes).filter((key) => ISO_DATE.test(key)).sort();
-  const retByDate = new Map<string, number>();
-  for (let index = 1; index < dates.length; index += 1) {
-    const prev = dates[index - 1];
-    const cur = dates[index];
-    const p0 = closes[prev];
-    const p1 = closes[cur];
-    if (p0 > 0 && p1 > 0) {
-      retByDate.set(cur, Math.log(p1 / p0));
-    }
-  }
+  const retByDate = buildForwardReturnByAnchor(closes, horizonDays);
   return {
-    retCc0: (isoDate: string) => retByDate.get(isoDate) ?? null,
+    horizonDays,
+    returnForEventDay: (isoDate: string) => retByDate.get(isoDate) ?? null,
     baselinePosRateBetween: (fromIso, toIso) => baselinePosRateBetween(retByDate, fromIso, toIso),
     baselineMeanReturnBetween: (fromIso, toIso) => {
       const values = returnsInRange(retByDate, fromIso, toIso);
@@ -340,6 +362,11 @@ export function buildRetCc0Lookup(closes: Record<string, number> | null | undefi
     controlReturnsBetween: (fromIso, toIso, hitIsoDates) =>
       controlReturnsInRange(retByDate, fromIso, toIso, hitIsoDates),
   };
+}
+
+/** @deprecated Use buildSearchPerformanceLookup */
+export function buildRetCc0Lookup(closes: Record<string, number> | null | undefined): SearchPerformanceLookup {
+  return buildSearchPerformanceLookup(closes, 1);
 }
 
 export function summarizeSearchPerformance(
@@ -352,7 +379,7 @@ export function summarizeSearchPerformance(
   for (const row of rows) {
     const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
     if (!iso) continue;
-    const ret = lookup.retCc0(iso);
+    const ret = lookup.returnForEventDay(iso);
     if (ret !== null) returns.push(ret);
   }
   if (returns.length === 0) return null;
@@ -387,7 +414,7 @@ export function summarizeSearchPerformance(
   for (const row of rows) {
     const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
     if (!iso) continue;
-    const ret = lookup.retCc0(iso);
+    const ret = lookup.returnForEventDay(iso);
     if (ret !== null) hitReturnByDay.set(iso, ret);
   }
   const hitReturnDaysList = [...hitReturnByDay.values()];
@@ -447,8 +474,8 @@ export function listingIsoDateFromRow(displayDatetime: string, displayDate: stri
   return normalizeIsoDate(displayDate);
 }
 
-export function formatPerformancePct(retCc0: number): string {
-  const pct = retCc0 * 100;
+export function formatPerformancePct(logReturn: number): string {
+  const pct = logReturn * 100;
   const sign = pct > 0 ? "+" : "";
   return `${sign}${pct.toFixed(2)}%`;
 }
