@@ -11,6 +11,24 @@ export function parseSearchPerformanceHorizonDays(value: unknown): SearchPerform
   return 1;
 }
 
+/** How to align a transit calendar day when that date has no OHLC bar. */
+export const SEARCH_PERFORMANCE_ANCHOR_ROLLS = ["exact", "prior", "next"] as const;
+export type SearchPerformanceAnchorRoll = (typeof SEARCH_PERFORMANCE_ANCHOR_ROLLS)[number];
+
+export function parseSearchPerformanceAnchorRoll(value: unknown): SearchPerformanceAnchorRoll {
+  if (value === "prior" || value === "next") return value;
+  return "exact";
+}
+
+export type SearchPerformanceReturnDetail = {
+  logReturn: number;
+  eventIsoDate: string;
+  anchorTradingDate: string;
+  exitTradingDate: string;
+  rolledAnchor: boolean;
+  rolledExit: boolean;
+};
+
 export type SearchOhlcSeries = {
   fileName: string;
   /** ISO calendar date YYYY-MM-DD → close price */
@@ -29,8 +47,10 @@ export type SearchOhlcParseResult =
 
 export type SearchPerformanceLookup = {
   horizonDays: SearchPerformanceHorizonDays;
+  anchorRoll: SearchPerformanceAnchorRoll;
   /** Log return from close on event day to close N trading sessions later. */
-  returnForEventDay: (anchorIsoDate: string) => number | null;
+  returnForEventDay: (eventIsoDate: string) => number | null;
+  returnDetailForEventDay: (eventIsoDate: string) => SearchPerformanceReturnDetail | null;
   /** Positive-day rate among forward returns in [fromIso, toIso] (search baseline). */
   baselinePosRateBetween: (fromIso: string, toIso: string) => { rate: number; days: number };
   /** Mean log return and day count in [fromIso, toIso]. */
@@ -317,20 +337,96 @@ export function searchPerformanceAnomalies(summary: SearchPerformanceSummary): {
   return { count, return: returnAnomaly };
 }
 
+function sortedOhlcDates(closes: Record<string, number>): string[] {
+  return Object.keys(closes).filter((key) => ISO_DATE.test(key)).sort();
+}
+
+/** Index of the trading bar used for a transit calendar day. */
+export function resolveTradingDayIndex(
+  sortedDates: readonly string[],
+  eventIso: string,
+  roll: SearchPerformanceAnchorRoll,
+): number | null {
+  if (!ISO_DATE.test(eventIso)) return null;
+  let exact = -1;
+  for (let index = 0; index < sortedDates.length; index += 1) {
+    if (sortedDates[index] === eventIso) {
+      exact = index;
+      break;
+    }
+  }
+  if (exact >= 0) return exact;
+  if (roll === "exact" || sortedDates.length === 0) return null;
+  if (roll === "prior") {
+    let left = 0;
+    let right = sortedDates.length - 1;
+    let result = -1;
+    while (left <= right) {
+      const mid = (left + right) >> 1;
+      if (sortedDates[mid] <= eventIso) {
+        result = mid;
+        left = mid + 1;
+      } else {
+        right = mid - 1;
+      }
+    }
+    return result >= 0 ? result : null;
+  }
+  let left = 0;
+  let right = sortedDates.length - 1;
+  let result = -1;
+  while (left <= right) {
+    const mid = (left + right) >> 1;
+    if (sortedDates[mid] >= eventIso) {
+      result = mid;
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
+  return result >= 0 ? result : null;
+}
+
+function resolveExitIndex(
+  anchorIndex: number,
+  horizonDays: number,
+  barCount: number,
+  roll: SearchPerformanceAnchorRoll,
+): number | null {
+  const target = anchorIndex + horizonDays;
+  if (target < barCount) return target;
+  if (roll === "prior") {
+    if (anchorIndex < barCount - 1) return barCount - 1;
+    return null;
+  }
+  return null;
+}
+
+export function forwardLogReturnFromIndices(
+  sortedDates: readonly string[],
+  closes: Record<string, number>,
+  anchorIndex: number,
+  horizonDays: number,
+  roll: SearchPerformanceAnchorRoll,
+): { logReturn: number; exitIndex: number } | null {
+  const exitIndex = resolveExitIndex(anchorIndex, horizonDays, sortedDates.length, roll);
+  if (exitIndex === null || exitIndex <= anchorIndex) return null;
+  const p0 = closes[sortedDates[anchorIndex]];
+  const p1 = closes[sortedDates[exitIndex]];
+  if (!(p0 > 0 && p1 > 0)) return null;
+  return { logReturn: Math.log(p1 / p0), exitIndex };
+}
+
 function buildForwardReturnByAnchor(
   closes: Record<string, number>,
   horizonDays: SearchPerformanceHorizonDays,
+  anchorRoll: SearchPerformanceAnchorRoll,
 ): Map<string, number> {
-  const dates = Object.keys(closes).filter((key) => ISO_DATE.test(key)).sort();
+  const dates = sortedOhlcDates(closes);
   const retByAnchor = new Map<string, number>();
   for (let index = 0; index < dates.length; index += 1) {
-    const endIndex = index + horizonDays;
-    if (endIndex >= dates.length) continue;
-    const p0 = closes[dates[index]];
-    const p1 = closes[dates[endIndex]];
-    if (p0 > 0 && p1 > 0) {
-      retByAnchor.set(dates[index], Math.log(p1 / p0));
-    }
+    const computed = forwardLogReturnFromIndices(dates, closes, index, horizonDays, anchorRoll);
+    if (computed) retByAnchor.set(dates[index], computed.logReturn);
   }
   return retByAnchor;
 }
@@ -338,22 +434,45 @@ function buildForwardReturnByAnchor(
 export function buildSearchPerformanceLookup(
   closes: Record<string, number> | null | undefined,
   horizonDays: SearchPerformanceHorizonDays = 1,
+  anchorRoll: SearchPerformanceAnchorRoll = "exact",
 ): SearchPerformanceLookup {
   const emptyBaseline = () => ({ rate: 0.5, days: 0 });
   const emptyMean = () => ({ mean: 0, days: 0 });
   if (!closes) {
     return {
       horizonDays,
+      anchorRoll,
       returnForEventDay: () => null,
+      returnDetailForEventDay: () => null,
       baselinePosRateBetween: emptyBaseline,
       baselineMeanReturnBetween: emptyMean,
       controlReturnsBetween: () => [],
     };
   }
-  const retByDate = buildForwardReturnByAnchor(closes, horizonDays);
+  const dates = sortedOhlcDates(closes);
+  const retByDate = buildForwardReturnByAnchor(closes, horizonDays, anchorRoll);
+  const returnDetailForEventDay = (eventIsoDate: string): SearchPerformanceReturnDetail | null => {
+    const anchorIndex = resolveTradingDayIndex(dates, eventIsoDate, anchorRoll);
+    if (anchorIndex === null) return null;
+    const computed = forwardLogReturnFromIndices(dates, closes, anchorIndex, horizonDays, anchorRoll);
+    if (!computed) return null;
+    const anchorTradingDate = dates[anchorIndex];
+    const exitTradingDate = dates[computed.exitIndex];
+    const idealExitIndex = anchorIndex + horizonDays;
+    return {
+      logReturn: computed.logReturn,
+      eventIsoDate,
+      anchorTradingDate,
+      exitTradingDate,
+      rolledAnchor: anchorTradingDate !== eventIsoDate,
+      rolledExit: computed.exitIndex !== idealExitIndex,
+    };
+  };
   return {
     horizonDays,
-    returnForEventDay: (isoDate: string) => retByDate.get(isoDate) ?? null,
+    anchorRoll,
+    returnForEventDay: (eventIsoDate) => returnDetailForEventDay(eventIsoDate)?.logReturn ?? null,
+    returnDetailForEventDay,
     baselinePosRateBetween: (fromIso, toIso) => baselinePosRateBetween(retByDate, fromIso, toIso),
     baselineMeanReturnBetween: (fromIso, toIso) => {
       const values = returnsInRange(retByDate, fromIso, toIso);
@@ -366,7 +485,19 @@ export function buildSearchPerformanceLookup(
 
 /** @deprecated Use buildSearchPerformanceLookup */
 export function buildRetCc0Lookup(closes: Record<string, number> | null | undefined): SearchPerformanceLookup {
-  return buildSearchPerformanceLookup(closes, 1);
+  return buildSearchPerformanceLookup(closes, 1, "exact");
+}
+
+export function formatPerformanceAnchorTitle(
+  detail: SearchPerformanceReturnDetail,
+  horizonDays: number,
+): string {
+  const parts = [
+    `${detail.eventIsoDate} → ${detail.anchorTradingDate} → ${detail.exitTradingDate} (${horizonDays}d)`,
+  ];
+  if (detail.rolledAnchor) parts.push("anchor rolled");
+  if (detail.rolledExit) parts.push("exit rolled");
+  return parts.join(" · ");
 }
 
 export function summarizeSearchPerformance(
@@ -411,14 +542,17 @@ export function summarizeSearchPerformance(
   const negSharePct = classified > 0 ? (100 * nNeg) / classified : 0;
 
   const hitReturnByDay = new Map<string, number>();
+  const hitAnchorDates = new Set<string>();
   for (const row of rows) {
     const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
     if (!iso) continue;
-    const ret = lookup.returnForEventDay(iso);
-    if (ret !== null) hitReturnByDay.set(iso, ret);
+    const detail = lookup.returnDetailForEventDay(iso);
+    if (!detail) continue;
+    hitReturnByDay.set(iso, detail.logReturn);
+    hitAnchorDates.add(detail.anchorTradingDate);
   }
   const hitReturnDaysList = [...hitReturnByDay.values()];
-  const hitIsoDates = new Set(hitReturnByDay.keys());
+  const hitIsoDates = hitAnchorDates;
   const { mean: baselineMeanReturn } = lookup.baselineMeanReturnBetween(baselineFromIso, baselineToIso);
   const hitMeanReturn = meanReturn(hitReturnDaysList);
   const excessMean = hitMeanReturn - baselineMeanReturn;

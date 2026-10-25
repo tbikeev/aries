@@ -88,7 +88,10 @@ import { semanticChartColor } from "@/lib/theme/semantic-color";
 import { radixPaneOwner } from "@/lib/radix-pane-state";
 import {
   buildSearchPerformanceLookup,
+  formatPerformanceAnchorTitle,
+  parseSearchPerformanceAnchorRoll,
   parseSearchPerformanceHorizonDays,
+  SEARCH_PERFORMANCE_ANCHOR_ROLLS,
   SEARCH_PERFORMANCE_HORIZONS,
   formatPerformancePct,
   formatMeanReturnPct,
@@ -99,6 +102,7 @@ import {
   searchPerformanceAnomalies,
   summarizeSearchPerformance,
   type SearchOhlcSeries,
+  type SearchPerformanceAnchorRoll,
   type SearchPerformanceHorizonDays,
   type SearchPerformanceSummary,
   type SearchPerformanceLookup,
@@ -167,6 +171,7 @@ type TransitSearchCacheEntry = {
   rangeStream: SearchRangeStream | null;
   ohlc?: SearchOhlcSeries | null;
   ohlcHorizonDays?: SearchPerformanceHorizonDays;
+  ohlcAnchorRoll?: SearchPerformanceAnchorRoll;
 };
 type SearchRangeStream = {
   queryKey: string;
@@ -312,11 +317,14 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const [ohlcHorizonDays, setOhlcHorizonDays] = React.useState<SearchPerformanceHorizonDays>(() =>
     parseSearchPerformanceHorizonDays(initialCache?.ohlcHorizonDays),
   );
+  const [ohlcAnchorRoll, setOhlcAnchorRoll] = React.useState<SearchPerformanceAnchorRoll>(() =>
+    parseSearchPerformanceAnchorRoll(initialCache?.ohlcAnchorRoll),
+  );
   const [ohlcError, setOhlcError] = React.useState<string | null>(null);
   const ohlcInputRef = React.useRef<HTMLInputElement | null>(null);
   const performanceLookup = React.useMemo(
-    () => buildSearchPerformanceLookup(ohlcSeries?.closes, ohlcHorizonDays),
-    [ohlcHorizonDays, ohlcSeries],
+    () => buildSearchPerformanceLookup(ohlcSeries?.closes, ohlcHorizonDays, ohlcAnchorRoll),
+    [ohlcAnchorRoll, ohlcHorizonDays, ohlcSeries],
   );
   const ohlcSpan = React.useMemo(
     () => ohlcCloseDateSpan(ohlcSeries?.closes ?? null),
@@ -360,9 +368,10 @@ export function TransitSearchView(props: TransitSearchViewProps) {
         ui: { sort, selectedRowKeys: [...selectedRowKeys], filtersOpen, settingsOpen, scrollTop: retainedScrollTopRef.current },
         ohlc: ohlcSeries,
         ohlcHorizonDays,
+        ohlcAnchorRoll,
       });
     },
-    [catalogContextKey, optionsSeq, searchLoading, sort, selectedRowKeys, filtersOpen, settingsOpen, contextMode, significatorId, chartRole, customPointsKey, ohlcHorizonDays, ohlcSeries],
+    [catalogContextKey, optionsSeq, searchLoading, sort, selectedRowKeys, filtersOpen, settingsOpen, contextMode, significatorId, chartRole, customPointsKey, ohlcAnchorRoll, ohlcHorizonDays, ohlcSeries],
   );
 
   React.useEffect(() => {
@@ -1737,6 +1746,8 @@ export function TransitSearchView(props: TransitSearchViewProps) {
         series={ohlcSeries}
         horizonDays={ohlcHorizonDays}
         onHorizonChange={setOhlcHorizonDays}
+        anchorRoll={ohlcAnchorRoll}
+        onAnchorRollChange={setOhlcAnchorRoll}
         error={ohlcError}
         inputRef={ohlcInputRef}
         onChooseFile={() => ohlcInputRef.current?.click()}
@@ -1915,6 +1926,11 @@ export function TransitSearchView(props: TransitSearchViewProps) {
               disabled={!ohlcSeries || searchLoading}
               horizonDays={ohlcHorizonDays}
               onChange={setOhlcHorizonDays}
+            />
+            <OhlcAnchorRollRadio
+              disabled={!ohlcSeries || searchLoading}
+              anchorRoll={ohlcAnchorRoll}
+              onChange={setOhlcAnchorRoll}
             />
             {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
               <Button
@@ -2393,6 +2409,12 @@ function performanceRetForRow(isoDate: string, lookup: SearchPerformanceLookup):
   return lookup.returnForEventDay(isoDate);
 }
 
+function performanceTitleForRow(isoDate: string, lookup: SearchPerformanceLookup): string | undefined {
+  const detail = lookup.returnDetailForEventDay(isoDate);
+  if (!detail) return undefined;
+  return formatPerformanceAnchorTitle(detail, lookup.horizonDays);
+}
+
 function transitSearchSortValue(
   row: TransitSearchRow,
   column: SearchColumnKey,
@@ -2647,6 +2669,49 @@ function OhlcHorizonToggle({
   );
 }
 
+function OhlcAnchorRollRadio({
+  anchorRoll,
+  onChange,
+  disabled,
+}: {
+  anchorRoll: SearchPerformanceAnchorRoll;
+  onChange: (roll: SearchPerformanceAnchorRoll) => void;
+  disabled?: boolean;
+}) {
+  const t = useT();
+  const groupName = React.useId();
+  return (
+    <fieldset
+      disabled={disabled}
+      className="inline-flex min-w-0 flex-wrap items-center gap-[var(--aries-control-gap-compact)] border-0 p-0 m-0"
+      title={t("search.ohlcAnchorRollTooltip")}
+    >
+      <legend className="sr-only">{t("search.ohlcAnchorRollLegend")}</legend>
+      {SEARCH_PERFORMANCE_ANCHOR_ROLLS.map((roll) => (
+        <label
+          key={roll}
+          className={cn(
+            "inline-flex cursor-pointer items-center gap-1 rounded-[var(--aries-radius-control-compact)] border px-[var(--aries-control-gap)] py-0.5 text-[length:var(--aries-font-size-small)] tabular-nums",
+            anchorRoll === roll
+              ? "border-border bg-[var(--aries-control-background)] font-medium text-foreground"
+              : "border-transparent text-muted-foreground",
+            disabled && "cursor-not-allowed opacity-50",
+          )}
+        >
+          <input
+            type="radio"
+            name={groupName}
+            className="size-3 shrink-0 accent-[var(--aries-accent)]"
+            checked={anchorRoll === roll}
+            onChange={() => onChange(roll)}
+          />
+          {t(`search.ohlcAnchorRoll.${roll}`)}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 function SearchPerformanceHeaderStats({
   summary,
   horizonDays,
@@ -2729,6 +2794,8 @@ function OhlcFilterGroup({
   series,
   horizonDays,
   onHorizonChange,
+  anchorRoll,
+  onAnchorRollChange,
   error,
   inputRef,
   onChooseFile,
@@ -2738,6 +2805,8 @@ function OhlcFilterGroup({
   series: SearchOhlcSeries | null;
   horizonDays: SearchPerformanceHorizonDays;
   onHorizonChange: (horizon: SearchPerformanceHorizonDays) => void;
+  anchorRoll: SearchPerformanceAnchorRoll;
+  onAnchorRollChange: (roll: SearchPerformanceAnchorRoll) => void;
   error: string | null;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onChooseFile: () => void;
@@ -2784,6 +2853,14 @@ function OhlcFilterGroup({
           disabled={!series}
           horizonDays={horizonDays}
           onChange={onHorizonChange}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-[var(--aries-control-gap-compact)]">
+        <span className="text-xs text-muted-foreground">{t("search.ohlcAnchorRollLabel")}</span>
+        <OhlcAnchorRollRadio
+          disabled={!series}
+          anchorRoll={anchorRoll}
+          onChange={onAnchorRollChange}
         />
       </div>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
@@ -3221,6 +3298,7 @@ function SearchCell({
       }
       const positive = ret > 0;
       const negative = ret < 0;
+      const title = iso ? performanceTitleForRow(iso, performanceLookup) : undefined;
       return (
         <td
           className={cn(
@@ -3229,7 +3307,7 @@ function SearchCell({
             negative && "bg-red-500/15 text-red-800 dark:text-red-300",
             !positive && !negative && "text-muted-foreground",
           )}
-          title={iso ?? undefined}
+          title={title}
           colSpan={colSpan}
         >
           {formatPerformancePct(ret)}

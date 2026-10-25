@@ -12,6 +12,7 @@ const js = ts.transpileModule(source, {
 const {
   parseSearchOhlcFile,
   buildSearchPerformanceLookup,
+  resolveTradingDayIndex,
   listingIsoDateFromRow,
   formatPerformancePct,
   summarizeSearchPerformance,
@@ -41,6 +42,30 @@ test("buildSearchPerformanceLookup forward return from transit day close", () =>
   }, 1);
   assert.equal(lookup.returnForEventDay("2024-01-02"), Math.log(110 / 100));
   assert.equal(lookup.returnForEventDay("2024-01-03"), null);
+});
+
+test("resolveTradingDayIndex rolls to prior and next session", () => {
+  const dates = ["2024-01-05", "2024-01-08"];
+  assert.equal(resolveTradingDayIndex(dates, "2024-01-08", "exact"), 1);
+  assert.equal(resolveTradingDayIndex(dates, "2024-01-07", "exact"), null);
+  assert.equal(resolveTradingDayIndex(dates, "2024-01-07", "prior"), 0);
+  assert.equal(resolveTradingDayIndex(dates, "2024-01-06", "next"), 1);
+});
+
+test("buildSearchPerformanceLookup prior roll anchors weekend transit", () => {
+  const lookup = buildSearchPerformanceLookup(
+    {
+      "2024-01-05": 100,
+      "2024-01-08": 110,
+      "2024-01-09": 115,
+    },
+    1,
+    "prior",
+  );
+  assert.equal(lookup.returnForEventDay("2024-01-06"), Math.log(110 / 100));
+  const detail = lookup.returnDetailForEventDay("2024-01-06");
+  assert.equal(detail?.anchorTradingDate, "2024-01-05");
+  assert.equal(detail?.rolledAnchor, true);
 });
 
 test("buildSearchPerformanceLookup supports 3d horizon", () => {
