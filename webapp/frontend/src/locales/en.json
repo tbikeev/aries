@@ -1768,6 +1768,7 @@
   "search.ohlcParseInsufficient": "Need at least two dated closes.",
   "search.ohlcTitle": "OHLC / performance",
   "search.performance": "Perf.",
+  "search.performanceHeader": "Perf",
   "search.time": "Time",
   "search.timedChartFailed": "Timed chart action failed",
   "search.timedChartNoDocument": "Timed chart action did not open a document.",

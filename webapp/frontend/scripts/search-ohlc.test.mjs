@@ -14,6 +14,8 @@ const {
   buildRetCc0Lookup,
   listingIsoDateFromRow,
   formatPerformancePct,
+  summarizeSearchPerformance,
+  binomExactTwoSided,
 } = await import(`data:text/javascript;base64,${Buffer.from(js).toString("base64")}`);
 
 test("parseSearchOhlcFile accepts listok-style JSON", () => {
@@ -43,4 +45,28 @@ test("listingIsoDateFromRow prefers displayDatetime prefix", () => {
 
 test("formatPerformancePct signs positive moves", () => {
   assert.match(formatPerformancePct(Math.log(1.05)), /^\+/);
+});
+
+test("summarizeSearchPerformance tallies visible rows", () => {
+  const lookup = buildRetCc0Lookup({
+    "2024-01-01": 100,
+    "2024-01-02": 110,
+    "2024-01-03": 105,
+  });
+  const summary = summarizeSearchPerformance(
+    [
+      { displayDatetime: "2024-01-02T12:00:00Z", displayDate: "2024-01-02" },
+      { displayDatetime: "2024-01-03T12:00:00Z", displayDate: "2024-01-03" },
+    ],
+    lookup,
+    "2024-01-01",
+    "2024-01-03",
+  );
+  assert.equal(summary?.nPos, 1);
+  assert.equal(summary?.nNeg, 1);
+  assert.equal(summary?.eventsWithReturn, 2);
+});
+
+test("binomExactTwoSided is symmetric at p0=0.5", () => {
+  assert.ok(binomExactTwoSided(5, 10, 0.5) > 0.9);
 });

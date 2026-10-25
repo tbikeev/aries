@@ -16,6 +16,29 @@ export type SearchOhlcParseResult =
 export type SearchPerformanceLookup = {
   /** Log close-to-close return on listing date, or null if unknown */
   retCc0: (isoDate: string) => number | null;
+  /** Positive-day rate among all ret_cc0 days in [fromIso, toIso] (search baseline). */
+  baselinePosRateBetween: (fromIso: string, toIso: string) => { rate: number; days: number };
+};
+
+export type SearchListingRow = {
+  displayDatetime: string;
+  displayDate: string;
+};
+
+export type SearchPerformanceSummary = {
+  eventsWithReturn: number;
+  nPos: number;
+  nNeg: number;
+  nZero: number;
+  /** Share of pos / neg among events with a return (percent). */
+  posSharePct: number;
+  negSharePct: number;
+  /** Sum of listing-day log-return % on up / down events. */
+  sumPosPct: number;
+  sumNegPct: number;
+  pBinomTwoSided: number;
+  baselinePosPct: number;
+  baselineDays: number;
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -109,9 +132,49 @@ export function parseSearchOhlcFile(fileName: string, text: string): SearchOhlcP
   return { ok: true, series: { fileName, closes } };
 }
 
+function binomPmf(k: number, n: number, p: number): number {
+  if (k < 0 || k > n) return 0;
+  if (p <= 0) return k === 0 ? 1 : 0;
+  if (p >= 1) return k === n ? 1 : 0;
+  let coeff = 1;
+  for (let index = 1; index <= k; index += 1) {
+    coeff = (coeff * (n - k + index)) / index;
+  }
+  return coeff * p ** k * (1 - p) ** (n - k);
+}
+
+export function binomExactTwoSided(kPos: number, n: number, p0: number): number {
+  if (n <= 0) return 1;
+  const target = binomPmf(kPos, n, p0);
+  let total = 0;
+  for (let hits = 0; hits <= n; hits += 1) {
+    const prob = binomPmf(hits, n, p0);
+    if (prob <= target + 1e-15) total += prob;
+  }
+  return Math.min(1, total);
+}
+
+function baselinePosRateBetween(
+  retByDate: Map<string, number>,
+  fromIso: string,
+  toIso: string,
+): { rate: number; days: number } {
+  const from = fromIso <= toIso ? fromIso : toIso;
+  const to = fromIso <= toIso ? toIso : fromIso;
+  let positive = 0;
+  let days = 0;
+  for (const [day, ret] of retByDate) {
+    if (day < from || day > to) continue;
+    days += 1;
+    if (ret > 0) positive += 1;
+  }
+  return { rate: days > 0 ? positive / days : 0.5, days };
+}
+
 export function buildRetCc0Lookup(closes: Record<string, number> | null | undefined): SearchPerformanceLookup {
+  const emptyBaseline = () => ({ rate: 0.5, days: 0 });
   if (!closes) {
-    return { retCc0: () => null };
+    return { retCc0: () => null, baselinePosRateBetween: emptyBaseline };
   }
   const dates = Object.keys(closes).filter((key) => ISO_DATE.test(key)).sort();
   const retByDate = new Map<string, number>();
@@ -126,7 +189,75 @@ export function buildRetCc0Lookup(closes: Record<string, number> | null | undefi
   }
   return {
     retCc0: (isoDate: string) => retByDate.get(isoDate) ?? null,
+    baselinePosRateBetween: (fromIso, toIso) => baselinePosRateBetween(retByDate, fromIso, toIso),
   };
+}
+
+export function summarizeSearchPerformance(
+  rows: readonly SearchListingRow[],
+  lookup: SearchPerformanceLookup,
+  baselineFromIso: string,
+  baselineToIso: string,
+): SearchPerformanceSummary | null {
+  const returns: number[] = [];
+  for (const row of rows) {
+    const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
+    if (!iso) continue;
+    const ret = lookup.retCc0(iso);
+    if (ret !== null) returns.push(ret);
+  }
+  if (returns.length === 0) return null;
+
+  let nPos = 0;
+  let nNeg = 0;
+  let nZero = 0;
+  let sumPosPct = 0;
+  let sumNegPct = 0;
+  for (const ret of returns) {
+    const pct = ret * 100;
+    if (ret > 0) {
+      nPos += 1;
+      sumPosPct += pct;
+    } else if (ret < 0) {
+      nNeg += 1;
+      sumNegPct += pct;
+    } else {
+      nZero += 1;
+    }
+  }
+  const n = returns.length;
+  const { rate: baselinePos, days: baselineDays } = lookup.baselinePosRateBetween(
+    baselineFromIso,
+    baselineToIso,
+  );
+  const classified = nPos + nNeg + nZero;
+  const posSharePct = classified > 0 ? (100 * nPos) / classified : 0;
+  const negSharePct = classified > 0 ? (100 * nNeg) / classified : 0;
+
+  return {
+    eventsWithReturn: n,
+    nPos,
+    nNeg,
+    nZero,
+    posSharePct,
+    negSharePct,
+    sumPosPct,
+    sumNegPct,
+    pBinomTwoSided: binomExactTwoSided(nPos, classified, baselinePos),
+    baselinePosPct: baselinePos * 100,
+    baselineDays,
+  };
+}
+
+export function formatSearchPerformanceSummaryLine(summary: SearchPerformanceSummary): string {
+  const posSum = summary.sumPosPct >= 0 ? `+${summary.sumPosPct.toFixed(1)}` : summary.sumPosPct.toFixed(1);
+  const negSum = summary.sumNegPct.toFixed(1);
+  return (
+    `${summary.nPos}+/${summary.nNeg}−`
+    + ` · ${summary.posSharePct.toFixed(1)}/${summary.negSharePct.toFixed(1)}%`
+    + ` · ∑ ${posSum}/${negSum}%`
+    + ` · p=${summary.pBinomTwoSided.toFixed(3)}`
+  );
 }
 
 export function listingIsoDateFromRow(displayDatetime: string, displayDate: string): string | null {

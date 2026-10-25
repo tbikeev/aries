@@ -89,8 +89,10 @@ import { radixPaneOwner } from "@/lib/radix-pane-state";
 import {
   buildRetCc0Lookup,
   formatPerformancePct,
+  formatSearchPerformanceSummaryLine,
   listingIsoDateFromRow,
   parseSearchOhlcFile,
+  summarizeSearchPerformance,
   type SearchOhlcSeries,
   type SearchPerformanceLookup,
 } from "@/lib/search-ohlc";
@@ -1572,7 +1574,23 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const projectedSummary = sortedRows.length === rows.length
     ? summary
     : t("search.resultCount").replace("{count}", String(sortedRows.length));
-  const displayedSummary = rangeStatus ? `${projectedSummary} · ${rangeStatus}` : projectedSummary;
+  const performanceSummaryLine = ohlcSeries
+    ? (() => {
+        const stats = summarizeSearchPerformance(
+          sortedRows,
+          performanceLookup,
+          form.fromDate,
+          form.toDate,
+        );
+        return stats ? formatSearchPerformanceSummaryLine(stats) : "";
+      })()
+    : "";
+  const displayedSummary = [
+    rangeStatus ? `${projectedSummary} · ${rangeStatus}` : projectedSummary,
+    performanceSummaryLine ? `${t("search.performanceHeader")} ${performanceSummaryLine}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const paneSeedGlyph = props.mode === "context" ? (props.glyph ?? "") : "";
   const paneSeedLabel = props.mode === "context" ? (props.label ?? "") : "";
   const seedGlyph = catalog.initialSignificatorGlyph || paneSeedGlyph;
@@ -1739,7 +1757,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                 {seedLabel ? <span className="max-w-20 truncate">{seedLabel}</span> : null}
               </span>
             ) : null}
-            <span className="shrink-0 whitespace-nowrap">
+            <span className={cn("min-w-0", performanceSummaryLine ? "whitespace-normal break-words" : "shrink-0 whitespace-nowrap")}>
               {searchLoading ? <LoadingLabel label={rows.length > 0 ? displayedSummary : t("search.computing")} /> : displayedSummary}
             </span>
           </div>
