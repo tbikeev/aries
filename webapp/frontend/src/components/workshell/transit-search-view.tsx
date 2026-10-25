@@ -155,7 +155,7 @@ type SearchColumnKey =
   | "technique"
   | "performance";
 
-export const SEARCH_DECL_ORBS = [0.5, 1, 2, 2.5] as const;
+const SEARCH_DECL_ORBS = [0.5, 1, 2, 2.5] as const;
 type SearchDeclOrb = (typeof SEARCH_DECL_ORBS)[number];
 
 function parseSearchDeclOrb(value: unknown): SearchDeclOrb {
@@ -1713,54 +1713,59 @@ export function TransitSearchView(props: TransitSearchViewProps) {
         catalog={catalog}
         lunationOrb={form.lunationOrb}
         lunarEventsEnabled={form.techniques.includes("lunations") || form.techniques.includes("eclipses")}
+        declParallel={form.declParallel}
+        declContraparallel={form.declContraparallel}
+        declOrb={form.declOrb}
         onToggle={(id, checked) => toggleSelected("aspects", id, checked)}
         onSetAll={() => setSelected("aspects", catalog.presets.aspects.all)}
         onSetMajor={() => setSelected("aspects", catalog.presets.aspects.major)}
         onClear={() => setSelected("aspects", catalog.presets.aspects.clear)}
         onLunationOrbChange={changeLunationOrb}
-      />
-      <DeclinationAspectGroup
-        declParallel={form.declParallel}
-        declContraparallel={form.declContraparallel}
-        declOrb={form.declOrb}
         onDeclParallelChange={(checked) => updateForm({ declParallel: checked })}
         onDeclContraparallelChange={(checked) => updateForm({ declContraparallel: checked })}
         onDeclOrbChange={(orb) => updateForm({ declOrb: orb })}
       />
-      <SelectionGroup
-        title={t("search.promissors")}
-        selected={form.promittorIds}
-        items={promittors}
-        compact
-        motionFilter={form.promittorMotion}
-        moonPhase={form.moonPhase}
-        onMotionFilterChange={(value) => changeMotionFilter("promittorMotion", value)}
-        onMoonPhaseChange={changeMoonPhase}
-        onToggle={togglePromittor}
-        actions={[
-          [t("search.all"), () => setSelected("promittorIds", catalog.presets.promittors.all)],
-          [t("search.planets"), () => setSelected("promittorIds", catalog.presets.promittors.planets)],
-          [t("search.core7"), () => setSelected("promittorIds", catalog.presets.promittors.core7)],
-          [t("chartmenu.asteroids"), () => toggleAsteroids("promittorIds")],
-          [t("search.clear"), () => setSelected("promittorIds", catalog.presets.promittors.clear)],
-        ]}
-      />
-      <SelectionGroup
-        title={t("search.significators")}
-        selected={form.significatorIds}
-        items={builtinSignificators}
-        compact
-        motionFilter={form.significatorMotion}
-        onMotionFilterChange={(value) => changeMotionFilter("significatorMotion", value)}
-        onToggle={(id, checked) => toggleSelected("significatorIds", id, checked)}
-        actions={[
-          [t("search.builtins"), () => setSelected("significatorIds", catalog.presets.significators.builtins)],
-          [t("search.planets"), () => setSelected("significatorIds", catalog.presets.significators.planets)],
-          [t("table.fixed_stars"), toggleFixedStarSignificators],
-          [t("chartmenu.asteroids"), () => toggleAsteroids("significatorIds")],
-          [t("search.clear"), () => setSelected("significatorIds", catalog.presets.significators.clear)],
-        ]}
-      />
+      <div
+        className={cn(
+          "grid min-w-0 grid-cols-2 gap-[var(--aries-pane-content-padding)]",
+          filtersDock === "bottom" && "col-span-2",
+        )}
+      >
+        <SelectionGroup
+          title={t("search.promissors")}
+          selected={form.promittorIds}
+          items={promittors}
+          compact
+          motionFilter={form.promittorMotion}
+          moonPhase={form.moonPhase}
+          onMotionFilterChange={(value) => changeMotionFilter("promittorMotion", value)}
+          onMoonPhaseChange={changeMoonPhase}
+          onToggle={togglePromittor}
+          actions={[
+            [t("search.all"), () => setSelected("promittorIds", catalog.presets.promittors.all)],
+            [t("search.planets"), () => setSelected("promittorIds", catalog.presets.promittors.planets)],
+            [t("search.core7"), () => setSelected("promittorIds", catalog.presets.promittors.core7)],
+            [t("chartmenu.asteroids"), () => toggleAsteroids("promittorIds")],
+            [t("search.clear"), () => setSelected("promittorIds", catalog.presets.promittors.clear)],
+          ]}
+        />
+        <SelectionGroup
+          title={t("search.significators")}
+          selected={form.significatorIds}
+          items={builtinSignificators}
+          compact
+          motionFilter={form.significatorMotion}
+          onMotionFilterChange={(value) => changeMotionFilter("significatorMotion", value)}
+          onToggle={(id, checked) => toggleSelected("significatorIds", id, checked)}
+          actions={[
+            [t("search.builtins"), () => setSelected("significatorIds", catalog.presets.significators.builtins)],
+            [t("search.planets"), () => setSelected("significatorIds", catalog.presets.significators.planets)],
+            [t("table.fixed_stars"), toggleFixedStarSignificators],
+            [t("chartmenu.asteroids"), () => toggleAsteroids("significatorIds")],
+            [t("search.clear"), () => setSelected("significatorIds", catalog.presets.significators.clear)],
+          ]}
+        />
+      </div>
       {createdSignificators.length > 0 ? (
         <SelectionGroup
           title={t("search.createdPoints")}
@@ -2970,7 +2975,7 @@ function TechniqueGroup({
   );
 }
 
-function DeclinationAspectGroup({
+function DeclinationAspectControls({
   declParallel,
   declContraparallel,
   declOrb,
@@ -2989,9 +2994,11 @@ function DeclinationAspectGroup({
   const orbGroupName = React.useId();
   const active = declParallel || declContraparallel;
   return (
-    <section className="grid gap-[var(--aries-form-field-gap)]">
-      <h2 className="aries-search-panel-heading text-xs">{t("search.declinationAspects")}</h2>
-      <p className="text-[11px] leading-snug text-muted-foreground">{t("search.declinationAspectsHelp")}</p>
+    <div className="grid gap-[var(--aries-form-field-gap)] border-t border-border/60 pt-[var(--aries-form-field-gap)]">
+      <div>
+        <h3 className="text-xs font-medium text-foreground">{t("search.declinationAspects")}</h3>
+        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t("search.declinationAspectsHelp")}</p>
+      </div>
       <div className="flex flex-wrap items-center gap-[var(--aries-control-gap)]">
         <CheckRow
           checked={declParallel}
@@ -3031,7 +3038,7 @@ function DeclinationAspectGroup({
           </label>
         ))}
       </fieldset>
-    </section>
+    </div>
   );
 }
 
@@ -3040,21 +3047,33 @@ function AspectGroup({
   catalog,
   lunationOrb,
   lunarEventsEnabled,
+  declParallel,
+  declContraparallel,
+  declOrb,
   onToggle,
   onSetAll,
   onSetMajor,
   onClear,
   onLunationOrbChange,
+  onDeclParallelChange,
+  onDeclContraparallelChange,
+  onDeclOrbChange,
 }: {
   selected: string[];
   catalog: TransitSearchCatalog;
   lunationOrb: number;
   lunarEventsEnabled: boolean;
+  declParallel: boolean;
+  declContraparallel: boolean;
+  declOrb: SearchDeclOrb;
   onToggle: (id: string, checked: boolean) => void;
   onSetAll: () => void;
   onSetMajor: () => void;
   onClear: () => void;
   onLunationOrbChange: (orb: number) => void;
+  onDeclParallelChange: (checked: boolean) => void;
+  onDeclContraparallelChange: (checked: boolean) => void;
+  onDeclOrbChange: (orb: SearchDeclOrb) => void;
 }) {
   const t = useT();
   const selectedSet = React.useMemo(() => new Set(selected), [selected]);
@@ -4219,6 +4238,9 @@ function searchSemanticQuery(form: SearchForm) {
     significatorMotion: form.significatorMotion,
     moonPhase: form.moonPhase,
     lunationOrb: form.lunationOrb,
+    declParallel: form.declParallel,
+    declContraparallel: form.declContraparallel,
+    declOrb: form.declOrb,
     limit: form.limit,
   };
 }
