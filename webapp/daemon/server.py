@@ -4574,6 +4574,9 @@ class TransitSearchPayload(BaseModel):
     significatorMotion: str = ""
     moonPhase: str = ""
     lunationOrb: float = 3.0
+    declParallel: bool = False
+    declContraparallel: bool = False
+    declOrb: float = 1.0
     limit: int = 500
     persistSettings: bool = True
     ownerScope: str = "search"
@@ -4609,6 +4612,9 @@ class TransitSearchContextRunPayload(TransitSearchContextPayload):
     significatorMotion: str = ""
     moonPhase: str = ""
     lunationOrb: float = 3.0
+    declParallel: bool = False
+    declContraparallel: bool = False
+    declOrb: float = 1.0
     limit: int = 500
     persistSettings: bool = True
     ownerScope: str = "search"
