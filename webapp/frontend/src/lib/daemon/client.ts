@@ -3677,8 +3677,8 @@ export async function followTransitSearchProgress(
   options?: { waitMs?: number; maxStalePolls?: number; deadlineMs?: number },
 ): Promise<TransitSearchProgressResult> {
   const waitMs = options?.waitMs ?? 25_000;
-  const maxStalePolls = options?.maxStalePolls ?? 12;
-  const deadlineMs = options?.deadlineMs ?? 600_000;
+  const maxStalePolls = options?.maxStalePolls ?? 96;
+  const deadlineMs = options?.deadlineMs ?? 3_600_000;
   const startedAt = Date.now();
   let current = initial;
   let stalePolls = 0;

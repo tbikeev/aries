@@ -536,7 +536,12 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           }
           startedSessionId = initial.sessionId;
           currentSearchSessionRef.current = initial.sessionId;
-          const final = await followTransitSearchProgress(initial, controller.signal, applyProgress);
+          const final = await followTransitSearchProgress(
+            initial,
+            controller.signal,
+            applyProgress,
+            searchProgressFollowOptions(nextForm.fromDate, nextForm.toDate),
+          );
           if (!controller.signal.aborted && searchRequestSeqRef.current === requestSeq) {
             applyProgress(final);
           }
@@ -753,25 +758,30 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       }
       const plan = retainedSearchDeltaPlan(sourceForm, activeForm);
       if (plan && plan.deltaForms.length === 0 && plan.rangeForms.length === 0) {
-        if (options?.persistSettings ?? true) saveSettings(activeForm);
-        setSummary(t("search.resultCount").replace(
-          "{count}",
-          String(projectTransitSearchRows(rowsRef.current, activeForm).length),
-        ));
         const current = rangeStreamRef.current;
-        if (current && searchRangeQueryKey(current.queryForm ?? activeForm) !== searchRangeQueryKey(plan.universeForm)) {
-          const nextStream: SearchRangeStream = {
-            ...current,
-            queryKey: searchRangeQueryKey(plan.universeForm),
-            queryForm: plan.universeForm,
-            rangeFrom: plan.universeForm.fromDate,
-            rangeTo: plan.universeForm.toDate,
-            exhaustedNext: plan.extendsRangeAfter ? false : current.exhaustedNext,
-          };
-          rangeStreamRef.current = nextStream;
-          setRangeStream(nextStream);
+        const rangeFullyLoaded = current
+          ? searchRangeFullyLoaded(current, activeForm)
+          : false;
+        if (rangeFullyLoaded) {
+          if (options?.persistSettings ?? true) saveSettings(activeForm);
+          setSummary(t("search.resultCount").replace(
+            "{count}",
+            String(projectTransitSearchRows(rowsRef.current, activeForm).length),
+          ));
+          if (current && searchRangeQueryKey(current.queryForm ?? activeForm) !== searchRangeQueryKey(plan.universeForm)) {
+            const nextStream: SearchRangeStream = {
+              ...current,
+              queryKey: searchRangeQueryKey(plan.universeForm),
+              queryForm: plan.universeForm,
+              rangeFrom: plan.universeForm.fromDate,
+              rangeTo: plan.universeForm.toDate,
+              exhaustedNext: plan.extendsRangeAfter ? false : current.exhaustedNext,
+            };
+            rangeStreamRef.current = nextStream;
+            setRangeStream(nextStream);
+          }
+          return;
         }
-        return;
       }
       if (plan && extendRetainedSearchUniverse(activeForm, plan)) return;
       if (options?.persistSettings ?? true) saveSettings(activeForm);
@@ -1252,21 +1262,24 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   }, [runYearSearch]);
 
   const runLifetimeSearch = React.useCallback(() => {
-    if (!catalog?.lifetimeFrom || !catalog.lifetimeTo) return;
+    if (!catalog?.lifetimeFrom || !catalog?.lifetimeTo || !form) return;
+    const next: SearchForm = {
+      ...form,
+      fromDate: catalog.lifetimeFrom,
+      toDate: catalog.lifetimeTo,
+    };
+    if (!canRunSearch(next)) return;
     prepareObjectFilterChange();
-    setForm((prev) => {
-      if (!prev) return prev;
-      const next = {
-        ...prev,
-        fromDate: catalog.lifetimeFrom ?? prev.fromDate,
-        toDate: catalog.lifetimeTo ?? prev.toDate,
-      };
-      if (canRunSearch(next)) {
-        refreshRetainedSearch(next);
-      }
-      return next;
+    formRef.current = next;
+    setForm(next);
+    saveSettings(next);
+    rangeStreamRef.current = null;
+    setRangeStream(null);
+    executeSearch(retainedSearchSourceForm(next), {
+      persistSettings: false,
+      displayForm: next,
     });
-  }, [catalog, prepareObjectFilterChange, refreshRetainedSearch]);
+  }, [catalog, executeSearch, form, prepareObjectFilterChange, saveSettings]);
 
   const saveDefaultRange = React.useCallback(() => {
     setError(null);
@@ -3704,8 +3717,36 @@ function retainedSearchNeedsRangeReplacement(
   activeForm: SearchForm,
 ): boolean {
   if (!stream.coverageFrom || !stream.coverageTo) return true;
-  if (activeForm.fromDate === stream.rangeFrom) return false;
-  return activeForm.fromDate < stream.coverageFrom || activeForm.fromDate > stream.coverageTo;
+  if (activeForm.fromDate < stream.rangeFrom || activeForm.toDate > stream.rangeTo) return true;
+  if (activeForm.fromDate < stream.coverageFrom || activeForm.fromDate > stream.coverageTo) return true;
+  return false;
+}
+
+function searchRangeFullyLoaded(stream: SearchRangeStream, activeForm: SearchForm): boolean {
+  if (!stream.coverageFrom || !stream.coverageTo) return false;
+  if (stream.rangeFrom !== activeForm.fromDate || stream.rangeTo !== activeForm.toDate) return false;
+  if (stream.coverageFrom > activeForm.fromDate) return false;
+  if (stream.coverageTo < activeForm.toDate && !stream.exhaustedNext) return false;
+  return stream.exhaustedNext || stream.coverageTo >= activeForm.toDate;
+}
+
+function searchProgressFollowOptions(fromDate: string, toDate: string): {
+  maxStalePolls: number;
+  deadlineMs: number;
+} {
+  const spanDays = isoDateSpanInclusive(fromDate, toDate);
+  return {
+    maxStalePolls: Math.max(96, Math.min(360, Math.ceil(spanDays / 4))),
+    deadlineMs: Math.min(7_200_000, Math.max(3_600_000, spanDays * 120_000)),
+  };
+}
+
+function isoDateSpanInclusive(fromDate: string, toDate: string): number {
+  if (!isIsoDate(fromDate) || !isIsoDate(toDate) || fromDate > toDate) return 31;
+  const start = Date.parse(`${fromDate}T00:00:00Z`);
+  const end = Date.parse(`${toDate}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return 31;
+  return Math.max(1, Math.floor((end - start) / 86_400_000) + 1);
 }
 
 function searchViewportRowCount(scroller: HTMLDivElement | null, rowHeight: number): number {
