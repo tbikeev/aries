@@ -91,6 +91,7 @@ import {
   formatPerformancePct,
   formatSearchPerformanceSummaryLine,
   listingIsoDateFromRow,
+  ohlcCloseDateSpan,
   parseSearchOhlcFile,
   summarizeSearchPerformance,
   type SearchOhlcSeries,
@@ -305,6 +306,10 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const ohlcInputRef = React.useRef<HTMLInputElement | null>(null);
   const performanceLookup = React.useMemo(
     () => buildRetCc0Lookup(ohlcSeries?.closes),
+    [ohlcSeries],
+  );
+  const ohlcSpan = React.useMemo(
+    () => ohlcCloseDateSpan(ohlcSeries?.closes ?? null),
     [ohlcSeries],
   );
   const filtersDock = useFrameLayoutStore((state) => state.searchFiltersDock);
@@ -678,6 +683,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                 mergedRows = mergeSearchStreamRows(mergedRows, result.rows);
                 nextTimeDisplay = result.timeDisplay ?? nextTimeDisplay;
               },
+              searchProgressFollowOptions(plan.universeForm.fromDate, plan.universeForm.toDate),
             );
             if (final.error) throw new Error(final.error);
             const coverageTo = final.cursor?.coverageTo ?? slice.toDate;
@@ -1281,6 +1287,26 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     });
   }, [catalog, executeSearch, form, prepareObjectFilterChange, saveSettings]);
 
+  const runOhlcSpanSearch = React.useCallback(() => {
+    if (!form || !ohlcSpan) return;
+    const next: SearchForm = {
+      ...form,
+      fromDate: ohlcSpan.fromDate,
+      toDate: ohlcSpan.toDate,
+    };
+    if (!canRunSearch(next)) return;
+    prepareObjectFilterChange();
+    formRef.current = next;
+    setForm(next);
+    saveSettings(next);
+    rangeStreamRef.current = null;
+    setRangeStream(null);
+    executeSearch(retainedSearchSourceForm(next), {
+      persistSettings: false,
+      displayForm: next,
+    });
+  }, [executeSearch, form, ohlcSpan, prepareObjectFilterChange, saveSettings]);
+
   const saveDefaultRange = React.useCallback(() => {
     setError(null);
     const request = contextMode
@@ -1423,7 +1449,12 @@ export function TransitSearchView(props: TransitSearchViewProps) {
             return;
           }
           startedSessionId = initial.sessionId;
-          await followTransitSearchProgress(initial, controller.signal, applyProgress);
+          await followTransitSearchProgress(
+            initial,
+            controller.signal,
+            applyProgress,
+            form ? searchProgressFollowOptions(form.fromDate, form.toDate) : undefined,
+          );
         })
         .catch((err) => {
           if ((err as { name?: string }).name === "AbortError") return;
@@ -1837,6 +1868,24 @@ export function TransitSearchView(props: TransitSearchViewProps) {
               title={t("search.lifetimeTooltip").replace("{years}", String(catalog.defaults.lifetimeYears))}
             >
               {t("search.lifetime")}
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              className="px-[var(--aries-control-gap)] text-[length:var(--aries-font-size-small)] tabular-nums whitespace-nowrap"
+              disabled={!ohlcSpan || searchLoading}
+              onClick={runOhlcSpanSearch}
+              title={
+                ohlcSpan
+                  ? t("search.ohlcSpanTooltip")
+                      .replace("{from}", ohlcSpan.fromDate)
+                      .replace("{to}", ohlcSpan.toDate)
+                      .replace("{days}", String(ohlcSpan.dayCount))
+                  : t("search.ohlcSpanDisabledTooltip")
+              }
+            >
+              {t("search.ohlcSpan")}
             </Button>
             {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
               <Button

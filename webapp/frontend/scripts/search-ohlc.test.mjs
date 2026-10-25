@@ -16,6 +16,7 @@ const {
   formatPerformancePct,
   summarizeSearchPerformance,
   binomExactTwoSided,
+  ohlcCloseDateSpan,
 } = await import(`data:text/javascript;base64,${Buffer.from(js).toString("base64")}`);
 
 test("parseSearchOhlcFile accepts listok-style JSON", () => {
@@ -45,6 +46,17 @@ test("listingIsoDateFromRow prefers displayDatetime prefix", () => {
 
 test("formatPerformancePct signs positive moves", () => {
   assert.match(formatPerformancePct(Math.log(1.05)), /^\+/);
+});
+
+test("ohlcCloseDateSpan returns first and last close dates", () => {
+  const span = ohlcCloseDateSpan({
+    "2024-01-02": 1,
+    "2024-01-01": 1,
+    "2024-01-03": 1,
+  });
+  assert.equal(span?.fromDate, "2024-01-01");
+  assert.equal(span?.toDate, "2024-01-03");
+  assert.equal(span?.dayCount, 3);
 });
 
 test("summarizeSearchPerformance tallies visible rows", () => {

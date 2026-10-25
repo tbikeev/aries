@@ -9,6 +9,12 @@ export type SearchOhlcSeries = {
   closes: Record<string, number>;
 };
 
+export type OhlcCloseDateSpan = {
+  fromDate: string;
+  toDate: string;
+  dayCount: number;
+};
+
 export type SearchOhlcParseResult =
   | { ok: true; series: SearchOhlcSeries }
   | { ok: false; error: string };
@@ -96,6 +102,15 @@ function parseCsv(text: string): Record<string, unknown>[] {
     rows.push({ date: cells[dateIndex], close: cells[closeIndex] });
   }
   return rows;
+}
+
+export function ohlcCloseDateSpan(closes: Record<string, number> | null | undefined): OhlcCloseDateSpan | null {
+  if (!closes) return null;
+  const dates = Object.keys(closes).filter((key) => ISO_DATE.test(key)).sort();
+  if (dates.length < 2) return null;
+  const fromDate = dates[0];
+  const toDate = dates[dates.length - 1];
+  return { fromDate, toDate, dayCount: dates.length };
 }
 
 export function parseSearchOhlcFile(fileName: string, text: string): SearchOhlcParseResult {
