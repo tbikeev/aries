@@ -3674,16 +3674,34 @@ export async function followTransitSearchProgress(
   initial: TransitSearchProgressResult,
   signal: AbortSignal | undefined,
   onProgress: (result: TransitSearchProgressResult) => void,
-  options?: { waitMs?: number },
+  options?: { waitMs?: number; maxStalePolls?: number; deadlineMs?: number },
 ): Promise<TransitSearchProgressResult> {
+  const waitMs = options?.waitMs ?? 25_000;
+  const maxStalePolls = options?.maxStalePolls ?? 12;
+  const deadlineMs = options?.deadlineMs ?? 600_000;
+  const startedAt = Date.now();
   let current = initial;
+  let stalePolls = 0;
   onProgress(current);
   while (!signal?.aborted && !current.complete) {
+    if (Date.now() - startedAt > deadlineMs) {
+      throw new Error("Search progress timed out waiting for results.");
+    }
     const next = await fetchTransitSearchProgress(current.sessionId, signal, {
       afterRevision: current.revision,
-      waitMs: options?.waitMs ?? 25_000,
+      waitMs,
     });
-    if (next.revision === current.revision && !next.complete) continue;
+    if (next.error) {
+      throw new Error(next.error);
+    }
+    if (next.revision === current.revision && !next.complete) {
+      stalePolls += 1;
+      if (stalePolls >= maxStalePolls) {
+        throw new Error("Search progress stalled (daemon did not advance).");
+      }
+      continue;
+    }
+    stalePolls = 0;
     current = next;
     onProgress(current);
   }

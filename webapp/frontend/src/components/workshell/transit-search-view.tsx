@@ -428,6 +428,8 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       searchControllerRef.current = controller;
       setSearchLoading(true);
       setError(null);
+      setRows([]);
+      setSelectedRowKeys(new Set());
       const seed = searchSeedRange(nextForm.fromDate, nextForm.toDate);
       const nextRangeStream = seed
         ? {
@@ -477,7 +479,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           result.cursor?.coverageFrom ?? "",
           result.cursor?.coverageTo ?? "",
         ].join(":");
-        if (progressKey === lastProgressKey) return;
+        if (progressKey === lastProgressKey && !result.complete) return;
         lastProgressKey = progressKey;
         const nextTimeDisplay = result.timeDisplay ?? catalogRef.current?.timeDisplay ?? null;
         const nextRows = normalizeSearchStreamRows(result.rows);
@@ -534,7 +536,10 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           }
           startedSessionId = initial.sessionId;
           currentSearchSessionRef.current = initial.sessionId;
-          await followTransitSearchProgress(initial, controller.signal, applyProgress);
+          const final = await followTransitSearchProgress(initial, controller.signal, applyProgress);
+          if (!controller.signal.aborted && searchRequestSeqRef.current === requestSeq) {
+            applyProgress(final);
+          }
         })
         .catch((err) => {
           if (
@@ -546,8 +551,11 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           setSummary(t("search.searchFailed"));
         })
         .finally(() => {
-          if (searchControllerRef.current === controller) {
+          if (searchRequestSeqRef.current === requestSeq) {
             setSearchLoading(false);
+          }
+          if (searchControllerRef.current === controller) {
+            searchControllerRef.current = null;
           }
           if (startedSessionId && currentSearchSessionRef.current === startedSessionId) {
             currentSearchSessionRef.current = null;
@@ -715,8 +723,11 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           setError((err as Error).message);
         })
         .finally(() => {
-          if (searchControllerRef.current === controller) {
+          if (searchRequestSeqRef.current === requestSeq) {
             setSearchLoading(false);
+          }
+          if (searchControllerRef.current === controller) {
+            searchControllerRef.current = null;
           }
           const sessionId = currentSearchSessionRef.current;
           if (sessionId) {
@@ -1370,7 +1381,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       const applyProgress = (result: TransitSearchProgressResult) => {
         if (controller.signal.aborted || result.cancelled) return;
         if (result.error) throw new Error(result.error);
-        if (!result.cursor) return;
+        if (!result.cursor && !result.complete) return;
         const live = rangeStreamRef.current;
         if (!live || live.queryKey !== current.queryKey) return;
         const nextRows = mergeSearchStreamRows(rowsRef.current, result.rows);
@@ -1411,6 +1422,8 @@ export function TransitSearchView(props: TransitSearchViewProps) {
             rangeExtendInFlightRef.current = false;
             setSearchLoading(false);
             setEdgeCheckNonce((value) => value + 1);
+          } else if (!rangeExtendInFlightRef.current && !searchControllerRef.current) {
+            setSearchLoading(false);
           }
           if (controller.signal.aborted && startedSessionId) {
             void cancelTransitSearch(startedSessionId).catch(() => undefined);
