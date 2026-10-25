@@ -86,6 +86,14 @@ import {
 } from "@/lib/table/payload-cache";
 import { semanticChartColor } from "@/lib/theme/semantic-color";
 import { radixPaneOwner } from "@/lib/radix-pane-state";
+import {
+  buildRetCc0Lookup,
+  formatPerformancePct,
+  listingIsoDateFromRow,
+  parseSearchOhlcFile,
+  type SearchOhlcSeries,
+  type SearchPerformanceLookup,
+} from "@/lib/search-ohlc";
 import { cn } from "@/lib/utils";
 import { type ListFollowPolicy } from "@/lib/list-follow-policy";
 import { useDaemonWorkspaceStore } from "@/stores/daemon-workspace-store";
@@ -117,7 +125,16 @@ type SearchForm = {
 };
 
 type SelectionKey = "techniques" | "promittorIds" | "significatorIds" | "aspects";
-type SearchColumnKey = "date" | "time" | "aspect" | "mz" | "dc" | "from" | "to" | "technique";
+type SearchColumnKey =
+  | "date"
+  | "time"
+  | "aspect"
+  | "mz"
+  | "dc"
+  | "from"
+  | "to"
+  | "technique"
+  | "performance";
 type SearchSortState = {
   column: SearchColumnKey;
   ascending: boolean;
@@ -139,6 +156,7 @@ type TransitSearchCacheEntry = {
   summary: string;
   timeDisplay: EventTimeDisplayMeta | null;
   rangeStream: SearchRangeStream | null;
+  ohlc?: SearchOhlcSeries | null;
 };
 type SearchRangeStream = {
   queryKey: string;
@@ -183,6 +201,7 @@ const SEARCH_COLUMNS: Record<SearchColumnKey, { labelKey: string; headClass: str
   from: { labelKey: "search.from", headClass: "text-center" },
   to: { labelKey: "search.to", headClass: "text-center" },
   technique: { labelKey: "search.tech", headClass: "text-center" },
+  performance: { labelKey: "search.performance", headClass: "text-center" },
 };
 
 const TECHNIQUE_DISPLAY_LABEL_KEYS: Record<string, string> = {
@@ -279,6 +298,13 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(initialCache?.ui?.settingsOpen ?? false);
   const [filtersOpen, setFiltersOpen] = React.useState(initialCache?.ui?.filtersOpen ?? true);
+  const [ohlcSeries, setOhlcSeries] = React.useState<SearchOhlcSeries | null>(() => initialCache?.ohlc ?? null);
+  const [ohlcError, setOhlcError] = React.useState<string | null>(null);
+  const ohlcInputRef = React.useRef<HTMLInputElement | null>(null);
+  const performanceLookup = React.useMemo(
+    () => buildRetCc0Lookup(ohlcSeries?.closes),
+    [ohlcSeries],
+  );
   const filtersDock = useFrameLayoutStore((state) => state.searchFiltersDock);
   const setFiltersDock = useFrameLayoutStore((state) => state.setSearchFiltersDock);
   const [rangeDraft, setRangeDraft] = React.useState(() => ({
@@ -315,9 +341,10 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           contextMode, significatorId, chartRole, customPointsKey, optionsSeq, form: entry.form,
         }),
         ui: { sort, selectedRowKeys: [...selectedRowKeys], filtersOpen, settingsOpen, scrollTop: retainedScrollTopRef.current },
+        ohlc: ohlcSeries,
       });
     },
-    [catalogContextKey, optionsSeq, searchLoading, sort, selectedRowKeys, filtersOpen, settingsOpen, contextMode, significatorId, chartRole, customPointsKey],
+    [catalogContextKey, optionsSeq, searchLoading, sort, selectedRowKeys, filtersOpen, settingsOpen, contextMode, significatorId, chartRole, customPointsKey, ohlcSeries],
   );
 
   React.useEffect(() => {
@@ -961,7 +988,10 @@ export function TransitSearchView(props: TransitSearchViewProps) {
 
   const layoutPreset = useListLayoutPreset();
   const searchRowHeight = useListRowHeight("dense");
-  const sortedSourceRows = React.useMemo(() => sortTransitSearchRows(rows, sort), [rows, sort]);
+  const sortedSourceRows = React.useMemo(
+    () => sortTransitSearchRows(rows, sort, performanceLookup),
+    [rows, sort, performanceLookup],
+  );
   const sortedRows = React.useMemo(
     () => projectTransitSearchRows(sortedSourceRows, form),
     [form, sortedSourceRows],
@@ -1061,6 +1091,49 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     setForm(next);
     saveSettings(next);
   }, [catalog, form, prepareObjectFilterChange, saveSettings]);
+
+  const ohlcParseErrorMessage = React.useCallback(
+    (code: string) => {
+      switch (code) {
+        case "empty_file":
+          return t("search.ohlcParseEmpty");
+        case "invalid_json":
+          return t("search.ohlcParseInvalidJson");
+        case "no_rows":
+          return t("search.ohlcParseNoRows");
+        case "insufficient_closes":
+          return t("search.ohlcParseInsufficient");
+        default:
+          return code;
+      }
+    },
+    [t],
+  );
+
+  const loadOhlcFile = React.useCallback(
+    (file: File) => {
+      setOhlcError(null);
+      void file.text().then((text) => {
+        const parsed = parseSearchOhlcFile(file.name, text);
+        if (!parsed.ok) {
+          setOhlcError(ohlcParseErrorMessage(parsed.error));
+          return;
+        }
+        setOhlcSeries(parsed.series);
+      }).catch(() => {
+        setOhlcError(t("search.ohlcParseInvalidJson"));
+      });
+    },
+    [ohlcParseErrorMessage, t],
+  );
+
+  const clearOhlcSeries = React.useCallback(() => {
+    setOhlcSeries(null);
+    setOhlcError(null);
+    if (ohlcInputRef.current) {
+      ohlcInputRef.current.value = "";
+    }
+  }, []);
 
   const changePartFilter = React.useCallback((partFilter: string) => {
     if (!form) return;
@@ -1401,12 +1474,12 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const sourceQueryForm = rangeStream?.queryForm ?? form;
   const visibleColumns = React.useMemo(
     () =>
-      listKeyDisplayOrder(getVisibleColumns(rows, sourceQueryForm, t), layoutPreset, {
+      listKeyDisplayOrder(getVisibleColumns(rows, sourceQueryForm, t, Boolean(ohlcSeries)), layoutPreset, {
         dateKeys: ["date"],
         timeKeys: ["time"],
         eventKeys: ["aspect"],
       }),
-    [layoutPreset, rows, sourceQueryForm, t],
+    [layoutPreset, ohlcSeries, rows, sourceQueryForm, t],
   );
   const tableResize = useResizableTableColumns({
     storageKey: "transit-search",
@@ -1584,6 +1657,14 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           ]}
         />
       ) : null}
+      <OhlcFilterGroup
+        series={ohlcSeries}
+        error={ohlcError}
+        inputRef={ohlcInputRef}
+        onChooseFile={() => ohlcInputRef.current?.click()}
+        onFileSelected={(file) => loadOhlcFile(file)}
+        onClear={clearOhlcSeries}
+      />
       {partObjects.length > 0 ? (
         <SelectionGroup
           title={t("search.arabicParts")}
@@ -1859,6 +1940,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                           contextMenuActive={contextRowKey === row.key}
                           contextMenuRows={contextRowKey === row.key ? selectedRows : EMPTY_SEARCH_ROWS}
                           visibleColumns={visibleColumns}
+                          performanceLookup={performanceLookup}
                           onSelect={selectRow}
                           onContextSelect={selectRowForContextMenu}
                           onSelectAll={selectAllRows}
@@ -1974,14 +2056,15 @@ export function TransitSearchView(props: TransitSearchViewProps) {
 function sortTransitSearchRows(
   rows: TransitSearchRow[],
   sort: SearchSortState | null,
+  performanceLookup: SearchPerformanceLookup,
 ): TransitSearchRow[] {
   if (!sort) return rows;
   return rows
     .map((row, originalIndex) => ({ row, originalIndex }))
     .sort((a, b) => {
       const cmp = compareSearchValues(
-        transitSearchSortValue(a.row, sort.column),
-        transitSearchSortValue(b.row, sort.column),
+        transitSearchSortValue(a.row, sort.column, performanceLookup),
+        transitSearchSortValue(b.row, sort.column, performanceLookup),
       );
       if (cmp !== 0) return sort.ascending ? cmp : -cmp;
       return a.originalIndex - b.originalIndex;
@@ -2184,7 +2267,15 @@ function LoadingDots() {
   );
 }
 
-function transitSearchSortValue(row: TransitSearchRow, column: SearchColumnKey): string | number {
+function performanceRetForRow(isoDate: string, lookup: SearchPerformanceLookup): number | null {
+  return lookup.retCc0(isoDate);
+}
+
+function transitSearchSortValue(
+  row: TransitSearchRow,
+  column: SearchColumnKey,
+  performanceLookup: SearchPerformanceLookup,
+): string | number {
   switch (column) {
     case "date":
       return typeof row.eventJd === "number" ? row.eventJd : sortableDateTime(row.eventDate, row.eventTime);
@@ -2202,6 +2293,11 @@ function transitSearchSortValue(row: TransitSearchRow, column: SearchColumnKey):
       return row.primaryMode;
     case "dc":
       return row.primaryDirection;
+    case "performance": {
+      const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
+      const ret = iso ? performanceRetForRow(iso, performanceLookup) : null;
+      return ret ?? Number.NEGATIVE_INFINITY;
+    }
   }
 }
 
@@ -2393,6 +2489,60 @@ function SelectionGroup({
           </React.Fragment>
         ))}
       </div>
+    </section>
+  );
+}
+
+function OhlcFilterGroup({
+  series,
+  error,
+  inputRef,
+  onChooseFile,
+  onFileSelected,
+  onClear,
+}: {
+  series: SearchOhlcSeries | null;
+  error: string | null;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onChooseFile: () => void;
+  onFileSelected: (file: File) => void;
+  onClear: () => void;
+}) {
+  const t = useT();
+  const dayCount = series ? Object.keys(series.closes).length : 0;
+  return (
+    <section className="grid gap-[var(--aries-form-field-gap)]">
+      <h2 className="aries-search-panel-heading text-xs">{t("search.ohlcTitle")}</h2>
+      <p className="text-[11px] leading-snug text-muted-foreground">{t("search.ohlcHelp")}</p>
+      <div className="flex min-w-0 flex-wrap items-center gap-[var(--aries-control-gap-compact)]">
+        <Button type="button" variant="outline" size="sm" onClick={onChooseFile}>
+          {t("search.ohlcChooseFile")}
+        </Button>
+        {series ? (
+          <>
+            <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={series.fileName}>
+              {series.fileName}
+              {" · "}
+              {dayCount}
+              d
+            </span>
+            <Button type="button" variant="ghost" size="sm" onClick={onClear}>
+              {t("search.ohlcClear")}
+            </Button>
+          </>
+        ) : null}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".json,.csv,.txt,application/json,text/csv"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          if (file) onFileSelected(file);
+        }}
+      />
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </section>
   );
 }
@@ -2712,6 +2862,7 @@ const SearchRow = React.memo(function SearchRow({
   contextMenuActive,
   contextMenuRows,
   visibleColumns,
+  performanceLookup,
   onSelect,
   onContextSelect,
   onSelectAll,
@@ -2724,6 +2875,7 @@ const SearchRow = React.memo(function SearchRow({
   contextMenuActive: boolean;
   contextMenuRows: TransitSearchRow[];
   visibleColumns: SearchColumnKey[];
+  performanceLookup: SearchPerformanceLookup;
   onSelect: (row: TransitSearchRow, event?: React.MouseEvent) => void;
   onContextSelect: (row: TransitSearchRow) => void;
   onSelectAll: () => void;
@@ -2746,7 +2898,7 @@ const SearchRow = React.memo(function SearchRow({
         onClick={(event) => onSelect(row, event)}
         onContextMenu={() => onContextSelect(row)}
       >
-        {renderSearchCells(row, visibleColumns, onOpenTimedChart)}
+        {renderSearchCells(row, visibleColumns, onOpenTimedChart, performanceLookup)}
       </tr>
     </SearchRowContextMenu>
   );
@@ -2757,11 +2909,13 @@ function SearchCell({
   row,
   colSpan,
   onOpenTimedChart,
+  performanceLookup,
 }: {
   column: SearchColumnKey;
   row: TransitSearchRow;
   colSpan?: number;
   onOpenTimedChart: SearchOpenTimedChart;
+  performanceLookup: SearchPerformanceLookup;
 }) {
   const t = useT();
   switch (column) {
@@ -2811,6 +2965,33 @@ function SearchCell({
         </td>
       );
     }
+    case "performance": {
+      const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
+      const ret = iso ? performanceRetForRow(iso, performanceLookup) : null;
+      if (ret === null) {
+        return (
+          <td className="aries-list-cell border-0 text-center text-muted-foreground tabular-nums" colSpan={colSpan}>
+            —
+          </td>
+        );
+      }
+      const positive = ret > 0;
+      const negative = ret < 0;
+      return (
+        <td
+          className={cn(
+            "aries-list-cell border-0 text-center tabular-nums font-medium",
+            positive && "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300",
+            negative && "bg-red-500/15 text-red-800 dark:text-red-300",
+            !positive && !negative && "text-muted-foreground",
+          )}
+          title={iso ?? undefined}
+          colSpan={colSpan}
+        >
+          {formatPerformancePct(ret)}
+        </td>
+      );
+    }
   }
 }
 
@@ -2818,6 +2999,7 @@ function renderSearchCells(
   row: TransitSearchRow,
   visibleColumns: SearchColumnKey[],
   onOpenTimedChart: SearchOpenTimedChart,
+  performanceLookup: SearchPerformanceLookup,
 ) {
   const singleObject = isSingleObjectSearchRow(row);
   const spansTargetTrack = singleObject && visibleColumns.includes("from") && visibleColumns.includes("to");
@@ -2831,6 +3013,7 @@ function renderSearchCells(
         row={row}
         colSpan={colSpan}
         onOpenTimedChart={onOpenTimedChart}
+        performanceLookup={performanceLookup}
       />
     );
   });
@@ -3234,7 +3417,12 @@ function Glyph({
   );
 }
 
-function getVisibleColumns(rows: TransitSearchRow[], form: SearchForm | null | undefined, t: TFunc): SearchColumnKey[] {
+function getVisibleColumns(
+  rows: TransitSearchRow[],
+  form: SearchForm | null | undefined,
+  t: TFunc,
+  showPerformance: boolean,
+): SearchColumnKey[] {
   const columns: SearchColumnKey[] = ["aspect"];
   const hasPrimaryMode = rows.some((row) => row.primaryMode);
   const hasPrimaryDirection = rows.some((row) => row.primaryDirection);
@@ -3246,7 +3434,9 @@ function getVisibleColumns(rows: TransitSearchRow[], form: SearchForm | null | u
   }
   const techniqueLabels = new Set(rows.map((row) => techniqueDisplayLabel(row, t)).filter(Boolean));
   if (techniqueLabels.size > 1) columns.push("technique");
-  columns.push("date", "time");
+  columns.push("date");
+  if (showPerformance) columns.push("performance");
+  columns.push("time");
   return columns;
 }
 
