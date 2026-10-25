@@ -801,6 +801,14 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     (activeForm: SearchForm, options?: { persistSettings?: boolean }) => {
       const currentStream = rangeStreamRef.current;
       const sourceForm = currentStream?.queryForm ?? null;
+      if (sourceForm && searchDeclinationFilterKey(sourceForm) !== searchDeclinationFilterKey(activeForm)) {
+        if (options?.persistSettings ?? true) saveSettings(activeForm);
+        executeSearch(retainedSearchSourceForm(activeForm), {
+          persistSettings: false,
+          displayForm: activeForm,
+        });
+        return;
+      }
       if (sourceForm && currentStream && retainedSearchNeedsRangeReplacement(currentStream, activeForm)) {
         if (options?.persistSettings ?? true) saveSettings(activeForm);
         executeSearch(retainedSearchSourceForm(activeForm), {
@@ -1453,7 +1461,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       setError(null);
       const sourceForm = current.queryForm ?? form;
       const request: TransitSearchRequest = {
-        ...buildRequest(sourceForm, false),
+        ...buildRequest(mergeSearchDeclinationFilter(sourceForm, form), false),
         fromDate: seed.fromDate,
         toDate: seed.toDate,
         ownerScope: "search:range",
@@ -1580,11 +1588,10 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     onExtend: extendRange,
     recheckToken: edgeCheckNonce,
   });
-  const sourceQueryForm = rangeStream?.queryForm ?? form;
   const visibleColumns = React.useMemo(
     () =>
       listKeyDisplayOrder(
-        getVisibleColumns(rows, sourceQueryForm, t, Boolean(ohlcSeries)),
+        getVisibleColumns(rows, form, t, Boolean(ohlcSeries)),
         layoutPreset,
         {
           dateKeys: ["date"],
@@ -1592,7 +1599,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           eventKeys: ["aspect", "promDecl", "sigDecl", "declMatch"],
         },
       ),
-    [layoutPreset, ohlcSeries, rows, sourceQueryForm, t],
+    [layoutPreset, ohlcSeries, rows, form, t],
   );
   const tableResize = useResizableTableColumns({
     storageKey: "transit-search",
@@ -3134,6 +3141,14 @@ function AspectGroup({
           <span aria-hidden="true">°</span>
         </span>
       </label>
+      <DeclinationAspectControls
+        declParallel={declParallel}
+        declContraparallel={declContraparallel}
+        declOrb={declOrb}
+        onDeclParallelChange={onDeclParallelChange}
+        onDeclContraparallelChange={onDeclContraparallelChange}
+        onDeclOrbChange={onDeclOrbChange}
+      />
     </section>
   );
 }
@@ -4421,8 +4436,47 @@ function projectTransitSearchRows(
     ) return false;
     const lunationContactOrb = numberValue(row.metadata.lunation_contact_orb);
     if (lunarEvent && lunationContactOrb != null && lunationContactOrb > form.lunationOrb) return false;
+    if (form.declParallel || form.declContraparallel) {
+      if (!searchRowPassesDeclinationFilter(row, form)) return false;
+    }
     return true;
   });
+}
+
+function searchDeclinationFilterKey(form: SearchForm): string {
+  return JSON.stringify({
+    declParallel: form.declParallel,
+    declContraparallel: form.declContraparallel,
+    declOrb: form.declOrb,
+  });
+}
+
+function mergeSearchDeclinationFilter(source: SearchForm, active: SearchForm): SearchForm {
+  return {
+    ...source,
+    declParallel: active.declParallel,
+    declContraparallel: active.declContraparallel,
+    declOrb: active.declOrb,
+  };
+}
+
+function searchRowPassesDeclinationFilter(row: TransitSearchRow, form: SearchForm): boolean {
+  const wantPar = form.declParallel;
+  const wantCpar = form.declContraparallel;
+  if (!wantPar && !wantCpar) return true;
+  if (
+    row.declParallel == null
+    && row.declContraparallel == null
+    && row.declOrbDeltaPar == null
+    && row.declOrbDeltaCpar == null
+  ) {
+    return true;
+  }
+  const par = row.declParallel === true;
+  const cpar = row.declContraparallel === true;
+  if (wantPar && wantCpar) return par || cpar;
+  if (wantPar) return par;
+  return cpar;
 }
 
 function searchRowMatchesMotion(
