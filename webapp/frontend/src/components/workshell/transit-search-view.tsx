@@ -128,6 +128,9 @@ type SearchForm = {
   promittorIds: string[];
   significatorIds: string[];
   aspects: string[];
+  declParallel: boolean;
+  declContraparallel: boolean;
+  declOrb: SearchDeclOrb;
   includeSignChanges: boolean;
   promittorMotion: TransitSearchMotionFilter;
   significatorMotion: TransitSearchMotionFilter;
@@ -142,12 +145,30 @@ type SearchColumnKey =
   | "date"
   | "time"
   | "aspect"
+  | "promDecl"
+  | "sigDecl"
+  | "declMatch"
   | "mz"
   | "dc"
   | "from"
   | "to"
   | "technique"
   | "performance";
+
+export const SEARCH_DECL_ORBS = [0.5, 1, 2, 2.5] as const;
+type SearchDeclOrb = (typeof SEARCH_DECL_ORBS)[number];
+
+function parseSearchDeclOrb(value: unknown): SearchDeclOrb {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (numeric === 0.5 || numeric === 1 || numeric === 2 || numeric === 2.5) return numeric;
+  return 1;
+}
+
+function formatDeclinationDegrees(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}°`;
+}
 type SearchSortState = {
   column: SearchColumnKey;
   ascending: boolean;
@@ -211,6 +232,9 @@ const SEARCH_COLUMNS: Record<SearchColumnKey, { labelKey: string; headClass: str
   date: { labelKey: "search.date", headClass: "text-center" },
   time: { labelKey: "search.time", headClass: "text-center" },
   aspect: { labelKey: "search.fromTo", headClass: "text-center" },
+  promDecl: { labelKey: "search.promDecl", headClass: "text-center" },
+  sigDecl: { labelKey: "search.sigDecl", headClass: "text-center" },
+  declMatch: { labelKey: "search.declMatch", headClass: "text-center" },
   mz: { labelKey: "search.mz", headClass: "text-center" },
   dc: { labelKey: "search.dc", headClass: "text-center" },
   from: { labelKey: "search.from", headClass: "text-center" },
@@ -400,6 +424,9 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       promittorIds: nextForm.promittorIds,
       significatorIds: nextForm.significatorIds,
       aspects: nextForm.aspects,
+      declParallel: nextForm.declParallel,
+      declContraparallel: nextForm.declContraparallel,
+      declOrb: nextForm.declOrb,
       includeSignChanges: nextForm.includeSignChanges,
       promittorMotion: nextForm.promittorMotion,
       significatorMotion: nextForm.significatorMotion,
@@ -887,6 +914,9 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           promittorIds: data.defaults.promittorIds,
           significatorIds: data.defaults.significatorIds,
           aspects: data.defaults.aspects,
+          declParallel: data.defaults.declParallel ?? false,
+          declContraparallel: data.defaults.declContraparallel ?? false,
+          declOrb: parseSearchDeclOrb(data.defaults.declOrb),
           includeSignChanges: data.defaults.includeSignChanges,
           promittorMotion: data.defaults.promittorMotion,
           significatorMotion: data.defaults.significatorMotion,
@@ -1553,11 +1583,15 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const sourceQueryForm = rangeStream?.queryForm ?? form;
   const visibleColumns = React.useMemo(
     () =>
-      listKeyDisplayOrder(getVisibleColumns(rows, sourceQueryForm, t, Boolean(ohlcSeries)), layoutPreset, {
-        dateKeys: ["date"],
-        timeKeys: ["time"],
-        eventKeys: ["aspect"],
-      }),
+      listKeyDisplayOrder(
+        getVisibleColumns(rows, sourceQueryForm, t, Boolean(ohlcSeries)),
+        layoutPreset,
+        {
+          dateKeys: ["date"],
+          timeKeys: ["time"],
+          eventKeys: ["aspect", "promDecl", "sigDecl", "declMatch"],
+        },
+      ),
     [layoutPreset, ohlcSeries, rows, sourceQueryForm, t],
   );
   const tableResize = useResizableTableColumns({
@@ -1684,6 +1718,14 @@ export function TransitSearchView(props: TransitSearchViewProps) {
         onSetMajor={() => setSelected("aspects", catalog.presets.aspects.major)}
         onClear={() => setSelected("aspects", catalog.presets.aspects.clear)}
         onLunationOrbChange={changeLunationOrb}
+      />
+      <DeclinationAspectGroup
+        declParallel={form.declParallel}
+        declContraparallel={form.declContraparallel}
+        declOrb={form.declOrb}
+        onDeclParallelChange={(checked) => updateForm({ declParallel: checked })}
+        onDeclContraparallelChange={(checked) => updateForm({ declContraparallel: checked })}
+        onDeclOrbChange={(orb) => updateForm({ declOrb: orb })}
       />
       <SelectionGroup
         title={t("search.promissors")}
@@ -2442,6 +2484,12 @@ function transitSearchSortValue(
       const ret = iso ? performanceRetForRow(iso, performanceLookup) : null;
       return ret ?? Number.NEGATIVE_INFINITY;
     }
+    case "promDecl":
+      return row.promDeclination ?? Number.NEGATIVE_INFINITY;
+    case "sigDecl":
+      return row.sigDeclination ?? Number.NEGATIVE_INFINITY;
+    case "declMatch":
+      return (row.declParallel ? 2 : 0) + (row.declContraparallel ? 1 : 0);
   }
 }
 
@@ -2922,6 +2970,71 @@ function TechniqueGroup({
   );
 }
 
+function DeclinationAspectGroup({
+  declParallel,
+  declContraparallel,
+  declOrb,
+  onDeclParallelChange,
+  onDeclContraparallelChange,
+  onDeclOrbChange,
+}: {
+  declParallel: boolean;
+  declContraparallel: boolean;
+  declOrb: SearchDeclOrb;
+  onDeclParallelChange: (checked: boolean) => void;
+  onDeclContraparallelChange: (checked: boolean) => void;
+  onDeclOrbChange: (orb: SearchDeclOrb) => void;
+}) {
+  const t = useT();
+  const orbGroupName = React.useId();
+  const active = declParallel || declContraparallel;
+  return (
+    <section className="grid gap-[var(--aries-form-field-gap)]">
+      <h2 className="aries-search-panel-heading text-xs">{t("search.declinationAspects")}</h2>
+      <p className="text-[11px] leading-snug text-muted-foreground">{t("search.declinationAspectsHelp")}</p>
+      <div className="flex flex-wrap items-center gap-[var(--aries-control-gap)]">
+        <CheckRow
+          checked={declParallel}
+          label={t("settings.parallel")}
+          onChange={onDeclParallelChange}
+        />
+        <CheckRow
+          checked={declContraparallel}
+          label={t("settings.contraparallel")}
+          onChange={onDeclContraparallelChange}
+        />
+      </div>
+      <fieldset
+        disabled={!active}
+        className="flex flex-wrap items-center gap-[var(--aries-control-gap-compact)] border-0 p-0 m-0"
+      >
+        <legend className="text-xs text-muted-foreground">{t("search.declOrbLabel")}</legend>
+        {SEARCH_DECL_ORBS.map((orb) => (
+          <label
+            key={orb}
+            className={cn(
+              "inline-flex cursor-pointer items-center gap-1 rounded-[var(--aries-radius-control-compact)] border px-[var(--aries-control-gap)] py-0.5 text-[length:var(--aries-font-size-small)] tabular-nums",
+              declOrb === orb
+                ? "border-border bg-[var(--aries-control-background)] font-medium"
+                : "border-transparent text-muted-foreground",
+              !active && "cursor-not-allowed opacity-50",
+            )}
+          >
+            <input
+              type="radio"
+              name={orbGroupName}
+              className="size-3 accent-[var(--aries-accent)]"
+              checked={declOrb === orb}
+              onChange={() => onDeclOrbChange(orb)}
+            />
+            {t("search.declOrbDegrees").replace("{degrees}", String(orb))}
+          </label>
+        ))}
+      </fieldset>
+    </section>
+  );
+}
+
 function AspectGroup({
   selected,
   catalog,
@@ -3311,6 +3424,28 @@ function SearchCell({
           colSpan={colSpan}
         >
           {formatPerformancePct(ret)}
+        </td>
+      );
+    }
+    case "promDecl":
+      return (
+        <td className="aries-list-cell border-0 text-center tabular-nums text-muted-foreground" colSpan={colSpan}>
+          {formatDeclinationDegrees(row.promDeclination)}
+        </td>
+      );
+    case "sigDecl":
+      return (
+        <td className="aries-list-cell border-0 text-center tabular-nums text-muted-foreground" colSpan={colSpan}>
+          {formatDeclinationDegrees(row.sigDeclination)}
+        </td>
+      );
+    case "declMatch": {
+      const tags: string[] = [];
+      if (row.declParallel) tags.push(t("search.declParShort"));
+      if (row.declContraparallel) tags.push(t("search.declCparShort"));
+      return (
+        <td className="aries-list-cell border-0 text-center tabular-nums text-foreground" colSpan={colSpan}>
+          {tags.length > 0 ? tags.join(" · ") : "—"}
         </td>
       );
     }
@@ -3746,6 +3881,10 @@ function getVisibleColumns(
   showPerformance: boolean,
 ): SearchColumnKey[] {
   const columns: SearchColumnKey[] = ["aspect"];
+  const showDeclColumns = Boolean(form?.declParallel || form?.declContraparallel);
+  if (showDeclColumns) {
+    columns.push("promDecl", "sigDecl", "declMatch");
+  }
   const hasPrimaryMode = rows.some((row) => row.primaryMode);
   const hasPrimaryDirection = rows.some((row) => row.primaryDirection);
   if (hasPrimaryMode) columns.push("mz");

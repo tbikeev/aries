@@ -5437,3 +5437,85 @@ def _search_technique_label(technique):
 
 def _escape_ics_text(value):
 	return value.replace('\\', '\\\\').replace(';', '\\;').replace(',', '\\,').replace('\n', '\\n')
+
+
+def _live_object_declination_uncached(obj, chrt, event_jd, flags, context=None):
+	if obj is None:
+		return None
+	context = context or _planet_ephemeris_context(chrt)
+	with context.activate():
+		if obj.id.startswith('asteroid:'):
+			if obj.planet_index is None:
+				return None
+			ret, data, _error = astrology.swe_calc_ut_ex(event_jd, obj.planet_index, flags)
+			if int(ret) & 0xFFFFFFFF == 0xFFFFFFFF or len(data) < 4:
+				return None
+			return float(data[1])
+		if obj.id == 'planet:asc_node':
+			node_id = astrology.SE_MEAN_NODE if getattr(chrt.options, 'meannode', True) else astrology.SE_TRUE_NODE
+			body = planets.Planet(event_jd, node_id, flags)
+			return float(body.dataEqu[planets.Planet.DECLEQU])
+		if obj.id == 'planet:desc_node':
+			node_id = astrology.SE_MEAN_NODE if getattr(chrt.options, 'meannode', True) else astrology.SE_TRUE_NODE
+			body = planets.Planet(event_jd, node_id, flags)
+			return float(body.dataEqu[planets.Planet.DECLEQU])
+		if obj.planet_index is None:
+			return None
+		body = planets.Planet(event_jd, obj.planet_index, flags)
+		return float(body.dataEqu[planets.Planet.DECLEQU])
+
+
+def declination_par_cpar(prom_decl, sig_decl, orb_deg):
+	par = abs(float(prom_decl) - float(sig_decl)) <= float(orb_deg)
+	cpar = abs(float(prom_decl) + float(sig_decl)) <= float(orb_deg)
+	return par, cpar
+
+
+def declination_state_for_row(row, catalog, chrt, orb_deg, context=None, flags=None):
+	if row.event_jd is None:
+		return None
+	flags = flags or _planet_flags(chrt)
+	context = context or _planet_ephemeris_context(chrt)
+	prom = catalog.get(row.promittor_id)
+	sig = catalog.get(row.significator_id)
+	prom_decl = _live_object_declination_uncached(prom, chrt, row.event_jd, flags, context)
+	sig_decl = _live_object_declination_uncached(sig, chrt, row.event_jd, flags, context)
+	if prom_decl is None or sig_decl is None:
+		return None
+	par, cpar = declination_par_cpar(prom_decl, sig_decl, orb_deg)
+	return {
+		'promDeclination': prom_decl,
+		'sigDeclination': sig_decl,
+		'declParallel': par,
+		'declContraparallel': cpar,
+		'declOrbDeltaPar': abs(float(prom_decl) - float(sig_decl)),
+		'declOrbDeltaCpar': abs(float(prom_decl) + float(sig_decl)),
+	}
+
+
+def row_passes_declination_filter(row, catalog, chrt, want_par, want_cpar, orb_deg, context=None, flags=None):
+	if not want_par and not want_cpar:
+		return True
+	state = declination_state_for_row(row, catalog, chrt, orb_deg, context=context, flags=flags)
+	if state is None:
+		return False
+	par = bool(state['declParallel'])
+	cpar = bool(state['declContraparallel'])
+	if want_par and want_cpar:
+		return par or cpar
+	if want_par:
+		return par
+	return cpar
+
+
+def filter_search_rows_by_declination(rows, catalog, chrt, want_par, want_cpar, orb_deg):
+	if not want_par and not want_cpar:
+		return rows
+	context = _planet_ephemeris_context(chrt)
+	flags = _planet_flags(chrt)
+	return [
+		row for row in rows
+		if row_passes_declination_filter(
+			row, catalog, chrt, want_par, want_cpar, orb_deg, context=context, flags=flags
+		)
+	]

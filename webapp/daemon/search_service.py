@@ -50,6 +50,7 @@ from webapp.daemon.event_time import DefaultLocationClock, table_event_clock
 
 
 RESULT_LIMIT = 500
+DECLINATION_ORB_CHOICES = (0.5, 1.0, 2.0, 2.5)
 SEARCH_LIFETIME_DEFAULT_YEARS = 100
 SEARCH_LIFETIME_MIN_YEARS = 1
 SEARCH_LIFETIME_MAX_YEARS = 500
@@ -908,6 +909,9 @@ class TransitSearchService:
                 "moonPhase": str(getattr(opts, "search_moon_phase", "") or ""),
                 "lunationOrb": float(getattr(opts, "search_lunation_orb", 3.0)),
                 "partFilter": str(getattr(opts, "search_part_filter", "") or ""),
+                "declParallel": False,
+                "declContraparallel": False,
+                "declOrb": 1.0,
                 "defaultOffsetMonths": self._coerce_month_option("search_default_offset_months", -2, -120, 120),
                 "defaultRangeMonths": self._coerce_month_option("search_default_range_months", 12, 1, 120),
                 "lifetimeYears": lifetime_years,
@@ -959,6 +963,7 @@ class TransitSearchService:
         display_options = effective_display_options(chart_snapshot_service.options)
         include_orb_temporal = bool(payload.get("includeOrbTemporal", False))
         include_temporal = bool(payload.get("includeTemporal", False)) or include_orb_temporal
+        decl_filter = self._parse_declination_filter(payload)
         serialized = self._serialize_rows(
             rows,
             catalog,
@@ -967,6 +972,7 @@ class TransitSearchService:
             display_options=display_options,
             include_temporal=include_temporal,
             include_orb_temporal=include_orb_temporal,
+            decl_filter=decl_filter,
         )
         return {
             "rows": serialized,
@@ -1141,6 +1147,7 @@ class TransitSearchService:
             bool(payload.get("includeTemporal", False))
             or bool(payload.get("includeOrbTemporal", False)),
             bool(payload.get("includeOrbTemporal", False)),
+            self._parse_declination_filter(payload),
         )
         return job.snapshot()
 
@@ -1217,6 +1224,7 @@ class TransitSearchService:
         cursor_maximum_date: Optional[datetime.date],
         include_temporal: bool = False,
         include_orb_temporal: bool = False,
+        decl_filter: Optional[tuple[bool, bool, float]] = None,
     ) -> None:
         try:
             if job.is_cancelled():
@@ -1250,6 +1258,7 @@ class TransitSearchService:
                         display_options=display_options,
                         include_temporal=include_temporal,
                         include_orb_temporal=include_orb_temporal,
+                        decl_filter=decl_filter,
                     )
                     # Publish exact civil coverage, not the rounded month span
                     # used by scrolling. Export may reuse only a whole month.
@@ -1290,6 +1299,7 @@ class TransitSearchService:
                         display_options=display_options,
                         include_temporal=include_temporal,
                         include_orb_temporal=include_orb_temporal,
+                        decl_filter=decl_filter,
                     )
                     job.update(
                         rows=serialized,
@@ -1473,10 +1483,23 @@ class TransitSearchService:
         display_options,
         include_temporal: bool = False,
         include_orb_temporal: bool = False,
+        decl_filter: Optional[tuple[bool, bool, float]] = None,
     ) -> list[dict[str, Any]]:
         rows = searchbackend.cheby_finalize_search_rows(catalog, chrt, rows)
         searchbackend.cheby_apply_lazy_display_rows(catalog, chrt, rows)
+        if decl_filter is not None:
+            want_par, want_cpar, orb_deg = decl_filter
+            rows = searchbackend.filter_search_rows_by_declination(
+                rows, catalog, chrt, want_par, want_cpar, orb_deg
+            )
         orb_runtime = searchbackend._SearchRuntime() if include_orb_temporal else None
+        decl_context = None
+        decl_flags = None
+        decl_orb = None
+        if decl_filter is not None:
+            decl_context = searchbackend._planet_ephemeris_context(chrt)
+            decl_flags = searchbackend._planet_flags(chrt)
+            decl_orb = decl_filter[2]
         return [
             self._row_payload(
                 row,
@@ -1488,9 +1511,32 @@ class TransitSearchService:
                 include_temporal=include_temporal,
                 include_orb_temporal=include_orb_temporal,
                 orb_runtime=orb_runtime,
+                decl_state=(
+                    searchbackend.declination_state_for_row(
+                        row, catalog, chrt, decl_orb, context=decl_context, flags=decl_flags
+                    )
+                    if decl_orb is not None
+                    else None
+                ),
             )
             for index, row in enumerate(rows)
         ]
+
+    @staticmethod
+    def _parse_declination_filter(
+        payload: dict[str, Any],
+    ) -> Optional[tuple[bool, bool, float]]:
+        want_par = bool(payload.get("declParallel"))
+        want_cpar = bool(payload.get("declContraparallel"))
+        if not want_par and not want_cpar:
+            return None
+        try:
+            orb = float(payload.get("declOrb", 1.0))
+        except Exception:
+            orb = 1.0
+        if orb not in DECLINATION_ORB_CHOICES:
+            orb = min(DECLINATION_ORB_CHOICES, key=lambda value: abs(value - orb))
+        return want_par, want_cpar, orb
 
     @staticmethod
     def _time_display_for_rows(
@@ -1845,6 +1891,7 @@ class TransitSearchService:
         include_temporal: bool = False,
         include_orb_temporal: bool = False,
         orb_runtime=None,
+        decl_state: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         display_options = display_options or effective_display_options(
             chart_snapshot_service.options
@@ -1956,6 +2003,13 @@ class TransitSearchService:
                     activation_colors,
                 )
             payload["temporal"] = temporal
+        if decl_state is not None:
+            payload["promDeclination"] = decl_state["promDeclination"]
+            payload["sigDeclination"] = decl_state["sigDeclination"]
+            payload["declParallel"] = bool(decl_state["declParallel"])
+            payload["declContraparallel"] = bool(decl_state["declContraparallel"])
+            payload["declOrbDeltaPar"] = decl_state["declOrbDeltaPar"]
+            payload["declOrbDeltaCpar"] = decl_state["declOrbDeltaCpar"]
         return payload
 
     def _aspect_color(self, row: searchquery.SearchResult, display_options=None) -> str:

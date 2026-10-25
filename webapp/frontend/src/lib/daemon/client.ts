@@ -3232,6 +3232,9 @@ export type TransitSearchDefaults = {
   significatorMotion: TransitSearchMotionFilter;
   moonPhase: MoonPhaseFilter;
   lunationOrb: number;
+  declParallel: boolean;
+  declContraparallel: boolean;
+  declOrb: number;
   partFilter: string;
   defaultOffsetMonths: number;
   defaultRangeMonths: number;
@@ -3326,6 +3329,12 @@ export type TransitSearchRow = {
   promDisplay: TransitSearchDisplay;
   sigDisplay: TransitSearchDisplay;
   isSignChange: boolean;
+  promDeclination?: number;
+  sigDeclination?: number;
+  declParallel?: boolean;
+  declContraparallel?: boolean;
+  declOrbDeltaPar?: number;
+  declOrbDeltaCpar?: number;
   temporal?: TemporalRowMeta;
 };
 
@@ -3347,6 +3356,9 @@ export type TransitSearchRequest = {
   significatorMotion?: TransitSearchMotionFilter;
   moonPhase?: MoonPhaseFilter;
   lunationOrb?: number;
+  declParallel?: boolean;
+  declContraparallel?: boolean;
+  declOrb?: number;
   limit?: number;
   persistSettings?: boolean;
   ownerScope?: string;
