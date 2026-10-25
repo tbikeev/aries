@@ -24,6 +24,14 @@ export type SearchPerformanceLookup = {
   retCc0: (isoDate: string) => number | null;
   /** Positive-day rate among all ret_cc0 days in [fromIso, toIso] (search baseline). */
   baselinePosRateBetween: (fromIso: string, toIso: string) => { rate: number; days: number };
+  /** Mean log return and day count in [fromIso, toIso]. */
+  baselineMeanReturnBetween: (fromIso: string, toIso: string) => { mean: number; days: number };
+  /** Log returns on non-hit calendar days within [fromIso, toIso]. */
+  controlReturnsBetween: (
+    fromIso: string,
+    toIso: string,
+    hitIsoDates: ReadonlySet<string>,
+  ) => number[];
 };
 
 export type SearchListingRow = {
@@ -45,6 +53,17 @@ export type SearchPerformanceSummary = {
   pBinomTwoSided: number;
   baselinePosPct: number;
   baselineDays: number;
+  /** Unique hit calendar days with a return. */
+  hitReturnDays: number;
+  /** Mean log return on hit days (unique dates). */
+  hitMeanReturn: number;
+  /** Mean log return on all OHLC days in the search span. */
+  baselineMeanReturn: number;
+  /** hitMeanReturn − baselineMeanReturn, as log-return percent points. */
+  excessMeanPct: number;
+  /** Two-sided Mann–Whitney p: hit-day returns vs other days in span. */
+  pReturnTwoSided: number | null;
+  controlReturnDays: number;
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -169,27 +188,136 @@ export function binomExactTwoSided(kPos: number, n: number, p0: number): number 
   return Math.min(1, total);
 }
 
+function rangeBounds(fromIso: string, toIso: string): { from: string; to: string } {
+  return fromIso <= toIso ? { from: fromIso, to: toIso } : { from: toIso, to: fromIso };
+}
+
+function returnsInRange(retByDate: Map<string, number>, fromIso: string, toIso: string): number[] {
+  const { from, to } = rangeBounds(fromIso, toIso);
+  const values: number[] = [];
+  for (const [day, ret] of retByDate) {
+    if (day < from || day > to) continue;
+    values.push(ret);
+  }
+  return values;
+}
+
+function meanReturn(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  let sum = 0;
+  for (const value of values) sum += value;
+  return sum / values.length;
+}
+
 function baselinePosRateBetween(
   retByDate: Map<string, number>,
   fromIso: string,
   toIso: string,
 ): { rate: number; days: number } {
-  const from = fromIso <= toIso ? fromIso : toIso;
-  const to = fromIso <= toIso ? toIso : fromIso;
+  const values = returnsInRange(retByDate, fromIso, toIso);
   let positive = 0;
-  let days = 0;
-  for (const [day, ret] of retByDate) {
-    if (day < from || day > to) continue;
-    days += 1;
+  for (const ret of values) {
     if (ret > 0) positive += 1;
   }
+  const days = values.length;
   return { rate: days > 0 ? positive / days : 0.5, days };
+}
+
+function controlReturnsInRange(
+  retByDate: Map<string, number>,
+  fromIso: string,
+  toIso: string,
+  hitIsoDates: ReadonlySet<string>,
+): number[] {
+  const { from, to } = rangeBounds(fromIso, toIso);
+  const values: number[] = [];
+  for (const [day, ret] of retByDate) {
+    if (day < from || day > to) continue;
+    if (hitIsoDates.has(day)) continue;
+    values.push(ret);
+  }
+  return values;
+}
+
+function rankWithTies(values: readonly number[]): number[] {
+  const indexed = values.map((value, index) => ({ value, index }));
+  indexed.sort((left, right) => left.value - right.value);
+  const ranks = new Array<number>(values.length);
+  let position = 0;
+  while (position < indexed.length) {
+    let end = position + 1;
+    while (end < indexed.length && indexed[end].value === indexed[position].value) end += 1;
+    const averageRank = (position + 1 + end) / 2;
+    for (let cursor = position; cursor < end; cursor += 1) {
+      ranks[indexed[cursor].index] = averageRank;
+    }
+    position = end;
+  }
+  return ranks;
+}
+
+function normalCdf(z: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp((-z * z) / 2);
+  const probability =
+    d
+    * t
+    * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - probability : probability;
+}
+
+/** Two-sided Mann–Whitney U (normal approximation, tie-averaged ranks). */
+export function mannWhitneyTwoSidedP(sampleA: readonly number[], sampleB: readonly number[]): number | null {
+  const n1 = sampleA.length;
+  const n2 = sampleB.length;
+  if (n1 === 0 || n2 === 0) return null;
+  const combined = [...sampleA, ...sampleB];
+  const ranks = rankWithTies(combined);
+  let rankSumA = 0;
+  for (let index = 0; index < n1; index += 1) rankSumA += ranks[index];
+  const u1 = rankSumA - (n1 * (n1 + 1)) / 2;
+  const u = Math.min(u1, n1 * n2 - u1);
+  const meanU = (n1 * n2) / 2;
+  const sigmaU = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
+  if (sigmaU === 0) return 1;
+  const z = (u - meanU) / sigmaU;
+  const p = 2 * (1 - normalCdf(Math.abs(z)));
+  return Math.min(1, Math.max(0, p));
+}
+
+export const SEARCH_PERF_ANOMALY_P = 0.05;
+export const SEARCH_PERF_MIN_COUNT_EVENTS = 5;
+export const SEARCH_PERF_MIN_BASELINE_DAYS = 10;
+export const SEARCH_PERF_MIN_HIT_RETURN_DAYS = 3;
+export const SEARCH_PERF_MIN_CONTROL_RETURN_DAYS = 10;
+
+export function searchPerformanceAnomalies(summary: SearchPerformanceSummary): {
+  count: boolean;
+  return: boolean;
+} {
+  const classified = summary.nPos + summary.nNeg + summary.nZero;
+  const count =
+    classified >= SEARCH_PERF_MIN_COUNT_EVENTS
+    && summary.baselineDays >= SEARCH_PERF_MIN_BASELINE_DAYS
+    && summary.pBinomTwoSided <= SEARCH_PERF_ANOMALY_P;
+  const returnAnomaly =
+    summary.pReturnTwoSided !== null
+    && summary.hitReturnDays >= SEARCH_PERF_MIN_HIT_RETURN_DAYS
+    && summary.controlReturnDays >= SEARCH_PERF_MIN_CONTROL_RETURN_DAYS
+    && summary.pReturnTwoSided <= SEARCH_PERF_ANOMALY_P;
+  return { count, return: returnAnomaly };
 }
 
 export function buildRetCc0Lookup(closes: Record<string, number> | null | undefined): SearchPerformanceLookup {
   const emptyBaseline = () => ({ rate: 0.5, days: 0 });
+  const emptyMean = () => ({ mean: 0, days: 0 });
   if (!closes) {
-    return { retCc0: () => null, baselinePosRateBetween: emptyBaseline };
+    return {
+      retCc0: () => null,
+      baselinePosRateBetween: emptyBaseline,
+      baselineMeanReturnBetween: emptyMean,
+      controlReturnsBetween: () => [],
+    };
   }
   const dates = Object.keys(closes).filter((key) => ISO_DATE.test(key)).sort();
   const retByDate = new Map<string, number>();
@@ -205,6 +333,12 @@ export function buildRetCc0Lookup(closes: Record<string, number> | null | undefi
   return {
     retCc0: (isoDate: string) => retByDate.get(isoDate) ?? null,
     baselinePosRateBetween: (fromIso, toIso) => baselinePosRateBetween(retByDate, fromIso, toIso),
+    baselineMeanReturnBetween: (fromIso, toIso) => {
+      const values = returnsInRange(retByDate, fromIso, toIso);
+      return { mean: meanReturn(values), days: values.length };
+    },
+    controlReturnsBetween: (fromIso, toIso, hitIsoDates) =>
+      controlReturnsInRange(retByDate, fromIso, toIso, hitIsoDates),
   };
 }
 
@@ -249,6 +383,20 @@ export function summarizeSearchPerformance(
   const posSharePct = classified > 0 ? (100 * nPos) / classified : 0;
   const negSharePct = classified > 0 ? (100 * nNeg) / classified : 0;
 
+  const hitReturnByDay = new Map<string, number>();
+  for (const row of rows) {
+    const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
+    if (!iso) continue;
+    const ret = lookup.retCc0(iso);
+    if (ret !== null) hitReturnByDay.set(iso, ret);
+  }
+  const hitReturnDaysList = [...hitReturnByDay.values()];
+  const hitIsoDates = new Set(hitReturnByDay.keys());
+  const { mean: baselineMeanReturn } = lookup.baselineMeanReturnBetween(baselineFromIso, baselineToIso);
+  const hitMeanReturn = meanReturn(hitReturnDaysList);
+  const excessMean = hitMeanReturn - baselineMeanReturn;
+  const controlReturns = lookup.controlReturnsBetween(baselineFromIso, baselineToIso, hitIsoDates);
+
   return {
     eventsWithReturn: n,
     nPos,
@@ -261,17 +409,35 @@ export function summarizeSearchPerformance(
     pBinomTwoSided: binomExactTwoSided(nPos, classified, baselinePos),
     baselinePosPct: baselinePos * 100,
     baselineDays,
+    hitReturnDays: hitReturnDaysList.length,
+    hitMeanReturn,
+    baselineMeanReturn,
+    excessMeanPct: excessMean * 100,
+    pReturnTwoSided: mannWhitneyTwoSidedP(hitReturnDaysList, controlReturns),
+    controlReturnDays: controlReturns.length,
   };
+}
+
+export function formatMeanReturnPct(meanLogReturn: number): string {
+  const pct = meanLogReturn * 100;
+  const sign = pct > 0 ? "+" : "";
+  return `${sign}${pct.toFixed(2)}%`;
 }
 
 export function formatSearchPerformanceSummaryLine(summary: SearchPerformanceSummary): string {
   const posSum = summary.sumPosPct >= 0 ? `+${summary.sumPosPct.toFixed(1)}` : summary.sumPosPct.toFixed(1);
   const negSum = summary.sumNegPct.toFixed(1);
+  const excessSign = summary.excessMeanPct > 0 ? "+" : "";
+  const returnBlock =
+    `μ ${formatMeanReturnPct(summary.hitMeanReturn)} vs ${formatMeanReturnPct(summary.baselineMeanReturn)}`
+    + ` · Δ ${excessSign}${summary.excessMeanPct.toFixed(2)}%`
+    + (summary.pReturnTwoSided !== null ? ` · pμ=${summary.pReturnTwoSided.toFixed(3)}` : "");
   return (
     `${summary.nPos}+/${summary.nNeg}−`
     + ` · ${summary.posSharePct.toFixed(1)}/${summary.negSharePct.toFixed(1)}%`
     + ` · ∑ ${posSum}/${negSum}%`
     + ` · p=${summary.pBinomTwoSided.toFixed(3)}`
+    + ` · ${returnBlock}`
   );
 }
 

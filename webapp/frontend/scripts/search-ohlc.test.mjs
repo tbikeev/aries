@@ -15,6 +15,8 @@ const {
   listingIsoDateFromRow,
   formatPerformancePct,
   summarizeSearchPerformance,
+  searchPerformanceAnomalies,
+  mannWhitneyTwoSidedP,
   binomExactTwoSided,
   ohlcCloseDateSpan,
 } = await import(`data:text/javascript;base64,${Buffer.from(js).toString("base64")}`);
@@ -77,6 +79,39 @@ test("summarizeSearchPerformance tallies visible rows", () => {
   assert.equal(summary?.nPos, 1);
   assert.equal(summary?.nNeg, 1);
   assert.equal(summary?.eventsWithReturn, 2);
+  assert.equal(summary?.hitReturnDays, 2);
+  assert.equal(summary?.controlReturnDays, 0);
+  assert.equal(summary?.pReturnTwoSided, null);
+});
+
+test("searchPerformanceAnomalies flags return excess when groups diverge", () => {
+  const closes = { "2024-01-01": 100 };
+  for (let day = 2; day <= 14; day += 1) {
+    closes[`2024-01-${String(day).padStart(2, "0")}`] = 100 + day;
+  }
+  closes["2024-01-15"] = 150;
+  closes["2024-01-16"] = 200;
+  closes["2024-01-17"] = 260;
+  const lookup = buildRetCc0Lookup(closes);
+  const rows = [
+    { displayDatetime: "2024-01-15T12:00:00Z", displayDate: "2024-01-15" },
+    { displayDatetime: "2024-01-16T12:00:00Z", displayDate: "2024-01-16" },
+    { displayDatetime: "2024-01-17T12:00:00Z", displayDate: "2024-01-17" },
+  ];
+  const summary = summarizeSearchPerformance(rows, lookup, "2024-01-01", "2024-01-17");
+  assert.ok(summary);
+  assert.ok(summary.excessMeanPct > 0);
+  assert.ok(summary.pReturnTwoSided !== null);
+  assert.ok(summary.pReturnTwoSided < 0.05);
+  assert.equal(searchPerformanceAnomalies(summary).return, true);
+});
+
+test("mannWhitneyTwoSidedP separates shifted samples", () => {
+  const low = Array.from({ length: 20 }, (_, index) => index * 0.001);
+  const high = Array.from({ length: 20 }, (_, index) => 0.05 + index * 0.001);
+  const p = mannWhitneyTwoSidedP(high, low);
+  assert.ok(p !== null);
+  assert.ok(p < 0.01);
 });
 
 test("binomExactTwoSided is symmetric at p0=0.5", () => {

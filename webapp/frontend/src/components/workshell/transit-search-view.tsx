@@ -89,12 +89,15 @@ import { radixPaneOwner } from "@/lib/radix-pane-state";
 import {
   buildRetCc0Lookup,
   formatPerformancePct,
+  formatMeanReturnPct,
   formatSearchPerformanceSummaryLine,
   listingIsoDateFromRow,
   ohlcCloseDateSpan,
   parseSearchOhlcFile,
+  searchPerformanceAnomalies,
   summarizeSearchPerformance,
   type SearchOhlcSeries,
+  type SearchPerformanceSummary,
   type SearchPerformanceLookup,
 } from "@/lib/search-ohlc";
 import { cn } from "@/lib/utils";
@@ -1631,23 +1634,13 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const projectedSummary = sortedRows.length === rows.length
     ? summary
     : t("search.resultCount").replace("{count}", String(sortedRows.length));
-  const performanceSummaryLine = ohlcSeries
-    ? (() => {
-        const stats = summarizeSearchPerformance(
-          sortedRows,
-          performanceLookup,
-          form.fromDate,
-          form.toDate,
-        );
-        return stats ? formatSearchPerformanceSummaryLine(stats) : "";
-      })()
-    : "";
-  const displayedSummary = [
-    rangeStatus ? `${projectedSummary} · ${rangeStatus}` : projectedSummary,
-    performanceSummaryLine ? `${t("search.performanceHeader")} ${performanceSummaryLine}` : "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const performanceSummary = ohlcSeries
+    ? summarizeSearchPerformance(sortedRows, performanceLookup, form.fromDate, form.toDate)
+    : null;
+  const resultStatusLine = rangeStatus ? `${projectedSummary} · ${rangeStatus}` : projectedSummary;
+  const loadingSummaryLabel = performanceSummary
+    ? `${resultStatusLine} · ${t("search.performanceHeader")} ${formatSearchPerformanceSummaryLine(performanceSummary)}`
+    : resultStatusLine;
   const paneSeedGlyph = props.mode === "context" ? (props.glyph ?? "") : "";
   const paneSeedLabel = props.mode === "context" ? (props.label ?? "") : "";
   const seedGlyph = catalog.initialSignificatorGlyph || paneSeedGlyph;
@@ -1814,8 +1807,25 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                 {seedLabel ? <span className="max-w-20 truncate">{seedLabel}</span> : null}
               </span>
             ) : null}
-            <span className={cn("min-w-0", performanceSummaryLine ? "whitespace-normal break-words" : "shrink-0 whitespace-nowrap")}>
-              {searchLoading ? <LoadingLabel label={rows.length > 0 ? displayedSummary : t("search.computing")} /> : displayedSummary}
+            <span
+              className={cn(
+                "min-w-0",
+                performanceSummary ? "whitespace-normal break-words" : "shrink-0 whitespace-nowrap",
+              )}
+            >
+              {searchLoading ? (
+                <LoadingLabel label={rows.length > 0 ? loadingSummaryLabel : t("search.computing")} />
+              ) : (
+                <>
+                  {resultStatusLine}
+                  {performanceSummary ? (
+                    <>
+                      {" · "}
+                      <SearchPerformanceHeaderStats summary={performanceSummary} t={t} />
+                    </>
+                  ) : null}
+                </>
+              )}
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-[var(--aries-control-gap-compact)]">
@@ -2583,6 +2593,75 @@ function SelectionGroup({
         ))}
       </div>
     </section>
+  );
+}
+
+function SearchPerformanceHeaderStats({
+  summary,
+  t,
+}: {
+  summary: SearchPerformanceSummary;
+  t: (key: string, ...args: unknown[]) => string;
+}) {
+  const anomalies = searchPerformanceAnomalies(summary);
+  const posSum = summary.sumPosPct >= 0 ? `+${summary.sumPosPct.toFixed(1)}` : summary.sumPosPct.toFixed(1);
+  const negSum = summary.sumNegPct.toFixed(1);
+  const excessSign = summary.excessMeanPct > 0 ? "+" : "";
+  const excessPositive = summary.excessMeanPct > 0;
+  const excessNegative = summary.excessMeanPct < 0;
+
+  return (
+    <span className="inline text-foreground">
+      <span className="font-medium">{t("search.performanceHeader")}</span>
+      {" "}
+      <span
+        className={cn(
+          "tabular-nums",
+          anomalies.count
+            && "rounded-[var(--aries-radius-control-compact)] bg-amber-500/15 px-1 py-px font-semibold text-amber-950 ring-1 ring-amber-500/45 dark:text-amber-100",
+        )}
+        title={anomalies.count ? t("search.performanceCountAnomalyTooltip") : undefined}
+      >
+        {summary.nPos}+/{summary.nNeg}−
+        {" · "}
+        {summary.posSharePct.toFixed(1)}/{summary.negSharePct.toFixed(1)}%
+        {" · "}
+        ∑ {posSum}/{negSum}%
+        {" · "}
+        p={summary.pBinomTwoSided.toFixed(3)}
+      </span>
+      {" · "}
+      <span
+        className={cn(
+          "tabular-nums",
+          anomalies.return
+            && excessPositive
+            && "rounded-[var(--aries-radius-control-compact)] bg-emerald-500/20 px-1 py-px font-semibold text-emerald-900 ring-1 ring-emerald-500/45 dark:text-emerald-200",
+          anomalies.return
+            && excessNegative
+            && "rounded-[var(--aries-radius-control-compact)] bg-red-500/20 px-1 py-px font-semibold text-red-900 ring-1 ring-red-500/45 dark:text-red-200",
+          anomalies.return
+            && !excessPositive
+            && !excessNegative
+            && "rounded-[var(--aries-radius-control-compact)] bg-amber-500/15 px-1 py-px font-semibold text-amber-950 ring-1 ring-amber-500/45 dark:text-amber-100",
+        )}
+        title={t("search.performanceReturnTooltip")}
+      >
+        μ {formatMeanReturnPct(summary.hitMeanReturn)} vs {formatMeanReturnPct(summary.baselineMeanReturn)}
+        {" · "}
+        Δ {excessSign}
+        {summary.excessMeanPct.toFixed(2)}%
+        {summary.pReturnTwoSided !== null ? (
+          <>
+            {" · "}
+            pμ={summary.pReturnTwoSided.toFixed(3)}
+          </>
+        ) : null}
+        {anomalies.return ? (
+          <span className="sr-only">{t("search.performanceReturnAnomalyTooltip")}</span>
+        ) : null}
+      </span>
+    </span>
   );
 }
 
