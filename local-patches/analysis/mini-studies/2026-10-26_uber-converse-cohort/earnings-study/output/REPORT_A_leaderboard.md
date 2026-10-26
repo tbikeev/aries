@@ -1,6 +1,20 @@
 # Report A — Earnings reaction leaderboard
 
-## Top negative (close-to-close %)
+Valid reactions: **26**. Top-10 + top-10 extremes overlap **20** events (76.9% of sample) — use top-3 tables below for sharper descriptives.
+
+## Top 3 negative (declared selective threshold)
+|   rank | report_date   | reaction_session   |   r_cc_pct |
+|-------:|:--------------|:-------------------|-----------:|
+|      1 | 2019-11-04    | 2019-11-05         |   -9.84556 |
+|      2 | 2024-10-31    | 2024-10-31         |   -9.2912  |
+|      3 | 2021-05-05    | 2021-05-06         |   -8.85111 |
+## Top 3 positive
+|   rank | report_date   | reaction_session   |   r_cc_pct |
+|-------:|:--------------|:-------------------|-----------:|
+|      1 | 2022-08-02    | 2022-08-02         |    18.9024 |
+|      2 | 2022-11-01    | 2022-11-01         |    11.9684 |
+|      3 | 2023-05-02    | 2023-05-02         |    11.5455 |
+## Top 10 negative (close-to-close %)
 |   rank | report_date   | reaction_session   |   r_cc_pct |   r_gap_pct |   r_2d_pct |   r_5d_pct |   eps_surprise_pct |
 |-------:|:--------------|:-------------------|-----------:|------------:|-----------:|-----------:|-------------------:|
 |      1 | 2019-11-04    | 2019-11-05         |   -9.84556 |    -6.27413 | -13.3205   |  -12.677   |            16.0494 |

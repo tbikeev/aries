@@ -87,6 +87,49 @@ def test_converse_timestamp_ft_shape() -> None:
     assert utc[0] == 2012
 
 
+def test_consecutive_earnings_runs() -> None:
+    from temporal_persistence import consecutive_earnings_runs
+
+    chron = ["2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01", "2021-01-01"]
+    runs = consecutive_earnings_runs(chron, {"2020-04-01", "2020-07-01", "2021-01-01"})
+    assert len(runs) == 2
+    assert runs[0][2] == 2
+    assert runs[1][2] == 1
+
+
+def test_permutation_reproducible() -> None:
+    from robustness_checks import merge_features_outcomes, permutation_correlation_test
+    from feature_reduction import build_event_feature_matrix
+
+    earnings = load_earnings_csv(resolve_earnings_csv())
+    ohlc = load_ohlc_csv(resolve_ohlc_csv())
+    reactions = build_reactions(earnings, ohlc)
+    react_df = reactions_to_dataframe(reactions)
+    # minimal aspects not needed — use feature matrix from empty skip
+    from earnings_converse import extract_converse_features, event_jd_from_datetime
+    import pandas as pd
+
+    parts = []
+    for r in reactions:
+        if r.excluded or r.event_datetime_utc is None:
+            continue
+        ejd = event_jd_from_datetime(r.event_datetime_utc)
+        for cohort in ("FT", "INC", "DK"):
+            block = extract_converse_features(
+                cohort,
+                ejd,
+                report_date=str(r.report_date),
+                reaction_session=str(r.reaction_session),
+            )
+            parts.append(pd.DataFrame(block["aspect_rows"]))
+    aspects_df = pd.concat(parts, ignore_index=True)
+    feat = build_event_feature_matrix(aspects_df)
+    merged = merge_features_outcomes(feat, react_df[~react_df["excluded"]])
+    a = permutation_correlation_test(merged, "DK_sq_count", n_perm=100, seed=7)
+    b = permutation_correlation_test(merged, "DK_sq_count", n_perm=100, seed=7)
+    assert a["permutation_p_two_sided"] == b["permutation_p_two_sided"]
+
+
 def test_feature_reduction_merges_report_dates() -> None:
     from feature_reduction import build_event_feature_matrix, rank_feature_groups
     from earnings_converse import extract_converse_features, event_jd_from_datetime

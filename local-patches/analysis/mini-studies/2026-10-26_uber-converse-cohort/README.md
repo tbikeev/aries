@@ -158,6 +158,8 @@ Run:
 # or: .venv/bin/python earnings_pipeline.py
 ```
 
-Outputs: `earnings-study/output/` — Reports A–E, aspect CSVs, walk-forward baseline JSON.
+Outputs: `earnings-study/output/` — Reports A–F, aspect CSVs, robustness/persistence CSVs, walk-forward JSON.
+
+Report F covers leave-one-out, orb sensitivity, permutation nulls, and **earnings-quarter persistence runs** for slow movers (see `aspect_persistence_*.csv`). Top-10×2 extremes overlap ~77% of events; use `leaderboard_top3_*.csv` for sharper descriptives.
 
 Converse event time: **09:30 America/New_York** on the mapped NYSE reaction session (not press-release time). Pre-IPO row `2019-02-15` excluded from market analysis.

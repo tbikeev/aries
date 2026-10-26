@@ -8,7 +8,124 @@
   "feasibility": {
     "valid_earnings_reactions": 26,
     "extreme_discovery_sample": 20,
+    "extreme_share_of_valid": 0.7692,
     "high_dimensional_risk": true,
     "recommendation": "Use 20 extremes for hypothesis generation only; evaluate patterns on all 26 reactions with chronological splits and permutation tests before any predictive claim."
+  },
+  "robustness": {
+    "loo": [
+      {
+        "feature": "DK_sq_count",
+        "corr_full": -0.5189825030597046,
+        "corr_loo_min": -0.6017543234077799,
+        "corr_loo_max": -0.46555955730422854,
+        "sign_stable": true,
+        "max_abs_delta": 0.08277182034807529
+      },
+      {
+        "feature": "tight_aspect_count",
+        "corr_full": -0.38465460595485124,
+        "corr_loo_min": -0.4468463056298756,
+        "corr_loo_max": -0.328149707787699,
+        "sign_stable": true,
+        "max_abs_delta": 0.06219169967502436
+      },
+      {
+        "feature": "FT_sq_count",
+        "corr_full": 0.17863425046767006,
+        "corr_loo_min": 0.13336599804204136,
+        "corr_loo_max": 0.2637077774864794,
+        "sign_stable": true,
+        "max_abs_delta": 0.08507352701880933
+      },
+      {
+        "feature": "INC_sq_count",
+        "corr_full": 0.09436723103884528,
+        "corr_loo_min": 0.03073316801625547,
+        "corr_loo_max": 0.18597642503470654,
+        "sign_stable": true,
+        "max_abs_delta": 0.09160919399586126
+      }
+    ],
+    "permutation": [
+      {
+        "feature": "DK_sq_count",
+        "target": "r_cc_pct",
+        "n": 26,
+        "observed_corr": -0.5189825030597048,
+        "permutation_p_two_sided": 0.0074,
+        "n_perm": 4999,
+        "seed": 42
+      },
+      {
+        "feature": "DK_sq_count",
+        "target": "abs_r_cc_pct",
+        "n": 26,
+        "observed_corr": -0.11786383550265124,
+        "permutation_p_two_sided": 0.565,
+        "n_perm": 4999,
+        "seed": 42
+      },
+      {
+        "feature": "tight_aspect_count",
+        "target": "r_cc_pct",
+        "n": 26,
+        "observed_corr": -0.3846546059548513,
+        "permutation_p_two_sided": 0.0586,
+        "n_perm": 4999,
+        "seed": 42
+      },
+      {
+        "feature": "tight_aspect_count",
+        "target": "abs_r_cc_pct",
+        "n": 26,
+        "observed_corr": 0.08516551448630416,
+        "permutation_p_two_sided": 0.6852,
+        "n_perm": 4999,
+        "seed": 42
+      }
+    ]
+  },
+  "walk_forward_models": {
+    "model_a_sq_counts": {
+      "model": "model_a_sq_counts",
+      "features": [
+        "FT_sq_count",
+        "INC_sq_count",
+        "DK_sq_count"
+      ],
+      "n_events": 26,
+      "n_folds": 18,
+      "direction_accuracy": 0.7222222222222222,
+      "mae_abs_r_cc": 3.4627342397675993,
+      "mae_baseline_predict_train_mean_abs": 6.71724248846365,
+      "note": "Exploratory on same sample if features were selected after viewing outcomes."
+    },
+    "model_b_density_dk_sq": {
+      "model": "model_b_density_dk_sq",
+      "features": [
+        "tight_aspect_count",
+        "DK_sq_count"
+      ],
+      "n_events": 26,
+      "n_folds": 18,
+      "direction_accuracy": 0.8333333333333334,
+      "mae_abs_r_cc": 3.539465713200059,
+      "mae_baseline_predict_train_mean_abs": 6.71724248846365,
+      "note": "Exploratory on same sample if features were selected after viewing outcomes."
+    },
+    "model_c_preselected_sigs": {
+      "model": "model_c_preselected_sigs",
+      "features": [
+        "preselected_sig_count",
+        "preselected_sig_orb_sum"
+      ],
+      "n_events": 26,
+      "n_folds": 18,
+      "direction_accuracy": 0.7222222222222222,
+      "mae_abs_r_cc": 3.654316617260278,
+      "mae_baseline_predict_train_mean_abs": 6.71724248846365,
+      "note": "Exploratory on same sample if features were selected after viewing outcomes."
+    }
   }
 }

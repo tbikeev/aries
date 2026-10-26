@@ -6,9 +6,7 @@ from collections import Counter, defaultdict
 
 import pandas as pd
 
-
-def _signature(row: pd.Series) -> str:
-    return f"{row['radix_key']}|{row['from_body']}|{row['to_body']}|{row['best_aspect']}"
+from aspect_signatures import aspect_signature as _signature
 
 
 def mine_configurations(
