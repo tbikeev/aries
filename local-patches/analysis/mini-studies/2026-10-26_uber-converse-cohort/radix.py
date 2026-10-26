@@ -20,6 +20,8 @@ class ChartSpec:
     latitude_deg: float
     longitude_deg: float
     notes: str = ""
+    utc_offset_hours: float | None = None
+    birth_time_uncertain: bool = False
 
     @property
     def birth_jd(self) -> float:
@@ -74,7 +76,13 @@ RADIX_COHORT: dict[str, ChartSpec] = {
         second=0,
         latitude_deg=35.0 + 41 / 60.0,
         longitude_deg=51.0 + 25 / 60.0,
-        notes="1969-05-28 12:00 +03:00 → 09:00 UTC; noon may be conventional — see README",
+        notes=(
+            "1969-05-28 12:00 local Tehran; reference offset +03:00 → 09:00 UTC. "
+            "Birth time unknown (noon convention). Zet may use +03:30 (08:30 UTC) — "
+            "document only; do not optimize to match Zet. Exclude Asc/MC/houses from DK benchmarks."
+        ),
+        utc_offset_hours=3.0,
+        birth_time_uncertain=True,
     ),
 }
 

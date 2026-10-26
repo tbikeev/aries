@@ -17,6 +17,10 @@ if _swep not in sys.path:
 
 import astrology  # noqa: E402
 
+_EPHE_DIR = os.path.join(_ARIES_ROOT, "SWEP", "Ephem")
+if os.path.isdir(_EPHE_DIR):
+    astrology.swe_set_ephe_path(_EPHE_DIR)
+
 CALC_FLAG = astrology.SEFLG_SWIEPH | astrology.SEFLG_SPEED
 EQU_FLAG = (CALC_FLAG & ~astrology.SEFLG_SIDEREAL) | astrology.SEFLG_EQUATORIAL
 

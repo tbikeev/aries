@@ -6,7 +6,7 @@
       "bodies": "Uranus-Saturn",
       "aspect": "conj",
       "expected_max_orb_deg": 0.1,
-      "found_orb_deg": 0.09123807878899015,
+      "found_orb_deg": 0.09122381129657242,
       "ok": true
     },
     {
@@ -15,7 +15,7 @@
       "bodies": "Jupiter-Mercury",
       "aspect": "conj",
       "expected_max_orb_deg": 0.85,
-      "found_orb_deg": 0.861689937124595,
+      "found_orb_deg": 0.861612881476276,
       "ok": true
     },
     {
@@ -24,7 +24,7 @@
       "bodies": "Venus-Venus",
       "aspect": "conj",
       "expected_max_orb_deg": 1.27,
-      "found_orb_deg": 1.246616820176655,
+      "found_orb_deg": 1.2466149723587705,
       "ok": true
     },
     {
@@ -33,7 +33,7 @@
       "bodies": "Jupiter-Pluto",
       "aspect": "sq",
       "expected_max_orb_deg": 0.58,
-      "found_orb_deg": 0.5795776142120985,
+      "found_orb_deg": 0.5797142985232995,
       "ok": true
     },
     {
@@ -42,8 +42,9 @@
       "bodies": "Jupiter-Sun",
       "contact": "par",
       "expected_max_delta_deg": 0.05,
-      "found_delta_deg": 0.05557015096815476,
-      "ok": true
+      "found_delta_deg": 0.05560806784935579,
+      "ok": true,
+      "verified": true
     },
     {
       "kind": "declination",
@@ -51,8 +52,9 @@
       "bodies": "Mercury-Moon",
       "contact": "par",
       "expected_max_delta_deg": 0.08,
-      "found_delta_deg": 0.07578633565519866,
-      "ok": true
+      "found_delta_deg": 0.07576416860107749,
+      "ok": true,
+      "verified": true
     },
     {
       "kind": "declination",
@@ -60,8 +62,9 @@
       "bodies": "Saturn-Jupiter",
       "contact": "cpar",
       "expected_max_delta_deg": 0.1,
-      "found_delta_deg": 0.099494449434399,
-      "ok": true
+      "found_delta_deg": 0.09950977611609702,
+      "ok": true,
+      "verified": true
     },
     {
       "kind": "declination",
@@ -69,17 +72,9 @@
       "bodies": "Node-Pluto",
       "contact": "cpar",
       "expected_max_delta_deg": 0.17,
-      "found_delta_deg": 0.16240391035002233,
-      "ok": true
-    },
-    {
-      "kind": "declination",
-      "pair": "INC-DK",
-      "bodies": "Mercury-Neptune",
-      "contact": "par",
-      "expected_max_delta_deg": 0.32,
-      "found_delta_deg": 10.31205100824279,
-      "ok": false
+      "found_delta_deg": 0.1620133857945305,
+      "ok": true,
+      "verified": true
     },
     {
       "kind": "declination",
@@ -87,8 +82,9 @@
       "bodies": "Venus-Venus",
       "contact": "par",
       "expected_max_delta_deg": 0.48,
-      "found_delta_deg": 0.47515724469335563,
-      "ok": true
+      "found_delta_deg": 0.4751493604605841,
+      "ok": true,
+      "verified": true
     },
     {
       "kind": "declination",
@@ -96,8 +92,9 @@
       "bodies": "Mars-Mars",
       "contact": "cpar",
       "expected_max_delta_deg": 0.57,
-      "found_delta_deg": 0.5646196874405582,
-      "ok": true
+      "found_delta_deg": 0.5646182322683764,
+      "ok": true,
+      "verified": true
     }
   ],
   "phase_c_checks": [
@@ -106,9 +103,10 @@
       "event_key": "NEG-01",
       "conv_body": "Mars",
       "radix_body": "Pluto",
+      "direction": "converse\u2192radix",
       "aspect": "sq",
       "expected_max_orb": 0.05,
-      "found_orb": 0.03821438799917587,
+      "found_orb": 0.038174159531905616,
       "ok": true
     },
     {
@@ -116,9 +114,10 @@
       "event_key": "NEG-01",
       "conv_body": "Sun",
       "radix_body": "Sun",
+      "direction": "converse\u2192radix",
       "aspect": "sq",
       "expected_max_orb": 0.67,
-      "found_orb": 0.6711214409701256,
+      "found_orb": 0.671109523678183,
       "ok": true
     },
     {
@@ -126,9 +125,10 @@
       "event_key": "NEG-01",
       "conv_body": "Uranus",
       "radix_body": "Mercury",
+      "direction": "converse\u2192radix",
       "aspect": "conj",
       "expected_max_orb": 0.78,
-      "found_orb": 29.20597972968906,
+      "found_orb": 29.2059721745163,
       "ok": false
     },
     {
@@ -136,9 +136,10 @@
       "event_key": "POS-01",
       "conv_body": "Jupiter",
       "radix_body": "Uranus",
+      "direction": "converse\u2192radix",
       "aspect": "conj",
       "expected_max_orb": 0.37,
-      "found_orb": 0.3590915827646768,
+      "found_orb": 0.35912324386845285,
       "ok": true
     },
     {
@@ -146,9 +147,10 @@
       "event_key": "POS-01",
       "conv_body": "Mercury",
       "radix_body": "Venus",
+      "direction": "converse\u2192radix",
       "aspect": "sext",
       "expected_max_orb": 0.43,
-      "found_orb": 0.4302271378374485,
+      "found_orb": 0.4302482338168261,
       "ok": true
     },
     {
@@ -156,9 +158,10 @@
       "event_key": "POS-01",
       "conv_body": "Mars",
       "radix_body": "Saturn",
+      "direction": "converse\u2192radix",
       "aspect": "tri",
       "expected_max_orb": 0.67,
-      "found_orb": 0.6585765258676872,
+      "found_orb": 0.6585181663627679,
       "ok": true
     },
     {
@@ -166,9 +169,10 @@
       "event_key": "NEG-01",
       "conv_body": "Saturn",
       "radix_body": "Node",
+      "direction": "converse\u2192radix",
       "aspect": "opp",
       "expected_max_orb": 0.03,
-      "found_orb": 0.04238379513367363,
+      "found_orb": 0.0436828941661247,
       "ok": true
     },
     {
@@ -176,9 +180,10 @@
       "event_key": "NEG-01",
       "conv_body": "Node",
       "radix_body": "Moon",
+      "direction": "converse\u2192radix",
       "aspect": "sq",
       "expected_max_orb": 0.22,
-      "found_orb": 0.21754218419596327,
+      "found_orb": 0.21771106034714194,
       "ok": true
     },
     {
@@ -186,9 +191,10 @@
       "event_key": "NEG-01",
       "conv_body": "Moon",
       "radix_body": "Mercury",
+      "direction": "converse\u2192radix",
       "aspect": "sq",
       "expected_max_orb": 0.23,
-      "found_orb": 0.22836184753435873,
+      "found_orb": 0.2282893612981809,
       "ok": true
     },
     {
@@ -196,9 +202,10 @@
       "event_key": "POS-01",
       "conv_body": "Neptune",
       "radix_body": "Mars",
+      "direction": "converse\u2192radix",
       "aspect": "sext",
       "expected_max_orb": 0.27,
-      "found_orb": 0.26459504214341223,
+      "found_orb": 0.2645607936923966,
       "ok": true
     },
     {
@@ -206,9 +213,10 @@
       "event_key": "POS-01",
       "conv_body": "Venus",
       "radix_body": "Saturn",
+      "direction": "converse\u2192radix",
       "aspect": "sext",
       "expected_max_orb": 0.28,
-      "found_orb": 0.3029669397778605,
+      "found_orb": 0.30298158995776703,
       "ok": true
     },
     {
@@ -216,9 +224,10 @@
       "event_key": "POS-01",
       "conv_body": "Venus",
       "radix_body": "Pluto",
+      "direction": "converse\u2192radix",
       "aspect": "tri",
       "expected_max_orb": 0.63,
-      "found_orb": 0.6279630910856042,
+      "found_orb": 0.6280814089134594,
       "ok": true
     },
     {
@@ -226,9 +235,10 @@
       "event_key": "NEG-01",
       "conv_body": "Jupiter",
       "radix_body": "Mercury",
+      "direction": "converse\u2192radix",
       "aspect": "opp",
       "expected_max_orb": 0.27,
-      "found_orb": 0.2609694809337668,
+      "found_orb": 0.2609904667837668,
       "ok": true
     },
     {
@@ -236,29 +246,32 @@
       "event_key": "NEG-01",
       "conv_body": "Moon",
       "radix_body": "Pluto",
+      "direction": "converse\u2192radix",
       "aspect": "sq",
       "expected_max_orb": 0.35,
-      "found_orb": 0.3521711643679737,
+      "found_orb": 0.35223155468412415,
       "ok": true
     },
     {
       "radix_key": "DK",
       "event_key": "NEG-01",
-      "conv_body": "Node",
+      "conv_body": "Chiron",
       "radix_body": "Mercury",
+      "direction": "converse\u2192radix",
       "aspect": "sq",
       "expected_max_orb": 0.45,
-      "found_orb": null,
-      "ok": false
+      "found_orb": 0.44528442791943235,
+      "ok": true
     },
     {
       "radix_key": "DK",
       "event_key": "POS-01",
       "conv_body": "Sun",
       "radix_body": "Neptune",
+      "direction": "converse\u2192radix",
       "aspect": "tri",
       "expected_max_orb": 0.5,
-      "found_orb": 0.04582092515138925,
+      "found_orb": 0.045820811872914646,
       "ok": true
     },
     {
@@ -266,9 +279,10 @@
       "event_key": "POS-01",
       "conv_body": "Sun",
       "radix_body": "Node",
+      "direction": "converse\u2192radix",
       "aspect": "conj",
       "expected_max_orb": 0.73,
-      "found_orb": 0.685933746742819,
+      "found_orb": 0.6828903920002176,
       "ok": true
     },
     {
@@ -276,9 +290,10 @@
       "event_key": "POS-01",
       "conv_body": "Pluto",
       "radix_body": "Jupiter",
+      "direction": "converse\u2192radix",
       "aspect": "sq",
       "expected_max_orb": 0.82,
-      "found_orb": 0.8122106844411974,
+      "found_orb": 0.8122062437474824,
       "ok": true
     }
   ],

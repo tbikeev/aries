@@ -31,6 +31,33 @@ This study uses a **headless** copy in `converse.py` with identical JD↔UTC rou
 
 Optional (not in 11-point benchmark): Chiron, mean Lilith (`SE_MEAN_APOG`), Placidus Asc/MC at radix/converse JD.
 
+## Validation layers (keep separate)
+
+1. **Position match** — Swiss Ephemeris vs Zet Nat/Mir columns at documented UTC.
+2. **Directed aspect extraction** — `converse_body → radix_body` with `orb_for_named_aspect` (never swap bodies; never use “closest aspect” alone for regression).
+3. **Manual aspect lists** — Thomas’s named contacts and ≤1° counts are transcription aids, not ground truth.
+
+Output: `converse_radix_directed_aspect_matrix.csv` (all 11×11 pairs × five orbs).
+
+## Phase C reconciliation notes (2026-10-26)
+
+### FT/NEG — converse Uranus ⊗ radix Mercury (~0°47′)
+
+- **Directed check:** `directed_converse_radix_orb(FT, NEG, Uranus, Mercury, conj)` using Swiss at validated converse UTC.
+- Radix Mercury matches Zet (7°23′20″ Taurus). Converse Uranus from Swiss is **~8°10′ Aries** (2012 ephemeris), not Taurus — conjunction to Mercury is **~29°** in absolute longitude.
+- Zet `ft-neg.png` labels Mir Uranus as **8°10′58″ Taurus**; that would be **~38°** absolute and would yield ~0.47° to Mercury. That sign/degree combo is **inconsistent with Swiss at the same UT instant** (Uranus was in early Aries in 2012).
+- **Separate valid contact:** converse **Mercury** square radix **Uranus** orb **~0.96°** (different pair; both can exist).
+
+### DK/NEG — square to radix Mercury
+
+- Zet `DK-neg.png`: **7°58′43″ Pisces** on the Mir row is **Chiron (⚷)**, not the Node (☊ at 12°34′ Aries).
+- Directed **Chiron → Mercury** square: **~0.45°** (matches brief within tolerance).
+- Do **not** tune DK birth time to fit POS Sun; keep **12:00 Tehran +03:00 → 09:00 UTC** as reference. Optional Zet hint **+03:30 → 08:30 UTC** is documented only (`dk_sensitivity.py`).
+
+### INC Mercury ∥ DK Neptune (declination)
+
+- Manual **0°19′** parallel **not verified**; Swiss at stated radix times gives **~10.3°** separation. Removed from mandatory Phase A pass/fail. Inspect `cohort_declination_contacts.csv` for exact δ values and signs.
+
 ### Reference screenshots
 
 Source: `~/Downloads/Archive 2.zip` (extracted to `fixtures/zet_screenshots/`).

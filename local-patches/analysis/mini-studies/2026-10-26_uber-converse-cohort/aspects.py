@@ -42,6 +42,7 @@ def shortest_arc(lon_a: float, lon_b: float) -> float:
 
 
 def longitude_aspect(lon_a: float, lon_b: float) -> tuple[str | None, float]:
+    """Closest major aspect by orb (exploratory). Do not use for directed regression checks."""
     arc = shortest_arc(lon_a, lon_b)
     best_name = None
     best_orb = 999.0
@@ -51,6 +52,24 @@ def longitude_aspect(lon_a: float, lon_b: float) -> tuple[str | None, float]:
             best_orb = orb
             best_name = name
     return best_name, best_orb
+
+
+def orb_for_named_aspect(lon_from: float, lon_to: float, aspect: str) -> float:
+    """Orb for a directed pair (from → to) and a **named** aspect type only."""
+    if aspect not in MAJOR_ASPECTS:
+        raise ValueError(f"unknown aspect: {aspect}")
+    arc = shortest_arc(float(lon_from), float(lon_to))
+    return abs(arc - MAJOR_ASPECTS[aspect])
+
+
+def directed_aspect_orb(
+    positions_from: dict[str, float],
+    positions_to: dict[str, float],
+    from_body: str,
+    to_body: str,
+    aspect: str,
+) -> float:
+    return orb_for_named_aspect(positions_from[from_body], positions_to[to_body], aspect)
 
 
 def all_longitude_aspects(
@@ -79,6 +98,7 @@ def cross_aspects(
     right_prefix: str = "",
     body_names: Iterable[str] | None = None,
 ) -> list[LongitudeAspect]:
+    """All directed left→right pairs; aspect = closest major type (see ``orb_for_named_aspect`` for tests)."""
     names = list(body_names) if body_names is not None else sorted(set(positions_left) & set(positions_right))
     out: list[LongitudeAspect] = []
     for a in names:
@@ -97,6 +117,35 @@ def cross_aspects(
                 )
             )
     return out
+
+
+def full_directed_aspect_matrix(
+    positions_from: dict[str, float],
+    positions_to: dict[str, float],
+    *,
+    from_prefix: str = "conv:",
+    to_prefix: str = "radix:",
+    body_names: Iterable[str] | None = None,
+) -> list[dict]:
+    """Every directed conv→radix pair with separation and orbs for all five major aspects."""
+    names = list(body_names) if body_names is not None else sorted(set(positions_from) & set(positions_to))
+    rows: list[dict] = []
+    for a in names:
+        for b in names:
+            lon_f = positions_from[a]
+            lon_t = positions_to[b]
+            sep = shortest_arc(lon_f, lon_t)
+            row: dict = {
+                "from_body": f"{from_prefix}{a}",
+                "to_body": f"{to_prefix}{b}",
+                "separation_deg": sep,
+            }
+            for asp_name in MAJOR_ASPECTS:
+                row[f"orb_{asp_name}"] = orb_for_named_aspect(lon_f, lon_t, asp_name)
+            row["best_aspect"] = min(MAJOR_ASPECTS, key=lambda k: row[f"orb_{k}"])
+            row["best_orb"] = row[f"orb_{row['best_aspect']}"]
+            rows.append(row)
+    return rows
 
 
 def declination_contacts(

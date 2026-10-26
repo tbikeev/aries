@@ -13,10 +13,16 @@ from tests.test_converse_timestamps import (
     test_dk_neg_pos_converse_utc,
 )
 from tests.test_zet_fixtures import test_spot_checks_hardcoded, test_ft_neg_spot_longitudes
+from tests.test_directed_aspects import (
+    test_ft_neg_alternate_mercury_square_uranus_exists,
+    test_dk_neg_converse_chiron_square_radix_mercury_directed,
+)
 test_ft_neg_pos_converse_utc()
 test_inc_neg_pos_converse_utc()
 test_dk_neg_pos_converse_utc()
 test_spot_checks_hardcoded()
 test_ft_neg_spot_longitudes()
-print("OK: converse timestamps + Zet spot checks")
+test_ft_neg_alternate_mercury_square_uranus_exists()
+test_dk_neg_converse_chiron_square_radix_mercury_directed()
+print("OK: converse timestamps + Zet spot checks + directed Phase C")
 PY

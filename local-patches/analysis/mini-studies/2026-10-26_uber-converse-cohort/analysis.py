@@ -12,7 +12,9 @@ from aspects import (
     LongitudeAspect,
     cross_aspects,
     declination_contacts,
+    full_directed_aspect_matrix,
     orb_bucket,
+    orb_for_named_aspect,
 )
 from cohort import build_cohort_registry, verify_expected_registry
 from converse import mirrored_jd
@@ -48,7 +50,8 @@ PHASE_C_EXPECTED = {
     ("DK", "NEG-01"): [
         ("Jupiter", "Mercury", "opp", 0.27),
         ("Moon", "Pluto", "sq", 0.35),
-        ("Node", "Mercury", "sq", 0.45),
+        # Zet DK-neg screenshot: 7°58′43″ Pisces is **Chiron** (Mir), not Node; Node is 12°34′ Aries.
+        ("Chiron", "Mercury", "sq", 0.45),
     ],
     ("DK", "POS-01"): [
         ("Sun", "Neptune", "tri", 0.5),
@@ -71,6 +74,25 @@ def converse_jd_for(radix_key: str, event_key: str) -> float:
     r = RADIX_COHORT[radix_key]
     e = EVENTS[event_key]
     return mirrored_jd(r.birth_jd, e.event_jd)
+
+
+def directed_converse_radix_orb(
+    radix_key: str,
+    event_key: str,
+    conv_body: str,
+    rad_body: str,
+    aspect: str,
+) -> float:
+    """Directed converse → radix orb for one named major aspect (verification primitive)."""
+    r = RADIX_COHORT[radix_key]
+    cjd = converse_jd_for(radix_key, event_key)
+    conv = positions_at_jd(cjd, include_optional=True)
+    rad = positions_at_jd(r.birth_jd, include_optional=True)
+    return orb_for_named_aspect(
+        conv[conv_body].longitude_deg,
+        rad[rad_body].longitude_deg,
+        aspect,
+    )
 
 
 def converse_to_radix_aspects(radix_key: str, event_key: str) -> list[LongitudeAspect]:
@@ -187,6 +209,7 @@ def run_full_analysis(extra_events: list[dict] | None = None) -> dict:
     converse_rows = []
     aspect_rows = []
     decl_rows = []
+    matrix_rows: list[dict] = []
     phase_c_checks = []
     phase_c_count_rows = []
 
@@ -235,15 +258,8 @@ def run_full_analysis(extra_events: list[dict] | None = None) -> dict:
 
             expected = PHASE_C_EXPECTED.get((radix_key, event_key), [])
             for conv_b, rad_b, asp, max_orb in expected:
-                hit = next(
-                    (
-                        x
-                        for x in aspects
-                        if x.body_a.endswith(conv_b)
-                        and x.body_b.endswith(rad_b)
-                        and x.aspect == asp
-                    ),
-                    None,
+                found_orb = directed_converse_radix_orb(
+                    radix_key, event_key, conv_b, rad_b, asp
                 )
                 phase_c_checks.append(
                     {
@@ -251,12 +267,25 @@ def run_full_analysis(extra_events: list[dict] | None = None) -> dict:
                         "event_key": event_key,
                         "conv_body": conv_b,
                         "radix_body": rad_b,
+                        "direction": "converse→radix",
                         "aspect": asp,
                         "expected_max_orb": max_orb,
-                        "found_orb": hit.orb_deg if hit else None,
-                        "ok": hit is not None and hit.orb_deg <= max_orb + 0.05,
+                        "found_orb": found_orb,
+                        "ok": found_orb <= max_orb + 0.05,
                     }
                 )
+            # Full directed matrix (all five orbs per pair)
+            cjd = converse_jd_for(radix_key, event_key)
+            conv_lon = {k: p.longitude_deg for k, p in positions_at_jd(cjd).items()}
+            rad_lon = {k: p.longitude_deg for k, p in positions_at_jd(RADIX_COHORT[radix_key].birth_jd).items()}
+            matrix_rows.extend(
+                {
+                    "radix_key": radix_key,
+                    "event_key": event_key,
+                    **row,
+                }
+                for row in full_directed_aspect_matrix(conv_lon, rad_lon, body_names=bodies)
+            )
             found = count_aspects_le_1(aspects)
             ref = PHASE_C_COUNTS.get((radix_key, event_key), -1)
             phase_c_count_rows.append(
@@ -271,6 +300,7 @@ def run_full_analysis(extra_events: list[dict] | None = None) -> dict:
 
     write_csv(OUTPUT_DIR / "converse_positions.csv", converse_rows)
     write_csv(OUTPUT_DIR / "converse_radix_longitude_aspects.csv", aspect_rows)
+    write_csv(OUTPUT_DIR / "converse_radix_directed_aspect_matrix.csv", matrix_rows)
     write_csv(OUTPUT_DIR / "converse_radix_declination_contacts.csv", decl_rows)
     write_csv(OUTPUT_DIR / "phase_c_contact_check.csv", phase_c_checks)
     write_csv(OUTPUT_DIR / "phase_c_counts_le_1deg.csv", phase_c_count_rows)
