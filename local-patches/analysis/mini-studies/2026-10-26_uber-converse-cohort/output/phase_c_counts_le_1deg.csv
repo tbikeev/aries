@@ -1,0 +1,7 @@
+radix_key,event_key,found_le_1deg,reference_le_1deg,delta
+FT,NEG-01,8,7,1
+FT,POS-01,5,5,0
+INC,NEG-01,4,4,0
+INC,POS-01,7,7,0
+DK,NEG-01,8,6,2
+DK,POS-01,6,5,1
