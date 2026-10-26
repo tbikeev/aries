@@ -1,0 +1,21 @@
+{
+  "ohlc_csv": "/Users/thomasbikeev/Projects/listok/finance-data-downloader/finance_data_downloader/data/eodhd_ohlc/UBER.csv",
+  "earnings_reactions_csv": "/Volumes/OWC Aura Pro X2/Users/thomasbikeev/Projects/aries/local-patches/analysis/mini-studies/2026-10-26_uber-converse-cohort/earnings-study/output/earnings_reactions_all.csv",
+  "frozen_orb_deg": [
+    0.5,
+    1.0
+  ],
+  "frozen_features": [
+    "DK_sq_count_orb05",
+    "DK_sq_count_orb10",
+    "FT_sq_count_orb05",
+    "FT_sq_count_orb10",
+    "INC_sq_count_orb05",
+    "INC_sq_count_orb10",
+    "tight_aspect_count_orb05",
+    "tight_aspect_count_orb10"
+  ],
+  "converse_event_time": "09:30 America/New_York",
+  "discovery_stage_frozen": "earnings-study/ (N=26); daily panel is first out-of-discovery-scale test",
+  "run_utc": "2026-10-26T21:32:05.258147Z"
+}

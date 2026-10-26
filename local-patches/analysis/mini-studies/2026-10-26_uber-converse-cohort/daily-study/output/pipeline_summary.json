@@ -1,0 +1,60 @@
+{
+  "output_dir": "/Volumes/OWC Aura Pro X2/Users/thomasbikeev/Projects/aries/local-patches/analysis/mini-studies/2026-10-26_uber-converse-cohort/daily-study/output",
+  "n_sessions": 1825,
+  "n_earnings_reaction_sessions": 26,
+  "episode_stats": {
+    "n_trading_sessions": 1825,
+    "n_slow_body_episodes_orb1": 566,
+    "sessions_per_episode_mean": 3.224381625441696
+  },
+  "key_question": "DK_sq vs r_cc across ordinary vs earnings vs full panel",
+  "dk_sq_orb10_r_full": -0.025984570169404968,
+  "dk_sq_orb10_r_ordinary": -0.010528344440103801,
+  "dk_sq_orb10_r_earnings": -0.5189825030597046,
+  "max_stat_permutation": {
+    "observed_max_abs_r": 0.02999021902550797,
+    "per_feature_r": {
+      "DK_sq_count_orb05": -0.022398560559439114,
+      "DK_sq_count_orb10": -0.025984570169404968,
+      "FT_sq_count_orb05": 0.01856558672971323,
+      "FT_sq_count_orb10": 0.021061343335834818,
+      "INC_sq_count_orb05": -0.011767538295209113,
+      "INC_sq_count_orb10": -0.007111677237469101,
+      "tight_aspect_count_orb05": -0.02999021902550795,
+      "tight_aspect_count_orb10": -0.01022287433150732
+    },
+    "p_max_stat_shuffle": 0.744,
+    "n_features": 8,
+    "n_perm": 999,
+    "note": "Compares best |r| among frozen features to shuffle null (not full mining search)."
+  },
+  "chronological_splits": [
+    {
+      "feature": "DK_sq_count_orb05",
+      "target": "r_cc_pct",
+      "n_train": 1277,
+      "n_test": 543,
+      "embargo_sessions": 5,
+      "corr_train": -0.03117166075662552,
+      "corr_test": 0.011766267322032923
+    },
+    {
+      "feature": "DK_sq_count_orb10",
+      "target": "r_cc_pct",
+      "n_train": 1277,
+      "n_test": 543,
+      "embargo_sessions": 5,
+      "corr_train": -0.018074576401930637,
+      "corr_test": -0.047837392300659955
+    },
+    {
+      "feature": "tight_aspect_count_orb10",
+      "target": "r_cc_pct",
+      "n_train": 1277,
+      "n_test": 543,
+      "embargo_sessions": 5,
+      "corr_train": 0.0005523231689067478,
+      "corr_test": -0.04599734556583839
+    }
+  ]
+}

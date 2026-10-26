@@ -37,13 +37,14 @@ from pathlib import Path
 sys.path.insert(0, "${STUDY}")
 import importlib.util
 STUDY = Path("${STUDY}")
-spec = importlib.util.spec_from_file_location("test_earnings_pipeline", STUDY / "tests" / "test_earnings_pipeline.py")
-mod = importlib.util.module_from_spec(spec)
-assert spec.loader
-spec.loader.exec_module(mod)
-for attr in sorted(dir(mod)):
-    if attr.startswith("test_"):
-        getattr(mod, attr)()
-print("OK: earnings pipeline tests")
+for mod_name in ("test_earnings_pipeline", "test_daily_panel"):
+    spec = importlib.util.spec_from_file_location(mod_name, STUDY / "tests" / f"{mod_name}.py")
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader
+    spec.loader.exec_module(mod)
+    for attr in sorted(dir(mod)):
+        if attr.startswith("test_"):
+            getattr(mod, attr)()
+print("OK: earnings + daily pipeline tests")
 PY
 fi

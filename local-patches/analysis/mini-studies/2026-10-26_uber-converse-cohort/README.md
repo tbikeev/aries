@@ -162,4 +162,16 @@ Outputs: `earnings-study/output/` — Reports A–F, aspect CSVs, robustness/per
 
 Report F covers leave-one-out, orb sensitivity, permutation nulls, and **earnings-quarter persistence runs** for slow movers (see `aspect_persistence_*.csv`). Top-10×2 extremes overlap ~77% of events; use `leaderboard_top3_*.csv` for sharper descriptives.
 
+## Daily panel (frozen hypotheses)
+
+```bash
+.venv/bin/python cli.py daily-study
+# cached features: daily-study/output/daily_converse_features.csv
+.venv/bin/python cli.py daily-study --recompute-features
+```
+
+Outputs: `daily-study/output/` — **Report G**, merged panel, stratum correlations, slow-body **episodes** (~566 episodes vs ~1825 sessions), max-|r| permutation across frozen features, chronological train/test with 5-session embargo.
+
+Earnings discovery remains frozen under `earnings-study/output/`.
+
 Converse event time: **09:30 America/New_York** on the mapped NYSE reaction session (not press-release time). Pre-IPO row `2019-02-15` excluded from market analysis.

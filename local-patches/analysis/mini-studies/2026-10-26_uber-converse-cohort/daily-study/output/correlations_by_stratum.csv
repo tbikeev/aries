@@ -1,0 +1,17 @@
+stratum,feature,target,n,pearson_r
+earnings_reaction,DK_sq_count_orb05,r_cc_pct,26,-0.4589376150934534
+earnings_reaction,DK_sq_count_orb10,r_cc_pct,26,-0.5189825030597046
+earnings_reaction,FT_sq_count_orb05,r_cc_pct,26,0.1284915930192763
+earnings_reaction,FT_sq_count_orb10,r_cc_pct,26,0.17863425046767006
+earnings_reaction,INC_sq_count_orb05,r_cc_pct,26,-0.1768706753240068
+earnings_reaction,INC_sq_count_orb10,r_cc_pct,26,0.09436723103884528
+earnings_reaction,tight_aspect_count_orb05,r_cc_pct,26,-0.4606824573320336
+earnings_reaction,tight_aspect_count_orb10,r_cc_pct,26,-0.38465460595485124
+ordinary,DK_sq_count_orb05,r_cc_pct,1799,-0.009245302813886486
+ordinary,DK_sq_count_orb10,r_cc_pct,1799,-0.010528344440103801
+ordinary,FT_sq_count_orb05,r_cc_pct,1799,0.017789230999670853
+ordinary,FT_sq_count_orb10,r_cc_pct,1799,0.018618952852234225
+ordinary,INC_sq_count_orb05,r_cc_pct,1799,-0.005846681166723252
+ordinary,INC_sq_count_orb10,r_cc_pct,1799,-0.011299525340583387
+ordinary,tight_aspect_count_orb05,r_cc_pct,1799,-0.012318442675825535
+ordinary,tight_aspect_count_orb10,r_cc_pct,1799,0.002504994393524337

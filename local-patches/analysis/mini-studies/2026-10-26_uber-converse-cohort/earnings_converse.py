@@ -97,6 +97,57 @@ def extract_converse_features(
     }
 
 
+def converse_count_features(radix_key: str, event_jd: float, *, orb_max: float) -> dict[str, int]:
+    """Lightweight directed-aspect counts for daily panel (no full row export)."""
+    r = RADIX_COHORT[radix_key]
+    cjd = mirrored_jd(r.birth_jd, event_jd)
+    conv = positions_at_jd(cjd, include_optional=False)
+    rad = positions_at_jd(r.birth_jd, include_optional=False)
+    conv_lon = {k: p.longitude_deg for k, p in conv.items()}
+    rad_lon = {k: p.longitude_deg for k, p in rad.items()}
+    matrix = full_directed_aspect_matrix(conv_lon, rad_lon, body_names=list(iter_benchmark_names()))
+    tight = [row for row in matrix if row["best_orb"] <= orb_max + 1e-12]
+    counts = {
+        "tight_aspect_count": len(tight),
+        "conj_count": 0,
+        "sq_count": 0,
+        "sext_count": 0,
+        "tri_count": 0,
+        "opp_count": 0,
+    }
+    for row in tight:
+        asp = row["best_aspect"]
+        key = f"{asp}_count"
+        if key in counts:
+            counts[key] += 1
+    return counts
+
+
+def slow_body_active_signatures(
+    radix_key: str, event_jd: float, *, orb_max: float
+) -> list[tuple[str, float]]:
+    """Active ≤orb directed pairs where converse body is outer (for episode tracking)."""
+    from temporal_persistence import SLOW_CONVERS_BODIES
+
+    r = RADIX_COHORT[radix_key]
+    cjd = mirrored_jd(r.birth_jd, event_jd)
+    conv = positions_at_jd(cjd, include_optional=False)
+    rad = positions_at_jd(r.birth_jd, include_optional=False)
+    conv_lon = {k: p.longitude_deg for k, p in conv.items()}
+    rad_lon = {k: p.longitude_deg for k, p in rad.items()}
+    matrix = full_directed_aspect_matrix(conv_lon, rad_lon, body_names=list(iter_benchmark_names()))
+    out: list[tuple[str, float]] = []
+    for row in matrix:
+        if row["best_orb"] > orb_max + 1e-12:
+            continue
+        body = row["from_body"].removeprefix("conv:")
+        if body not in SLOW_CONVERS_BODIES:
+            continue
+        sig = f"{radix_key}|{row['from_body']}|{row['to_body']}|{row['best_aspect']}"
+        out.append((sig, float(row["best_orb"])))
+    return out
+
+
 def registry_snapshot() -> list[dict]:
     """Static inter-radix registry for activation matching."""
     blocks = build_cohort_registry()

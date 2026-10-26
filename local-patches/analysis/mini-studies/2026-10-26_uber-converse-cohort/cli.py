@@ -78,7 +78,28 @@ def main() -> None:
     p_earn.add_argument("--top-negative", type=int, default=10)
     p_earn.add_argument("--output-dir", type=Path, default=None)
 
+    p_daily = sub.add_parser("daily-study", help="Daily UBER panel (frozen DK/FT/INC hypotheses)")
+    p_daily.add_argument("--ohlc-csv", type=Path, default=None)
+    p_daily.add_argument("--earnings-reactions-csv", type=Path, default=None)
+    p_daily.add_argument("--output-dir", type=Path, default=None)
+    p_daily.add_argument(
+        "--recompute-features",
+        action="store_true",
+        help="Ignore cached daily_converse_features.csv",
+    )
+
     args = parser.parse_args()
+    if args.command == "daily-study":
+        from daily_pipeline import run_daily_study
+
+        summary = run_daily_study(
+            ohlc_csv=args.ohlc_csv,
+            earnings_reactions_csv=args.earnings_reactions_csv,
+            output_dir=args.output_dir,
+            reuse_features=not args.recompute_features,
+        )
+        print(json.dumps(summary, indent=2))
+        return
     if args.command == "earnings-study":
         from earnings_pipeline import run_earnings_study
 
