@@ -136,3 +136,28 @@ Implemented in `tests/test_converse_timestamps.py`.
 ## UBER.zdb on disk
 
 Spotlight did not locate `UBER.zdb` on this Mac during setup; inputs above are taken from the study brief and Zet screenshots. Re-import or paste from Zet into Aries under collection **`UBER.zdb`** when the file is available locally.
+
+## Earnings-reaction converse pipeline (2026-10-26+)
+
+Extends the cohort study with EODHD earnings + OHLC (read-only):
+
+- Earnings: `~/Projects/listok_fd/finance_data_downloader/data/eodhd_earnings/UBER.csv`
+- OHLC: `~/Projects/listok/finance-data-downloader/finance_data_downloader/data/eodhd_ohlc/UBER.csv`
+
+Setup venv once:
+
+```bash
+cd local-patches/analysis/mini-studies/2026-10-26_uber-converse-cohort
+python3 -m venv .venv && .venv/bin/pip install -r requirements-earnings.txt
+```
+
+Run:
+
+```bash
+.venv/bin/python cli.py earnings-study --top-positive 10 --top-negative 10
+# or: .venv/bin/python earnings_pipeline.py
+```
+
+Outputs: `earnings-study/output/` — Reports A–E, aspect CSVs, walk-forward baseline JSON.
+
+Converse event time: **09:30 America/New_York** on the mapped NYSE reaction session (not press-release time). Pre-IPO row `2019-02-15` excluded from market analysis.

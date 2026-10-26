@@ -51,7 +51,7 @@ def run_earnings_study(
             }
             for k, v in RADIX_COHORT.items()
         },
-        "run_utc": datetime.utcnow().isoformat() + "Z",
+        "run_utc": datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + "Z",
     }
     (out / "run_settings.json").write_text(json.dumps(settings, indent=2, default=str), encoding="utf-8")
 
