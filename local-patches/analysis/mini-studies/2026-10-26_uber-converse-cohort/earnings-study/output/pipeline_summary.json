@@ -1,0 +1,14 @@
+{
+  "output_dir": "/Volumes/OWC Aura Pro X2/Users/thomasbikeev/Projects/aries/local-patches/analysis/mini-studies/2026-10-26_uber-converse-cohort/earnings-study/output",
+  "valid_reactions": 26,
+  "excluded": 1,
+  "extreme_neg": 10,
+  "extreme_pos": 10,
+  "aspect_rows": 9438,
+  "feasibility": {
+    "valid_earnings_reactions": 26,
+    "extreme_discovery_sample": 20,
+    "high_dimensional_risk": true,
+    "recommendation": "Use 20 extremes for hypothesis generation only; evaluate patterns on all 26 reactions with chronological splits and permutation tests before any predictive claim."
+  }
+}

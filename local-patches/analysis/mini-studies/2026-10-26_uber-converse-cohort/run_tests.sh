@@ -26,3 +26,24 @@ test_ft_neg_alternate_mercury_square_uranus_exists()
 test_dk_neg_converse_chiron_square_radix_mercury_directed()
 print("OK: converse timestamps + Zet spot checks + directed Phase C")
 PY
+
+EARNINGS_PY="${STUDY}/.venv/bin/python"
+if [[ -x "$EARNINGS_PY" ]]; then
+  export PYTHONPATH="${ROOT}:${ROOT}/SWEP/src:${STUDY}:${STUDY}/.venv/lib/python3.15/site-packages"
+  export STUDY
+  "$EARNINGS_PY" - <<PY
+import sys
+from pathlib import Path
+sys.path.insert(0, "${STUDY}")
+import importlib.util
+STUDY = Path("${STUDY}")
+spec = importlib.util.spec_from_file_location("test_earnings_pipeline", STUDY / "tests" / "test_earnings_pipeline.py")
+mod = importlib.util.module_from_spec(spec)
+assert spec.loader
+spec.loader.exec_module(mod)
+for attr in sorted(dir(mod)):
+    if attr.startswith("test_"):
+        getattr(mod, attr)()
+print("OK: earnings pipeline tests")
+PY
+fi

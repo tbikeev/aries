@@ -1,0 +1,32 @@
+{
+  "earnings_csv": "/Users/thomasbikeev/Projects/listok_fd/finance_data_downloader/data/eodhd_earnings/UBER.csv",
+  "ohlc_csv": "/Users/thomasbikeev/Projects/listok/finance-data-downloader/finance_data_downloader/data/eodhd_ohlc/UBER.csv",
+  "price_basis": "adjusted_close",
+  "reaction_event_time": "09:30 America/New_York",
+  "cohorts": [
+    "FT",
+    "INC",
+    "DK"
+  ],
+  "radix": {
+    "FT": {
+      "key": "FT",
+      "label": "UBER first trade (NYSE)",
+      "utc": "2019-05-10 15:50 UTC",
+      "birth_time_uncertain": false
+    },
+    "INC": {
+      "key": "INC",
+      "label": "Uber Technologies Inc. (Delaware incorporation)",
+      "utc": "2013-03-14 16:00 UTC",
+      "birth_time_uncertain": false
+    },
+    "DK": {
+      "key": "DK",
+      "label": "Dara Khosrowshahi",
+      "utc": "1969-05-28 09:00 UTC",
+      "birth_time_uncertain": true
+    }
+  },
+  "run_utc": "2026-10-26T20:47:03.475262Z"
+}

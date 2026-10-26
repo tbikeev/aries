@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 from pathlib import Path
 
 from analysis import OUTPUT_DIR, run_full_analysis
@@ -55,18 +56,45 @@ def parse_event_row(row: dict) -> EventSpec:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="UBER converse cohort analyzer")
-    parser.add_argument(
+    sub = parser.add_subparsers(dest="command")
+    p_cohort = sub.add_parser("cohort", help="Original NEG/POS mini-study")
+    p_cohort.add_argument(
         "--events-csv",
         type=Path,
         help="Optional CSV of extra events (label,timestamp fields). Merged with built-in NEG/POS.",
     )
-    parser.add_argument(
+    p_cohort.add_argument(
         "--output-dir",
         type=Path,
         default=OUTPUT_DIR,
         help="Output directory for CSVs and reports",
     )
+
+    p_earn = sub.add_parser("earnings-study", help="Earnings reaction converse pipeline")
+    p_earn.add_argument("--ticker", default="UBER")
+    p_earn.add_argument("--earnings-csv", type=Path, default=None)
+    p_earn.add_argument("--ohlc-csv", type=Path, default=None)
+    p_earn.add_argument("--top-positive", type=int, default=10)
+    p_earn.add_argument("--top-negative", type=int, default=10)
+    p_earn.add_argument("--output-dir", type=Path, default=None)
+
     args = parser.parse_args()
+    if args.command == "earnings-study":
+        from earnings_pipeline import run_earnings_study
+
+        summary = run_earnings_study(
+            earnings_csv=args.earnings_csv,
+            ohlc_csv=args.ohlc_csv,
+            output_dir=args.output_dir,
+            top_positive=args.top_positive,
+            top_negative=args.top_negative,
+        )
+        print(json.dumps(summary, indent=2))
+        return
+    if args.command is None:
+        args.command = "cohort"
+        args.events_csv = None
+        args.output_dir = OUTPUT_DIR
 
     extra = None
     if args.events_csv:
