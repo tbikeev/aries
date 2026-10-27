@@ -80,6 +80,10 @@ def main() -> None:
     p35 = sub.add_parser("coverage-audit", help="BR-3.5: coverage audit + controlled event manifest")
     p35.add_argument("--min-eligible", type=int, default=7)
     p35.add_argument("--target-per-tail", type=int, default=50)
+    p4 = sub.add_parser("cell-differences", help="BR-4: crash/rally cell differentials (controlled sample)")
+    p4.add_argument("--skip-uncertainty", action="store_true", help="Skip bootstrap/permutation (faster)")
+    p4.add_argument("--with-extraction", action="store_true", help="Run aspect-matrices on controlled manifest first")
+    p4.add_argument("--recompute", action="store_true")
     args = p.parse_args()
     if args.cmd == "pags":
         from pags_reproduction import main_pags
@@ -170,6 +174,15 @@ def main() -> None:
         import json
 
         print(json.dumps(run_coverage_audit(min_eligible=args.min_eligible, target_per_tail=args.target_per_tail), indent=2))
+    elif args.cmd == "cell-differences":
+        from br4_pipeline import run_br4, run_br4_with_extraction
+        import json
+
+        if args.with_extraction:
+            out = run_br4_with_extraction(recompute=args.recompute)
+        else:
+            out = run_br4(skip_uncertainty=args.skip_uncertainty)
+        print(json.dumps(out, indent=2, default=str))
     elif args.cmd == "historical-shocks":
         from brazil_paths import OUTPUT_BR2
         from br2_pipeline import run_br2

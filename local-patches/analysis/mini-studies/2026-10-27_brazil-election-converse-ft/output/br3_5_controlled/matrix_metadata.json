@@ -1,0 +1,373 @@
+{
+  "phase": "BR-3",
+  "extremes_per_tail": 50,
+  "n_events": 100,
+  "n_tickers": 10,
+  "tickers": [
+    "ABEV",
+    "BBD",
+    "ERJ",
+    "ITUB",
+    "NU",
+    "PAGS",
+    "PBR",
+    "STNE",
+    "VALE",
+    "XP"
+  ],
+  "planets": [
+    "Sun",
+    "Moon",
+    "Mercury",
+    "Venus",
+    "Mars",
+    "Jupiter",
+    "Saturn",
+    "Uranus",
+    "Neptune",
+    "Pluto",
+    "Node"
+  ],
+  "aspects": [
+    "con",
+    "opp",
+    "squ",
+    "tri",
+    "sex"
+  ],
+  "labels": [
+    "NEG",
+    "POS"
+  ],
+  "event_index_order": "NEG rank 1..N then POS rank 1..N",
+  "c2c_pairs": [
+    {
+      "index": 0,
+      "planet_1": "Sun",
+      "planet_2": "Moon"
+    },
+    {
+      "index": 1,
+      "planet_1": "Sun",
+      "planet_2": "Mercury"
+    },
+    {
+      "index": 2,
+      "planet_1": "Sun",
+      "planet_2": "Venus"
+    },
+    {
+      "index": 3,
+      "planet_1": "Sun",
+      "planet_2": "Mars"
+    },
+    {
+      "index": 4,
+      "planet_1": "Sun",
+      "planet_2": "Jupiter"
+    },
+    {
+      "index": 5,
+      "planet_1": "Sun",
+      "planet_2": "Saturn"
+    },
+    {
+      "index": 6,
+      "planet_1": "Sun",
+      "planet_2": "Uranus"
+    },
+    {
+      "index": 7,
+      "planet_1": "Sun",
+      "planet_2": "Neptune"
+    },
+    {
+      "index": 8,
+      "planet_1": "Sun",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 9,
+      "planet_1": "Sun",
+      "planet_2": "Node"
+    },
+    {
+      "index": 10,
+      "planet_1": "Moon",
+      "planet_2": "Mercury"
+    },
+    {
+      "index": 11,
+      "planet_1": "Moon",
+      "planet_2": "Venus"
+    },
+    {
+      "index": 12,
+      "planet_1": "Moon",
+      "planet_2": "Mars"
+    },
+    {
+      "index": 13,
+      "planet_1": "Moon",
+      "planet_2": "Jupiter"
+    },
+    {
+      "index": 14,
+      "planet_1": "Moon",
+      "planet_2": "Saturn"
+    },
+    {
+      "index": 15,
+      "planet_1": "Moon",
+      "planet_2": "Uranus"
+    },
+    {
+      "index": 16,
+      "planet_1": "Moon",
+      "planet_2": "Neptune"
+    },
+    {
+      "index": 17,
+      "planet_1": "Moon",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 18,
+      "planet_1": "Moon",
+      "planet_2": "Node"
+    },
+    {
+      "index": 19,
+      "planet_1": "Mercury",
+      "planet_2": "Venus"
+    },
+    {
+      "index": 20,
+      "planet_1": "Mercury",
+      "planet_2": "Mars"
+    },
+    {
+      "index": 21,
+      "planet_1": "Mercury",
+      "planet_2": "Jupiter"
+    },
+    {
+      "index": 22,
+      "planet_1": "Mercury",
+      "planet_2": "Saturn"
+    },
+    {
+      "index": 23,
+      "planet_1": "Mercury",
+      "planet_2": "Uranus"
+    },
+    {
+      "index": 24,
+      "planet_1": "Mercury",
+      "planet_2": "Neptune"
+    },
+    {
+      "index": 25,
+      "planet_1": "Mercury",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 26,
+      "planet_1": "Mercury",
+      "planet_2": "Node"
+    },
+    {
+      "index": 27,
+      "planet_1": "Venus",
+      "planet_2": "Mars"
+    },
+    {
+      "index": 28,
+      "planet_1": "Venus",
+      "planet_2": "Jupiter"
+    },
+    {
+      "index": 29,
+      "planet_1": "Venus",
+      "planet_2": "Saturn"
+    },
+    {
+      "index": 30,
+      "planet_1": "Venus",
+      "planet_2": "Uranus"
+    },
+    {
+      "index": 31,
+      "planet_1": "Venus",
+      "planet_2": "Neptune"
+    },
+    {
+      "index": 32,
+      "planet_1": "Venus",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 33,
+      "planet_1": "Venus",
+      "planet_2": "Node"
+    },
+    {
+      "index": 34,
+      "planet_1": "Mars",
+      "planet_2": "Jupiter"
+    },
+    {
+      "index": 35,
+      "planet_1": "Mars",
+      "planet_2": "Saturn"
+    },
+    {
+      "index": 36,
+      "planet_1": "Mars",
+      "planet_2": "Uranus"
+    },
+    {
+      "index": 37,
+      "planet_1": "Mars",
+      "planet_2": "Neptune"
+    },
+    {
+      "index": 38,
+      "planet_1": "Mars",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 39,
+      "planet_1": "Mars",
+      "planet_2": "Node"
+    },
+    {
+      "index": 40,
+      "planet_1": "Jupiter",
+      "planet_2": "Saturn"
+    },
+    {
+      "index": 41,
+      "planet_1": "Jupiter",
+      "planet_2": "Uranus"
+    },
+    {
+      "index": 42,
+      "planet_1": "Jupiter",
+      "planet_2": "Neptune"
+    },
+    {
+      "index": 43,
+      "planet_1": "Jupiter",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 44,
+      "planet_1": "Jupiter",
+      "planet_2": "Node"
+    },
+    {
+      "index": 45,
+      "planet_1": "Saturn",
+      "planet_2": "Uranus"
+    },
+    {
+      "index": 46,
+      "planet_1": "Saturn",
+      "planet_2": "Neptune"
+    },
+    {
+      "index": 47,
+      "planet_1": "Saturn",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 48,
+      "planet_1": "Saturn",
+      "planet_2": "Node"
+    },
+    {
+      "index": 49,
+      "planet_1": "Uranus",
+      "planet_2": "Neptune"
+    },
+    {
+      "index": 50,
+      "planet_1": "Uranus",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 51,
+      "planet_1": "Uranus",
+      "planet_2": "Node"
+    },
+    {
+      "index": 52,
+      "planet_1": "Neptune",
+      "planet_2": "Pluto"
+    },
+    {
+      "index": 53,
+      "planet_1": "Neptune",
+      "planet_2": "Node"
+    },
+    {
+      "index": 54,
+      "planet_1": "Pluto",
+      "planet_2": "Node"
+    }
+  ],
+  "c2c_shape": [
+    10,
+    100,
+    55,
+    5
+  ],
+  "c2r_shape": [
+    10,
+    100,
+    11,
+    11,
+    5
+  ],
+  "aggregate_c2c_shape": [
+    2,
+    10,
+    55,
+    5
+  ],
+  "aggregate_c2r_shape": [
+    2,
+    10,
+    11,
+    11,
+    5
+  ],
+  "pooled_c2c_shape": [
+    2,
+    55,
+    5
+  ],
+  "pooled_c2r_shape": [
+    2,
+    11,
+    11,
+    5
+  ],
+  "power_engine": {
+    "name": "Astrolog",
+    "version": "7.70",
+    "invocation": "reverse_chart.sh --key -1.0 + internal -a (c2c) + cross -rp0 -pd -1.0 -a (c2r)",
+    "power_source": "Astrolog -a aspect listing power field (unchanged from BR-1 debug)",
+    "orbs": "Engine default max orbs per aspect type; no BR-3 retuning",
+    "weights": "Astrolog default aspect power weighting",
+    "retrograde": "As reported in aspect line positions",
+    "precision": "float64 in npz; raw power as printed",
+    "inactive_cells": {
+      "active": false,
+      "power": 0.0,
+      "orb_deg": "NaN"
+    }
+  },
+  "event_session_local": "09:30 America/New_York"
+}

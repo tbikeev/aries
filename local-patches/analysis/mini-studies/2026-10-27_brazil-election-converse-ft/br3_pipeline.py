@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import shutil
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -228,6 +229,9 @@ def run_aspect_matrices(
     if manifest_path is None and not mpath.is_file():
         build_event_manifest(extremes=extremes)
     manifest = _load_manifest_from(mpath)
+    out_manifest = out_root / "event_manifest.parquet"
+    if mpath.resolve() != out_manifest.resolve():
+        shutil.copy2(mpath, out_manifest)
     n_e = len(manifest)
     n_t = len(BR3_TICKERS)
     n_pairs = 55
