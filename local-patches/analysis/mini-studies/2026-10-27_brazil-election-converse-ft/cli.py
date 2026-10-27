@@ -30,6 +30,11 @@ def main() -> None:
     pf.add_argument("--skip-historical", action="store_true")
     pr = sub.add_parser("report", help="Rebuild REPORT from output CSVs")
     ph = sub.add_parser("historical", help="Historical percentiles only (uses cache)")
+    pbr = sub.add_parser("historical-shocks", help="Phase BR-2 shock registry and tests")
+    pbr.add_argument("--recompute", action="store_true")
+    pbr.add_argument("--placebos", type=int, default=200)
+    pbr.add_argument("--skip-percentiles", action="store_true", help="Skip slow 250-session percentiles")
+    pbr.add_argument("--percentiles-only", action="store_true", help="Only rebuild historical_c2c_percentiles.csv")
     args = p.parse_args()
     if args.cmd == "pags":
         main_pags()
@@ -58,6 +63,22 @@ def main() -> None:
         from brazil_pipeline import _publish_outputs
 
         _publish_outputs()
+    elif args.cmd == "historical-shocks":
+        from brazil_paths import OUTPUT_BR2
+        from br2_pipeline import run_br2
+        from br2_percentiles import build_historical_percentiles
+        import pandas as pd
+
+        if args.percentiles_only:
+            panel = pd.read_csv(OUTPUT_BR2 / "eligible_ticker_event_panel.csv")
+            pct = build_historical_percentiles(panel, use_cache=not args.recompute)
+            pct.to_csv(OUTPUT_BR2 / "historical_c2c_percentiles.csv", index=False)
+        else:
+            run_br2(
+                recompute=args.recompute,
+                placebos=args.placebos,
+                skip_percentiles=args.skip_percentiles,
+            )
     elif args.cmd == "historical":
         from brazil_pipeline import historical_percentiles, OUTPUT, write_report, run_full
         import pandas as pd
