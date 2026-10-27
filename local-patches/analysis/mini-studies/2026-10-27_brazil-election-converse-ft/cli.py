@@ -55,6 +55,14 @@ def main() -> None:
         help="Mar 12 vs Mar 24 2020 COVID dates @ 09:30 NY — mirror + aggregate",
     )
     pc.add_argument("--ticker", action="append", help="Limit tickers (default all except EBR)")
+    pm = sub.add_parser(
+        "market-reference",
+        help="Phase 0: download EWZ OHLC (+ synthetic eq-weight fallback series)",
+    )
+    pm.add_argument("--start", default="2000-01-01")
+    pm.add_argument("--end", default="2026-12-31")
+    pm.add_argument("--force", action="store_true", help="Re-download all series")
+    pm.add_argument("--no-ibovespa", action="store_true")
     args = p.parse_args()
     if args.cmd == "pags":
         from pags_reproduction import main_pags
@@ -109,6 +117,20 @@ def main() -> None:
 
             study = replace(study, tickers=tickers)
         run_full_study(study)
+    elif args.cmd == "market-reference":
+        from datetime import date
+
+        from brazil_market_reference import build_market_reference
+
+        meta = build_market_reference(
+            start=date.fromisoformat(args.start),
+            end=date.fromisoformat(args.end),
+            force=args.force,
+            include_ibovespa=not args.no_ibovespa,
+        )
+        import json
+
+        print(json.dumps(meta, indent=2))
     elif args.cmd == "historical-shocks":
         from brazil_paths import OUTPUT_BR2
         from br2_pipeline import run_br2

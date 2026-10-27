@@ -34,16 +34,44 @@ IDENTIFIED_SHOCKS: list[dict] = [
 
 
 def load_ewz_daily(*, end: str = "2026-11-05") -> pd.DataFrame:
-    import yfinance as yf
+    from brazil_paths import CACHE
+    from brazil_market_reference import EWZ_CSV, build_market_reference
 
-    df = yf.download("EWZ", start="2000-01-01", end=end, progress=False, auto_adjust=False)
-    if isinstance(df.columns, pd.MultiIndex):
-        df = df.droplevel(1, axis=1)
-    df = df.reset_index()
-    df["event_date"] = pd.to_datetime(df["Date"]).dt.date
-    df = df.sort_values("event_date")
-    df["ewz_prev_close"] = df["Close"].shift(1)
-    df["ewz_return_cc_pct"] = 100.0 * (df["Close"] / df["ewz_prev_close"] - 1.0)
+    cache = CACHE / "market_reference" / "ewz_daily.csv"
+    if not cache.is_file():
+        build_market_reference(end=date.fromisoformat(end[:10]))
+    if cache.is_file():
+        raw = pd.read_csv(cache)
+        raw["event_date"] = pd.to_datetime(raw["session"]).dt.date
+        df = raw.rename(
+            columns={
+                "open": "Open",
+                "high": "High",
+                "low": "Low",
+                "close": "Close",
+                "volume": "Volume",
+            }
+        )
+        df = df.sort_values("event_date")
+        df["ewz_prev_close"] = df["Close"].shift(1)
+        if "return_cc_pct" in df.columns and df["return_cc_pct"].notna().any():
+            df["ewz_return_cc_pct"] = pd.to_numeric(df["return_cc_pct"], errors="coerce")
+        else:
+            df["ewz_return_cc_pct"] = 100.0 * (df["Close"] / df["ewz_prev_close"] - 1.0)
+    else:
+        import yfinance as yf
+
+        df = yf.download("EWZ", start="2000-01-01", end=end, progress=False, auto_adjust=False)
+        if isinstance(df.columns, pd.MultiIndex):
+            df = df.droplevel(1, axis=1)
+        df = df.reset_index()
+        df["event_date"] = pd.to_datetime(df["Date"]).dt.date
+        df = df.sort_values("event_date")
+        df["ewz_prev_close"] = df["Close"].shift(1)
+        df["ewz_return_cc_pct"] = 100.0 * (df["Close"] / df["ewz_prev_close"] - 1.0)
+
+    end_d = date.fromisoformat(end[:10])
+    df = df[df["event_date"] <= end_d].copy()
     df["ewz_abs_return_cc_pct"] = df["ewz_return_cc_pct"].abs()
     vol = df["ewz_return_cc_pct"].rolling(60, min_periods=20).std()
     df["ewz_vol_std_60d"] = vol
