@@ -34,6 +34,17 @@ def main() -> None:
     pbr.add_argument("--percentiles-only", action="store_true", help="Only rebuild historical_c2c_percentiles.csv")
     pad = sub.add_parser("astrolog-debug", help="Oct 5 vs Oct 26 mirror tabs (sa_app astrolog -pd -1)")
     pad.add_argument("--ticker", action="append", help="Limit to ticker(s); default all except EBR")
+    pag = sub.add_parser(
+        "astrolog-aggregate",
+        help="Sum qualifying Sun–Pluto aspect power (Oct 5 vs Oct 26); validate archive totals",
+    )
+    pag.add_argument(
+        "--debug-dir",
+        type=Path,
+        default=_STUDY / "output" / "astrolog_debug",
+        help="Directory with *_c2c.txt / *_c2r.txt",
+    )
+    pag.add_argument("--strict", action="store_true", help="Exit 1 if validation fails")
     args = p.parse_args()
     if args.cmd == "pags":
         from pags_reproduction import main_pags
@@ -70,6 +81,10 @@ def main() -> None:
         tickers = tuple(args.ticker) if args.ticker else None
         path = run_debug(tickers=tickers)
         print(f"Wrote {path}")
+    elif args.cmd == "astrolog-aggregate":
+        from astrolog_power_aggregate import build_report
+
+        raise SystemExit(build_report(args.debug_dir.resolve(), strict=args.strict))
     elif args.cmd == "historical-shocks":
         from brazil_paths import OUTPUT_BR2
         from br2_pipeline import run_br2
