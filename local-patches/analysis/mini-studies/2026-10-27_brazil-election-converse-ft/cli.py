@@ -66,6 +66,20 @@ def main() -> None:
     pbr3 = sub.add_parser("aspect-matrices", help="Phase BR-3: C2C/C2R aspect-power matrices")
     pbr3.add_argument("--extremes", type=int, default=50)
     pbr3.add_argument("--recompute", action="store_true")
+    pbr3.add_argument(
+        "--manifest",
+        type=Path,
+        default=None,
+        help="Parquet event manifest (default: output/br3/event_manifest.parquet)",
+    )
+    pbr3.add_argument(
+        "--output-subdir",
+        default="br3",
+        help="Output folder under output/ (e.g. br3_5_controlled for coverage-controlled rerun)",
+    )
+    p35 = sub.add_parser("coverage-audit", help="BR-3.5: coverage audit + controlled event manifest")
+    p35.add_argument("--min-eligible", type=int, default=7)
+    p35.add_argument("--target-per-tail", type=int, default=50)
     args = p.parse_args()
     if args.cmd == "pags":
         from pags_reproduction import main_pags
@@ -138,9 +152,24 @@ def main() -> None:
         from br3_pipeline import build_event_manifest, run_aspect_matrices
         import json
 
-        build_event_manifest(extremes=args.extremes)
-        result = run_aspect_matrices(extremes=args.extremes, recompute=args.recompute)
+        from pathlib import Path as P
+
+        mpath = args.manifest
+        if mpath is None and args.output_subdir == "br3":
+            build_event_manifest(extremes=args.extremes)
+            mpath = P("output/br3/event_manifest.parquet")
+        result = run_aspect_matrices(
+            extremes=args.extremes,
+            recompute=args.recompute,
+            manifest_path=mpath,
+            output_subdir=args.output_subdir,
+        )
         print(json.dumps(result, indent=2))
+    elif args.cmd == "coverage-audit":
+        from br3_5_coverage import run_coverage_audit
+        import json
+
+        print(json.dumps(run_coverage_audit(min_eligible=args.min_eligible, target_per_tail=args.target_per_tail), indent=2))
     elif args.cmd == "historical-shocks":
         from brazil_paths import OUTPUT_BR2
         from br2_pipeline import run_br2

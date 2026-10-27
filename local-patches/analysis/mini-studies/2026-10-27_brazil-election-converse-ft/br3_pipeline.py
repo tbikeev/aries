@@ -47,7 +47,9 @@ EXTREMES_CSV = MARKET_REF_DIR / "ewz_return_extremes.csv"
 
 
 def _write_ticker_manifest() -> Path:
-    path = OUTPUT_BR3 / "ticker_universe_manifest.json"
+    from br3_schema import OUTPUT_BR3 as _out
+
+    path = _out / "ticker_universe_manifest.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
@@ -64,7 +66,9 @@ def _write_ticker_manifest() -> Path:
     return path
 
 
-def build_event_manifest(*, extremes: int = 50) -> Path:
+def build_event_manifest(*, extremes: int = 50, manifest_path: Path | None = None) -> Path:
+    if manifest_path is not None and manifest_path.is_file():
+        return manifest_path
     OUTPUT_BR3.mkdir(parents=True, exist_ok=True)
     crashes, rallies = [], []
     with EXTREMES_CSV.open(newline="", encoding="utf-8") as f:
@@ -108,11 +112,15 @@ def build_event_manifest(*, extremes: int = 50) -> Path:
     return out
 
 
-def _load_manifest() -> list[dict]:
+def _load_manifest_from(path: Path) -> list[dict]:
     import pandas as pd
 
-    df = pd.read_parquet(OUTPUT_BR3 / "event_manifest.parquet")
+    df = pd.read_parquet(path)
     return df.sort_values("event_id").to_dict("records")
+
+
+def _load_manifest() -> list[dict]:
+    return _load_manifest_from(OUTPUT_BR3 / "event_manifest.parquet")
 
 
 def _stock_returns(ticker: str) -> dict[date, float]:
@@ -202,13 +210,24 @@ def _fetch_astrolog(ticker: str, session: str, row, *, recompute: bool) -> tuple
     return c2c, c2r
 
 
-def run_aspect_matrices(*, extremes: int = 50, recompute: bool = False) -> dict:
-    OUTPUT_BR3.mkdir(parents=True, exist_ok=True)
+def run_aspect_matrices(
+    *,
+    extremes: int = 50,
+    recompute: bool = False,
+    manifest_path: Path | None = None,
+    output_subdir: str = "br3",
+) -> dict:
+    import br3_schema as br3_schema_mod
+
+    out_root = STUDY_ROOT / "output" / output_subdir
+    out_root.mkdir(parents=True, exist_ok=True)
+    br3_schema_mod.OUTPUT_BR3 = out_root
     CACHE_BR3.mkdir(parents=True, exist_ok=True)
     _write_ticker_manifest()
-    if not (OUTPUT_BR3 / "event_manifest.parquet").is_file():
+    mpath = manifest_path or (out_root / "event_manifest.parquet")
+    if manifest_path is None and not mpath.is_file():
         build_event_manifest(extremes=extremes)
-    manifest = _load_manifest()
+    manifest = _load_manifest_from(mpath)
     n_e = len(manifest)
     n_t = len(BR3_TICKERS)
     n_pairs = 55
@@ -219,7 +238,7 @@ def run_aspect_matrices(*, extremes: int = 50, recompute: bool = False) -> dict:
     eligible, elig_detail = build_eligibility(manifest, reg)
 
     # Save eligibility matrix CSV
-    elig_path = OUTPUT_BR3 / "eligibility_matrix.csv"
+    elig_path = out_root / "eligibility_matrix.csv"
     with elig_path.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["ticker", "session", "event_id", "eligible", "reason", "ft_strict"])
         w.writeheader()
@@ -282,10 +301,10 @@ def run_aspect_matrices(*, extremes: int = 50, recompute: bool = False) -> dict:
                 c2r_orb[ti, ei, ci, ri, ak] = asp.orb_deg
                 c2r_orb_s[ti, ei, ci, ri, ak] = asp.orb_signed_deg
 
-    meta_path = OUTPUT_BR3 / "matrix_metadata.json"
+    meta_path = out_root / "matrix_metadata.json"
     write_matrix_metadata(meta_path, extremes=extremes)
 
-    ind_path = OUTPUT_BR3 / "individual_aspect_matrices.npz"
+    ind_path = out_root / "individual_aspect_matrices.npz"
     np.savez_compressed(
         ind_path,
         c2c_active=c2c_active,
@@ -333,7 +352,7 @@ def run_aspect_matrices(*, extremes: int = 50, recompute: bool = False) -> dict:
             c2r_n[li, ti] = sub_ra.sum(axis=0).astype(np.int32)
             c2r_sum[li, ti] = sub_rp.sum(axis=0)
 
-    agg_path = OUTPUT_BR3 / "aggregate_aspect_matrices.npz"
+    agg_path = out_root / "aggregate_aspect_matrices.npz"
     np.savez_compressed(
         agg_path,
         c2c_N=c2c_N,
@@ -365,7 +384,7 @@ def run_aspect_matrices(*, extremes: int = 50, recompute: bool = False) -> dict:
                 pool_c2r_sum[li] += c2r_power[ti, ei]
                 pool_c2r_N[li] += 1
 
-    pool_path = OUTPUT_BR3 / "pooled_aspect_matrices.npz"
+    pool_path = out_root / "pooled_aspect_matrices.npz"
     np.savez_compressed(
         pool_path,
         c2c_n=pool_c2c_n,
@@ -378,8 +397,35 @@ def run_aspect_matrices(*, extremes: int = 50, recompute: bool = False) -> dict:
         equal_ticker_c2r_activation_frequency=_equal_ticker_freq(c2r_n, c2r_N),
     )
 
-    _export_parquet(manifest, c2c_active, c2c_power, c2c_orb, c2r_active, c2r_power, c2r_orb, eligible, stock_ret, stock_vs, ewz_adj)
-    _export_aggregate_parquet(c2c_N, c2c_n, c2c_sum, c2r_N, c2r_n, c2r_sum, pool_c2c_n, pool_c2c_sum, pool_c2c_N, pool_c2r_n, pool_c2r_sum, pool_c2r_N)
+    _export_parquet(
+        manifest,
+        c2c_active,
+        c2c_power,
+        c2c_orb,
+        c2r_active,
+        c2r_power,
+        c2r_orb,
+        eligible,
+        stock_ret,
+        stock_vs,
+        ewz_adj,
+        out_root=out_root,
+    )
+    _export_aggregate_parquet(
+        c2c_N,
+        c2c_n,
+        c2c_sum,
+        c2r_N,
+        c2r_n,
+        c2r_sum,
+        pool_c2c_n,
+        pool_c2c_sum,
+        pool_c2c_N,
+        pool_c2r_n,
+        pool_c2r_sum,
+        pool_c2r_N,
+        out_root=out_root,
+    )
 
     from br3_validate import run_validation, write_report
 
@@ -435,7 +481,21 @@ def _equal_ticker_freq(n_arr: np.ndarray, N_arr: np.ndarray) -> np.ndarray:
     return out
 
 
-def _export_parquet(manifest, c2c_active, c2c_power, c2c_orb, c2r_active, c2r_power, c2r_orb, eligible, stock_ret, stock_vs, ewz_adj):
+def _export_parquet(
+    manifest,
+    c2c_active,
+    c2c_power,
+    c2c_orb,
+    c2r_active,
+    c2r_power,
+    c2r_orb,
+    eligible,
+    stock_ret,
+    stock_vs,
+    ewz_adj,
+    *,
+    out_root: Path,
+):
     import pandas as pd
 
     c2c_rows, c2r_rows = [], []
@@ -481,8 +541,8 @@ def _export_parquet(manifest, c2c_active, c2c_power, c2c_orb, c2r_active, c2r_po
                                 "stock_return_vs_ewz_pp": float(stock_vs[ti, ei]),
                             }
                         )
-    pd.DataFrame(c2c_rows).to_parquet(OUTPUT_BR3 / "c2c_event_cells.parquet", index=False)
-    pd.DataFrame(c2r_rows).to_parquet(OUTPUT_BR3 / "c2r_event_cells.parquet", index=False)
+    pd.DataFrame(c2c_rows).to_parquet(out_root / "c2c_event_cells.parquet", index=False)
+    pd.DataFrame(c2r_rows).to_parquet(out_root / "c2r_event_cells.parquet", index=False)
 
 
 def _metrics_scalar(N: int, n: int, s: float) -> tuple[float, float, float]:
@@ -494,7 +554,22 @@ def _metrics_scalar(N: int, n: int, s: float) -> tuple[float, float, float]:
     return af, ppo, ppa
 
 
-def _export_aggregate_parquet(c2c_N, c2c_n, c2c_sum, c2r_N, c2r_n, c2r_sum, pool_c2c_n, pool_c2c_sum, pool_c2c_N, pool_c2r_n, pool_c2r_sum, pool_c2r_N):
+def _export_aggregate_parquet(
+    c2c_N,
+    c2c_n,
+    c2c_sum,
+    c2r_N,
+    c2r_n,
+    c2r_sum,
+    pool_c2c_n,
+    pool_c2c_sum,
+    pool_c2c_N,
+    pool_c2r_n,
+    pool_c2r_sum,
+    pool_c2r_N,
+    *,
+    out_root: Path,
+):
     import pandas as pd
 
     rows = []
@@ -525,7 +600,7 @@ def _export_aggregate_parquet(c2c_N, c2c_n, c2c_sum, c2r_N, c2r_n, c2r_sum, pool
                             "power_per_activation": float(ppa),
                         }
                     )
-    pd.DataFrame(rows).to_parquet(OUTPUT_BR3 / "c2c_aggregates.parquet", index=False)
+    pd.DataFrame(rows).to_parquet(out_root / "c2c_aggregates.parquet", index=False)
 
     rows = []
     for li, lab in enumerate(LABELS):
@@ -553,7 +628,7 @@ def _export_aggregate_parquet(c2c_N, c2c_n, c2c_sum, c2r_N, c2r_n, c2r_sum, pool
                                 "power_per_activation": float(ppa),
                             }
                         )
-    pd.DataFrame(rows).to_parquet(OUTPUT_BR3 / "c2r_aggregates.parquet", index=False)
+    pd.DataFrame(rows).to_parquet(out_root / "c2r_aggregates.parquet", index=False)
 
     pooled = []
     for li, lab in enumerate(LABELS):
@@ -603,4 +678,4 @@ def _export_aggregate_parquet(c2c_N, c2c_n, c2c_sum, c2r_N, c2r_n, c2r_sum, pool
                             "power_per_activation": float(ppa),
                         }
                     )
-    pd.DataFrame(pooled).to_parquet(OUTPUT_BR3 / "pooled_aggregates.parquet", index=False)
+    pd.DataFrame(pooled).to_parquet(out_root / "pooled_aggregates.parquet", index=False)

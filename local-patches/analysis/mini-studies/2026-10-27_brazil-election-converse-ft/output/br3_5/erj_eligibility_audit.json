@@ -1,0 +1,19 @@
+{
+  "registry_ft_date": "2025-11-03",
+  "registry_ft_time": "09:31",
+  "yahoo_symbol": "EMBJ",
+  "ohlc_first_session": "2000-07-24",
+  "ohlc_sessions_with_returns": 6605,
+  "br3_eligible_events": 2,
+  "br3_eligible_sessions": [
+    "2026-10-26",
+    "2026-10-05"
+  ],
+  "br3_ineligible_reason_counts": {
+    "event_before_ft": 98,
+    "ok": 2
+  },
+  "diagnosis": "Almost all BR-3 events are excluded by event_before_ft, not missing OHLC. universe_ft_registry.csv lists ERJ/EMBJ ft_date=2025-11-03 (Munkasey), while Yahoo EMBJ daily bars begin 2000-07-21. Only sessions strictly after 2025-11-03 can qualify; among the top-100 EWZ extremes that is 2026-10-05 and 2026-10-26.",
+  "counterfactual_eligible_ewz_sessions_if_ft_eq_ohlc_first": 6604,
+  "recommended_action": "Source a historically correct Embraer ADR first-trade timestamp for strict cohorts, or exclude ERJ from pre-2025 event panels until FT is corrected. Do not infer listing from Yahoo alone without documentary FT."
+}
