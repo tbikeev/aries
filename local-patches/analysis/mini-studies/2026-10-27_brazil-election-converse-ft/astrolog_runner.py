@@ -74,7 +74,13 @@ def _run(cmd: list[str], *, cwd: Path, env: dict | None = None) -> str:
 _ASTrolog_BIN = "./astrolog"
 
 
-def run_mirror_bundle(radix: ChartSpec, event: ChartSpec, *, pd_key: str = "-1.0") -> tuple[str, str]:
+def run_mirror_bundle(
+    radix: ChartSpec,
+    event: ChartSpec,
+    *,
+    pd_key: str = "-1.0",
+    event_st_zone: str | None = None,
+) -> tuple[str, str]:
     """Returns (internal_mirror_aspects, radix_cross_aspects) text."""
     root = resolve_ast77_root()
     binary = resolve_ast77_binary(root)
@@ -146,7 +152,7 @@ def run_mirror_bundle(radix: ChartSpec, event: ChartSpec, *, pd_key: str = "-1.0
                 str(chart_list),
                 str(chart_list),
                 "-z",
-                EVENT_ZONE,
+                event_st_zone or event.zone or EVENT_ZONE,
                 "-qL",
                 "0",
                 "-qL2",
@@ -203,7 +209,14 @@ def chart_from_ft(ticker: str, row) -> ChartSpec:
     )
 
 
-def event_chart(ticker: str, event: date, label: str) -> ChartSpec:
+def ny_standard_time_zone_hours_west(session: date) -> str:
+    """Astrolog ST zone string (hours west of UTC) for America/New_York on session date."""
+    local_noon = datetime.combine(session, time(12, 0), tzinfo=ET)
+    hours_west = int(-local_noon.utcoffset().total_seconds() // 3600)
+    return f"{hours_west}:00"
+
+
+def event_chart(ticker: str, event: date, label: str, *, st_zone: str | None = None) -> ChartSpec:
     return ChartSpec(
         name=f"{ticker} event {event.isoformat()}",
         place="New York NY",
@@ -212,4 +225,5 @@ def event_chart(ticker: str, event: date, label: str) -> ChartSpec:
         day=event.day,
         hour=9,
         minute=30,
+        zone=st_zone or ny_standard_time_zone_hours_west(event),
     )

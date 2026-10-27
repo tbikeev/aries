@@ -63,6 +63,9 @@ def main() -> None:
     pm.add_argument("--end", default="2026-12-31")
     pm.add_argument("--force", action="store_true", help="Re-download all series")
     pm.add_argument("--no-ibovespa", action="store_true")
+    pbr3 = sub.add_parser("aspect-matrices", help="Phase BR-3: C2C/C2R aspect-power matrices")
+    pbr3.add_argument("--extremes", type=int, default=50)
+    pbr3.add_argument("--recompute", action="store_true")
     args = p.parse_args()
     if args.cmd == "pags":
         from pags_reproduction import main_pags
@@ -131,6 +134,13 @@ def main() -> None:
         import json
 
         print(json.dumps(meta, indent=2))
+    elif args.cmd == "aspect-matrices":
+        from br3_pipeline import build_event_manifest, run_aspect_matrices
+        import json
+
+        build_event_manifest(extremes=args.extremes)
+        result = run_aspect_matrices(extremes=args.extremes, recompute=args.recompute)
+        print(json.dumps(result, indent=2))
     elif args.cmd == "historical-shocks":
         from brazil_paths import OUTPUT_BR2
         from br2_pipeline import run_br2
