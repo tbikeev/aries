@@ -18,9 +18,6 @@ os.chdir(_STUDY)
 
 import argparse
 
-from brazil_pipeline import run_full
-from pags_reproduction import main_pags
-
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Brazil election converse FT study")
@@ -35,8 +32,12 @@ def main() -> None:
     pbr.add_argument("--placebos", type=int, default=200)
     pbr.add_argument("--skip-percentiles", action="store_true", help="Skip slow 250-session percentiles")
     pbr.add_argument("--percentiles-only", action="store_true", help="Only rebuild historical_c2c_percentiles.csv")
+    pad = sub.add_parser("astrolog-debug", help="Oct 5 vs Oct 26 mirror tabs (sa_app astrolog -pd -1)")
+    pad.add_argument("--ticker", action="append", help="Limit to ticker(s); default all except EBR")
     args = p.parse_args()
     if args.cmd == "pags":
+        from pags_reproduction import main_pags
+
         main_pags()
     elif args.cmd == "report":
         from brazil_pipeline import OUTPUT, write_report
@@ -63,6 +64,12 @@ def main() -> None:
         from brazil_pipeline import _publish_outputs
 
         _publish_outputs()
+    elif args.cmd == "astrolog-debug":
+        from brazil_astrolog_debug import run_debug
+
+        tickers = tuple(args.ticker) if args.ticker else None
+        path = run_debug(tickers=tickers)
+        print(f"Wrote {path}")
     elif args.cmd == "historical-shocks":
         from brazil_paths import OUTPUT_BR2
         from br2_pipeline import run_br2
@@ -103,6 +110,8 @@ def main() -> None:
 
         _publish_outputs()
     else:
+        from brazil_pipeline import run_full
+
         run_full(skip_historical=args.skip_historical)
 
 
