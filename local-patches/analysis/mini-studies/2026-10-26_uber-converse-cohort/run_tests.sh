@@ -37,7 +37,7 @@ from pathlib import Path
 sys.path.insert(0, "${STUDY}")
 import importlib.util
 STUDY = Path("${STUDY}")
-for mod_name in ("test_earnings_pipeline", "test_daily_panel", "test_phase_h"):
+for mod_name in ("test_earnings_pipeline", "test_daily_panel", "test_phase_h", "test_phase_i"):
     spec = importlib.util.spec_from_file_location(mod_name, STUDY / "tests" / f"{mod_name}.py")
     mod = importlib.util.module_from_spec(spec)
     assert spec.loader

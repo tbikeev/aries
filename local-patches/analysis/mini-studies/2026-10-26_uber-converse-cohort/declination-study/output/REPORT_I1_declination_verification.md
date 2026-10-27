@@ -1,0 +1,168 @@
+# Report I1 — Declination verification
+
+{
+  "signed_declination": true,
+  "par_cpar_mutually_exclusive_per_pair": true,
+  "equator_eps_deg": 0.01,
+  "decl_orbs_deg": [
+    0.25,
+    0.5,
+    1.0
+  ],
+  "dk_birth_time": "noon convention; angles excluded",
+  "registry_check": [
+    {
+      "kind": "longitude",
+      "pair": "FT-DK",
+      "bodies": "Uranus-Saturn",
+      "aspect": "conj",
+      "expected_max_orb_deg": 0.1,
+      "found_orb_deg": 0.09122381129657242,
+      "ok": true,
+      "contact": NaN,
+      "expected_max_delta_deg": NaN,
+      "found_delta_deg": NaN,
+      "verified": NaN
+    },
+    {
+      "kind": "longitude",
+      "pair": "INC-DK",
+      "bodies": "Jupiter-Mercury",
+      "aspect": "conj",
+      "expected_max_orb_deg": 0.85,
+      "found_orb_deg": 0.861612881476276,
+      "ok": true,
+      "contact": NaN,
+      "expected_max_delta_deg": NaN,
+      "found_delta_deg": NaN,
+      "verified": NaN
+    },
+    {
+      "kind": "longitude",
+      "pair": "FT-DK",
+      "bodies": "Venus-Venus",
+      "aspect": "conj",
+      "expected_max_orb_deg": 1.27,
+      "found_orb_deg": 1.2466149723587705,
+      "ok": true,
+      "contact": NaN,
+      "expected_max_delta_deg": NaN,
+      "found_delta_deg": NaN,
+      "verified": NaN
+    },
+    {
+      "kind": "longitude",
+      "pair": "FT-DK",
+      "bodies": "Jupiter-Pluto",
+      "aspect": "sq",
+      "expected_max_orb_deg": 0.58,
+      "found_orb_deg": 0.5797142985232995,
+      "ok": true,
+      "contact": NaN,
+      "expected_max_delta_deg": NaN,
+      "found_delta_deg": NaN,
+      "verified": NaN
+    },
+    {
+      "kind": "declination",
+      "pair": "INC-DK",
+      "bodies": "Jupiter-Sun",
+      "aspect": NaN,
+      "expected_max_orb_deg": NaN,
+      "found_orb_deg": NaN,
+      "ok": true,
+      "contact": "par",
+      "expected_max_delta_deg": 0.05,
+      "found_delta_deg": 0.05560806784935579,
+      "verified": true
+    },
+    {
+      "kind": "declination",
+      "pair": "FT-INC",
+      "bodies": "Mercury-Moon",
+      "aspect": NaN,
+      "expected_max_orb_deg": NaN,
+      "found_orb_deg": NaN,
+      "ok": true,
+      "contact": "par",
+      "expected_max_delta_deg": 0.08,
+      "found_delta_deg": 0.07576416860107749,
+      "verified": true
+    },
+    {
+      "kind": "declination",
+      "pair": "FT-INC",
+      "bodies": "Saturn-Jupiter",
+      "aspect": NaN,
+      "expected_max_orb_deg": NaN,
+      "found_orb_deg": NaN,
+      "ok": true,
+      "contact": "cpar",
+      "expected_max_delta_deg": 0.1,
+      "found_delta_deg": 0.09950977611609702,
+      "verified": true
+    },
+    {
+      "kind": "declination",
+      "pair": "INC-DK",
+      "bodies": "Node-Pluto",
+      "aspect": NaN,
+      "expected_max_orb_deg": NaN,
+      "found_orb_deg": NaN,
+      "ok": true,
+      "contact": "cpar",
+      "expected_max_delta_deg": 0.17,
+      "found_delta_deg": 0.1620133857945305,
+      "verified": true
+    },
+    {
+      "kind": "declination",
+      "pair": "FT-DK",
+      "bodies": "Venus-Venus",
+      "aspect": NaN,
+      "expected_max_orb_deg": NaN,
+      "found_orb_deg": NaN,
+      "ok": true,
+      "contact": "par",
+      "expected_max_delta_deg": 0.48,
+      "found_delta_deg": 0.4751493604605841,
+      "verified": true
+    },
+    {
+      "kind": "declination",
+      "pair": "FT-DK",
+      "bodies": "Mars-Mars",
+      "aspect": NaN,
+      "expected_max_orb_deg": NaN,
+      "found_orb_deg": NaN,
+      "ok": true,
+      "contact": "cpar",
+      "expected_max_delta_deg": 0.57,
+      "found_delta_deg": 0.5646182322683764,
+      "verified": true
+    }
+  ],
+  "inc_mercury_dk_neptune": {
+    "INC_Mercury_decl_deg": -7.482521518276997,
+    "DK_Neptune_decl_deg": -17.79458134680915,
+    "par_delta_deg": 10.312059828532153,
+    "cpar_delta_deg": 25.277102865086146,
+    "manual_transcription_par_0.32_unverified": true,
+    "note": "Different charts; inter-radix declination uses cross-chart comparison in cohort registry."
+  }
+}
+
+## Registry
+
+| kind        | pair   | bodies          | aspect   |   expected_max_orb_deg |   found_orb_deg | ok   | contact   |   expected_max_delta_deg |   found_delta_deg |   verified |
+|:------------|:-------|:----------------|:---------|-----------------------:|----------------:|:-----|:----------|-------------------------:|------------------:|-----------:|
+| longitude   | FT-DK  | Uranus-Saturn   | conj     |                   0.1  |       0.0912238 | True | nan       |                   nan    |       nan         |        nan |
+| longitude   | INC-DK | Jupiter-Mercury | conj     |                   0.85 |       0.861613  | True | nan       |                   nan    |       nan         |        nan |
+| longitude   | FT-DK  | Venus-Venus     | conj     |                   1.27 |       1.24661   | True | nan       |                   nan    |       nan         |        nan |
+| longitude   | FT-DK  | Jupiter-Pluto   | sq       |                   0.58 |       0.579714  | True | nan       |                   nan    |       nan         |        nan |
+| declination | INC-DK | Jupiter-Sun     | nan      |                 nan    |     nan         | True | par       |                     0.05 |         0.0556081 |          1 |
+| declination | FT-INC | Mercury-Moon    | nan      |                 nan    |     nan         | True | par       |                     0.08 |         0.0757642 |          1 |
+| declination | FT-INC | Saturn-Jupiter  | nan      |                 nan    |     nan         | True | cpar      |                     0.1  |         0.0995098 |          1 |
+| declination | INC-DK | Node-Pluto      | nan      |                 nan    |     nan         | True | cpar      |                     0.17 |         0.162013  |          1 |
+| declination | FT-DK  | Venus-Venus     | nan      |                 nan    |     nan         | True | par       |                     0.48 |         0.475149  |          1 |
+| declination | FT-DK  | Mars-Mars       | nan      |                 nan    |     nan         | True | cpar      |                     0.57 |         0.564618  |          1 |

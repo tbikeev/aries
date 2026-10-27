@@ -1,0 +1,14 @@
+{
+  "DK_par_orb05": {
+    "observed_r": 0.22081102706775338,
+    "null_median": 0.0023404808383416355,
+    "empirical_p_two_sided": 0.259
+  },
+  "DK_decl_total_orb05": {
+    "observed_r": 0.2835867031712747,
+    "null_median": -0.0030818871293684528,
+    "empirical_p_two_sided": 0.147
+  },
+  "n_surrogates": 1000,
+  "seed": 20261027
+}

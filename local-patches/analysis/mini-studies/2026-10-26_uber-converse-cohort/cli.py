@@ -92,7 +92,26 @@ def main() -> None:
     p_h.add_argument("--output-dir", type=Path, default=None)
     p_h.add_argument("--surrogates", type=int, default=1000)
 
+    p_i = sub.add_parser("phase-i", help="Declination Par/Cpar and dual-coordinate Phase I")
+    p_i.add_argument("--output-dir", type=Path, default=None)
+    p_i.add_argument("--surrogates", type=int, default=1000)
+    p_i.add_argument("--seed", type=int, default=20261027)
+    p_i.add_argument("--recompute-decl", action="store_true")
+    p_i.add_argument("--build-daily-cache", action="store_true")
+
     args = parser.parse_args()
+    if args.command == "phase-i":
+        from phase_i_pipeline import run_phase_i
+
+        summary = run_phase_i(
+            output_dir=args.output_dir,
+            n_surrogates=args.surrogates,
+            seed=args.seed,
+            reuse_decl_cache=not args.recompute_decl,
+            build_daily_cache=args.build_daily_cache,
+        )
+        print(json.dumps(summary, indent=2))
+        return
     if args.command == "phase-h":
         from phase_h_pipeline import run_phase_h
 
