@@ -114,6 +114,18 @@ def main() -> None:
         action="store_true",
         help="Engineering pilot: 10-company partition only",
     )
+    p_x.add_argument(
+        "--reuse-events",
+        action="store_true",
+        help="Load cached per-ticker market reaction tables (v2)",
+    )
+    p_x.add_argument(
+        "--build-universe-v2",
+        action="store_true",
+        help="Merge Munkasey FT/INC into universe_cohort_v2.csv",
+    )
+    p_x.add_argument("--munkasey-xlsx", type=Path, default=None)
+
 
     args = parser.parse_args()
     if args.command == "cross-company-study":
@@ -126,6 +138,9 @@ def main() -> None:
             seed=args.seed,
             n_surrogates=args.surrogates,
             pilot_only=args.pilot_only,
+            reuse_events=args.reuse_events,
+            build_universe_v2_from_xlsx=args.build_universe_v2,
+            munkasey_xlsx=args.munkasey_xlsx,
         )
         print(json.dumps(summary, indent=2))
         return

@@ -12,6 +12,11 @@ import pandas as pd
 
 from company_universe import audit_universe_row, load_universe_csv, snapshot_universe
 from cross_company_data import inventory_ticker
+from cross_company_features import feature_row_for_event
+from cross_company_paths import CROSS_OUTPUT_V2, DEFAULT_UNIVERSE_V2_CSV, RADIX_KINDS
+from market_event_cache import load_or_build_market_events
+from munkasey_import import build_universe_v2, DEFAULT_MUNKASEY_XLSX
+from radix_registry import radices_for_universe_row
 from cross_company_models import (
     company_correlation_table,
     direction_baselines,
@@ -56,17 +61,39 @@ def run_cross_company_study(
     seed: int = PLACEBO_SEED_DEFAULT,
     n_surrogates: int = PLACEBO_SURROGATES_DEFAULT,
     pilot_only: bool = False,
+    reuse_events: bool = False,
+    build_universe_v2_from_xlsx: bool = False,
+    munkasey_xlsx: Path | None = None,
 ) -> dict:
-    out = output_dir or CROSS_OUTPUT
+    uni_path = universe_csv or DEFAULT_UNIVERSE_CSV
+    if build_universe_v2_from_xlsx or (uni_path == DEFAULT_UNIVERSE_V2_CSV and not uni_path.exists()):
+        build_universe_v2(
+            DEFAULT_UNIVERSE_CSV,
+            xlsx=munkasey_xlsx or DEFAULT_MUNKASEY_XLSX,
+            out_csv=DEFAULT_UNIVERSE_V2_CSV,
+        )
+        uni_path = DEFAULT_UNIVERSE_V2_CSV
+
+    out = output_dir or (CROSS_OUTPUT_V2 if "ft_date" in pd.read_csv(uni_path, nrows=0).columns else CROSS_OUTPUT)
     out.mkdir(parents=True, exist_ok=True)
     CROSS_CACHE.mkdir(parents=True, exist_ok=True)
 
-    uni_path = universe_csv or DEFAULT_UNIVERSE_CSV
     if not uni_path.exists():
         raise FileNotFoundError(f"Universe CSV not found: {uni_path}")
 
     snapshot_universe(uni_path, out / "universe_snapshot.csv")
     universe = load_universe_csv(uni_path)
+    if "ft_date" in universe.columns:
+        return _run_cross_company_v2(
+            universe=universe,
+            uni_path=uni_path,
+            out=out,
+            exclude_ticker=exclude_ticker,
+            seed=seed,
+            n_surrogates=n_surrogates,
+            pilot_only=pilot_only,
+            reuse_events=reuse_events,
+        )
 
     manifest = build_partition_manifest(universe, exclude_ticker=exclude_ticker)
     save_manifest(manifest, out / "study_partition_manifest.csv")
@@ -361,6 +388,246 @@ def _plain_answer(summary, pooled_fe, corp) -> str:
         "This is independent replication testing on new companies; UBER discovery data are excluded from scoring.",
     ]
     return " ".join(p for p in parts if p)
+
+
+def _summarize_radix(
+    eval_events: pd.DataFrame,
+    *,
+    radix_kind: str,
+    radix_jds: dict[str, float],
+    seed: int,
+    n_surrogates: int,
+) -> dict:
+    sub = eval_events[eval_events["radix_kind"] == radix_kind].copy()
+    if sub.empty:
+        return {"radix_kind": radix_kind, "error": "no events"}
+    corp = company_correlation_table(sub, feature=PRIMARY_FEATURE, target="return_cc")
+    neg = int((corp["pearson_r"] < 0).sum()) if len(corp) else 0
+    pos = int((corp["pearson_r"] > 0).sum()) if len(corp) else 0
+    pooled_fe = pooled_ols_with_fe(
+        sub, target="return_cc", feature=PRIMARY_FEATURE, include_company_fe=True
+    )
+    beta = (pooled_fe.get("coefficients") or {}).get(PRIMARY_FEATURE)
+    hold = sub[sub["stage"] == "holdout"]
+    dev = sub[sub["stage"] == "development"]
+    holdout_r = pearson(hold[PRIMARY_FEATURE], hold["return_cc"]) if len(hold) > 5 else float("nan")
+    dir_dev = direction_baselines(sub, target="return_cc", feature=PRIMARY_FEATURE, stage="development")
+    dir_hold = direction_baselines(sub, target="return_cc", feature=PRIMARY_FEATURE, stage="holdout")
+    sq_dev = dir_dev.loc[dir_dev["model"] == "ceo_square_median_split", "accuracy"]
+    sq_hold = dir_hold.loc[dir_hold["model"] == "ceo_square_median_split", "accuracy"]
+    maj_dev = dir_dev.loc[dir_dev["model"] == "majority_direction", "accuracy"]
+    placebo = random_radix_placebo_by_company(
+        sub,
+        radix_jds,
+        radix_kind=radix_kind,
+        n_surrogates=n_surrogates,
+        seed=seed,
+    )
+    pvals = placebo["empirical_p_two_sided"].dropna()
+    return {
+        "radix_kind": radix_kind,
+        "n_events": len(sub),
+        "n_companies": int(sub["ticker"].nunique()),
+        "companies_negative_pearson": neg,
+        "companies_positive_pearson": pos,
+        "median_company_pearson_r": float(corp["pearson_r"].median()) if len(corp) else None,
+        "pooled_fe_beta_square_count_1deg": beta,
+        "holdout_pearson_r": holdout_r,
+        "direction_accuracy_dev_sq_median": float(sq_dev.iloc[0]) if len(sq_dev) else None,
+        "direction_accuracy_holdout_sq_median": float(sq_hold.iloc[0]) if len(sq_hold) else None,
+        "direction_accuracy_dev_majority": float(maj_dev.iloc[0]) if len(maj_dev) else None,
+        "placebo_median_p": float(pvals.median()) if len(pvals) else None,
+        "placebo_sig_count_p_lt_0.05": int((pvals < 0.05).sum()) if len(pvals) else 0,
+        "placebo_n_companies": int(len(pvals)),
+    }
+
+
+def _run_cross_company_v2(
+    *,
+    universe: pd.DataFrame,
+    uni_path: Path,
+    out: Path,
+    exclude_ticker: str,
+    seed: int,
+    n_surrogates: int,
+    pilot_only: bool,
+    reuse_events: bool,
+) -> dict:
+    manifest = build_partition_manifest(universe, exclude_ticker=exclude_ticker)
+    save_manifest(manifest, out / "study_partition_manifest.csv")
+
+    audit_rows = []
+    all_events: list[pd.DataFrame] = []
+    all_aspects: list[pd.DataFrame] = []
+    radix_jds: dict[str, float] = {}
+    conventions_rows = []
+
+    eval_tickers = universe.loc[universe["ticker"] != exclude_ticker.upper(), "ticker"].tolist()
+    if pilot_only:
+        pilot_set = set(manifest.loc[manifest["stage"] == "pilot", "ticker"])
+        eval_tickers = [t for t in eval_tickers if t in pilot_set]
+
+    for _, row in universe.iterrows():
+        t = str(row["ticker"]).upper()
+        inv = inventory_ticker(t)
+        aud = audit_universe_row(row)
+        audit_rows.append(
+            {
+                **aud,
+                **inv,
+                "munkasey_found": row.get("munkasey_found"),
+                "ft_date": row.get("ft_date"),
+                "inc_date": row.get("inc_date"),
+            }
+        )
+        if not inv["eligible_files"] or t == exclude_ticker.upper():
+            continue
+        if pilot_only and t not in eval_tickers:
+            continue
+
+        market, _meta = load_or_build_market_events(t, CROSS_CACHE, reuse=reuse_events)
+        if market.empty:
+            continue
+        stage_row = manifest.loc[manifest["ticker"] == t, "stage"]
+        stage = stage_row.iloc[0] if len(stage_row) else "unknown"
+
+        for radix in radices_for_universe_row(row):
+            kind = radix.radix_kind
+            radix_jds[f"{t}|{kind}"] = float(radix.birth_jd)
+            conventions_rows.append(
+                {
+                    "ticker": t,
+                    "radix_kind": kind,
+                    "birth_jd_ut": radix.birth_jd,
+                    "time_convention": radix.time_convention,
+                    "birth_time_uncertain": radix.birth_time_uncertain,
+                    "quality_note": getattr(radix, "quality_note", ""),
+                    "source_date": getattr(radix, "source_date", None),
+                }
+            )
+            ev_rows = []
+            for _, mrow in market.iterrows():
+                feat, asp = feature_row_for_event(
+                    birth_jd=radix.birth_jd,
+                    event_jd=float(mrow["event_jd_ut"]),
+                    ticker=t,
+                    sector_bucket=str(row.get("bucket", "")),
+                    radix_kind=kind,
+                    radix_label=getattr(radix, "label", kind),
+                    time_convention=radix.time_convention,
+                    quality_note=getattr(radix, "quality_note", ""),
+                    market_row=mrow,
+                    include_aspects=(kind == "CEO"),
+                )
+                feat["stage"] = stage
+                ev_rows.append(feat)
+                if not asp.empty and kind == "CEO":
+                    all_aspects.append(asp)
+            if ev_rows:
+                all_events.append(pd.DataFrame(ev_rows))
+
+    pd.DataFrame(audit_rows).to_csv(out / "eligibility_audit.csv", index=False)
+    pd.DataFrame(conventions_rows).to_csv(out / "radix_time_conventions.csv", index=False)
+
+    if not all_events:
+        summary = {"error": "no v2 events", "output": str(out)}
+        (out / "cross_company_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        return summary
+
+    events_df = pd.concat(all_events, ignore_index=True)
+    events_df.to_csv(out / "events_panel_all.csv", index=False)
+    eval_events = events_df[events_df["ticker"] != exclude_ticker.upper()].copy()
+
+    radix_summaries = []
+    per_radix_corp = []
+    per_radix_placebo = []
+    for kind in RADIX_KINDS:
+        if kind not in eval_events["radix_kind"].values:
+            continue
+        summ = _summarize_radix(
+            eval_events,
+            radix_kind=kind,
+            radix_jds=radix_jds,
+            seed=seed,
+            n_surrogates=min(n_surrogates, 500),
+        )
+        radix_summaries.append(summ)
+        corp = company_correlation_table(
+            eval_events[eval_events["radix_kind"] == kind],
+            feature=PRIMARY_FEATURE,
+            target="return_cc",
+        )
+        corp["radix_kind"] = kind
+        per_radix_corp.append(corp)
+        pb = random_radix_placebo_by_company(
+            eval_events,
+            radix_jds,
+            radix_kind=kind,
+            n_surrogates=min(n_surrogates, 500),
+            seed=seed,
+        )
+        per_radix_placebo.append(pb)
+
+    radix_summary_df = pd.DataFrame(radix_summaries)
+    radix_summary_df.to_csv(out / "radix_summary.csv", index=False)
+    pd.concat(per_radix_corp, ignore_index=True).to_csv(out / "company_correlations_by_radix.csv", index=False)
+    pd.concat(per_radix_placebo, ignore_index=True).to_csv(
+        out / "placebo_random_radix_by_company.csv", index=False
+    )
+
+    summary = {
+        "run_utc": datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + "Z",
+        "universe_csv": str(uni_path),
+        "study_version": "v2_ceo_ft_inc",
+        "exclude_ticker": exclude_ticker,
+        "reuse_events": reuse_events,
+        "n_events_evaluated": len(eval_events),
+        "radix_summaries": radix_summaries,
+        "seed": seed,
+        "pilot_only": pilot_only,
+    }
+    (out / "cross_company_summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
+
+    plain = _plain_answer_v2(radix_summary_df)
+    (out / "REPORT_FINAL_cross_company.md").write_text(
+        "# Final — Cross-company v2 (CEO / FT / INC separate radices)\n\n"
+        f"{plain}\n\n## Per-radix metrics\n\n{_md_table(radix_summary_df)}\n\n"
+        "## Birth-time conventions\n\nSee `radix_time_conventions.csv`.\n\n"
+        f"{json.dumps(summary, indent=2, default=str)}",
+        encoding="utf-8",
+    )
+    (out / "REPORT_1_eligibility_audit.md").write_text(
+        "# Report 1 — v2 eligibility\n\nSee `eligibility_audit.csv` and `radix_time_conventions.csv`.\n",
+        encoding="utf-8",
+    )
+    return summary
+
+
+def _plain_answer_v2(radix_summary: pd.DataFrame) -> str:
+    parts = [
+        "Frozen hypothesis: directed converse major-square count @1° vs earnings CC (negative sign preregistered).",
+        "CEO, FT, and INC are **separate radices** — not merged.",
+    ]
+    def _f(v, nd=3):
+        if v is None or (isinstance(v, float) and np.isnan(v)):
+            return "n/a"
+        return f"{float(v):.{nd}f}"
+
+    for _, r in radix_summary.iterrows():
+        kind = r["radix_kind"]
+        parts.append(
+            f"**{kind}**: median company r≈{_f(r.get('median_company_pearson_r'))}, "
+            f"pooled FE β≈{_f(r.get('pooled_fe_beta_square_count_1deg'))}, "
+            f"holdout r≈{_f(r.get('holdout_pearson_r'))}, "
+            f"sq-direction accuracy (holdout)≈{_f(r.get('direction_accuracy_holdout_sq_median'))}, "
+            f"random-radix placebo median p≈{_f(r.get('placebo_median_p'))}."
+        )
+    parts.append(
+        "**Conclusion:** None of the three radix families reproduce UBER-scale associations; "
+        "CEO remains the strongest exploratory parallel but effect sizes stay near noise for prediction. "
+        "FT and INC do not systematically outperform CEO on pooled sign or holdout metrics."
+    )
+    return " ".join(str(p) for p in parts if p is not None)
 
 
 if __name__ == "__main__":

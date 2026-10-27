@@ -1,0 +1,5 @@
+{
+  "partition_rule": "sorted ticker within bucket; slices pilot[0:2] dev[2:7] holdout[7:10]",
+  "exclude_discovery_ticker": "UBER",
+  "seed": 20261027
+}

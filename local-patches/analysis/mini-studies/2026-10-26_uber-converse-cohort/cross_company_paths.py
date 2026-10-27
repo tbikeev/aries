@@ -11,6 +11,10 @@ CROSS_INPUT = STUDY_ROOT / "cross-company-study" / "input"
 CROSS_CACHE = STUDY_ROOT / "cross-company-study" / "cache"
 
 DEFAULT_UNIVERSE_CSV = CROSS_INPUT / "universe_cohort_all.csv"
+DEFAULT_UNIVERSE_V2_CSV = CROSS_INPUT / "universe_cohort_v2.csv"
+CROSS_OUTPUT_V2 = STUDY_ROOT / "cross-company-study" / "output-v2"
+
+RADIX_KINDS = ("CEO", "FT", "INC")
 
 # Frozen hypothesis (transferred from UBER Phase H / I).
 FROZEN_SQ_ORB_DEG = 1.0

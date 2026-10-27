@@ -1,0 +1,42 @@
+bucket,ticker,company,executive,role,dob,tenure_note,verification_status,dob_source_url,munkasey_found,ft_date,inc_date,ft_exchange,inc_state,ft_time_hhmm,ft_time_source
+Technology,MSFT,Microsoft,Satya Nadella,CEO,1967-08-19,Long-tenured CEO,Secondary corroboration,https://www.wikidata.org/wiki/Q7426870,True,1986-03-13,1993-09-22,Q,WA,10:08,col10_hhmm
+Technology,AAPL,Apple,Tim Cook,CEO (historical),1960-11-01,CEO through August 2026,Strong,https://encyclopediaofalabama.org/article/tim-cook/,True,1980-12-12,1977-01-03,Q,CA,,
+Technology,NVDA,NVIDIA,Jensen Huang,CEO,1963-02-17,Founder CEO,Secondary corroboration,https://en.wikipedia.org/wiki/Jensen_Huang,True,1999-01-22,1998-02-24,Q,DE,12:15,col10_hhmm
+Technology,GOOGL,Alphabet,Sundar Pichai,CEO,1972-06-10,Alphabet CEO from 2019,Secondary corroboration,https://en.wikipedia.org/wiki/Sundar_Pichai,True,2014-04-03,2002-10-22,Q,DE,09:32,col10_hhmm
+Technology,META,Meta Platforms,Mark Zuckerberg,CEO,1984-05-14,Founder CEO,Secondary corroboration,https://en.wikipedia.org/wiki/Mark_Zuckerberg,True,2022-06-09,2004-07-29,Q,DE,09:32,col10_hhmm
+Technology,AMZN,Amazon,Andy Jassy,CEO,1968-01-13,Amazon CEO from July 2021,DOB needs second source,https://en.wikipedia.org/wiki/Andy_Jassy,True,1997-05-15,1996-05-28,Q,DE,09:00,col7_hhmm
+Technology,CRM,Salesforce,Marc Benioff,CEO,1964-09-25,Founder CEO,Secondary corroboration,https://www.wikidata.org/wiki/Q1521908,True,2004-06-23,1999-02-03,N,DE,09:54,col10_hhmm
+Technology,AMD,Advanced Micro Devices,Lisa Su,CEO,1969-11-07,CEO since 2014,Strong,https://www.munzinger.de/register/portrait/biographien/su%20lisa/00/32264,True,1979-10-15,1969-05-01,S,DE,10:00,col7_hhmm
+Technology,ADBE,Adobe,Shantanu Narayen,CEO,1963-05-27,CEO since 2007,Secondary corroboration,https://en.wikipedia.org/wiki/Shantanu_Narayen,True,1986-08-13,1997-05-09,Q,DE,09:00,col7_hhmm
+Technology,DELL,Dell Technologies,Michael Dell,CEO,1965-02-23,Founder CEO,Strong,https://achievement.org/achiever/michael-dell/,True,2018-12-28,2013-01-31,N,DE,09:37,col10_hhmm
+Consumer,UBER,Uber Technologies,Dara Khosrowshahi,CEO,1969-05-28,Discovery company; exclude from new-company holdout,Existing study,,True,2019-05-10,2010-07-16,N,DE,11:50,col10_hhmm
+Consumer,ABNB,Airbnb,Brian Chesky,CEO,1981-08-29,Founder CEO,Strong,https://acclad.org/brian-chesky,True,2020-12-10,2008-06-27,Q,DE,13:39,col10_hhmm
+Consumer,TSLA,Tesla,Elon Musk,CEO,1971-06-28,CEO since 2008,Secondary corroboration,https://en.wikipedia.org/wiki/Elon_Musk,True,2010-06-29,2024-06-13,Q,TX,11:25,col10_hhmm
+Consumer,DIS,Walt Disney,Bob Iger,CEO (historical),1951-02-10,Intermittent CEO; tenure differs across years,Secondary corroboration,https://en.wikipedia.org/wiki/Bob_Iger,True,1957-11-12,2018-06-14,N,DE,14:41,col7_hhmm
+Consumer,WMT,Walmart,Doug McMillon,CEO (historical),1966-10-17,CEO through January 2026,Strong,https://www.ourmidland.com/news/article/Correction-Wal-Mart-CEO-Bio-Box-story-6920291.php,True,1972-08-25,1969-10-31,N,DE,10:00,col7_hhmm
+Consumer,NFLX,Netflix,Reed Hastings,CEO (historical),1960-10-08,CEO through 2023; later chair,Secondary corroboration,https://www.tvinsider.com/people/reed-hastings/,True,2002-05-23,1997-08-29,Q,DE,11:00,col10_hhmm
+Consumer,SPOT,Spotify,Daniel Ek,CEO (historical),1983-02-21,CEO through 2025; executive chair 2026,Strong,https://www.musicbusinessworldwide.com/people/daniel-ek/,True,2018-04-03,2006-12-27,N,LUX,12:43,col10_hhmm
+Consumer,CMCSA,Comcast,Brian Roberts,CEO,1959-06-28,Long-tenured CEO,Strong,https://www.munzinger.de/register/portrait/biographien/Brian%2BRoberts/00/28764,True,1972-07-11,1969-03-05,Q,PA,,
+Consumer,MCD,McDonald’s,Chris Kempczinski,CEO,1968-09-26,CEO since 2019,DOB needs stronger source,https://www.famousbirthdays.com/people/chris-kempczinski.html,True,1966-07-05,1964-12-21,N,DE,10:00,col7_hhmm
+Consumer,SBUX,Starbucks,Howard Schultz,CEO (historical),1953-07-19,Interim CEO 2022–2023; other periods outside sample,Secondary corroboration,https://www.conference-board.org/bio/howard-schultz,True,1992-06-26,1985-11-04,Q,WA,,
+Consumer,RBLX,Roblox,David Baszucki,CEO,1963-01-20,Founder CEO; shorter listed history,Secondary corroboration,https://en.wikipedia.org/wiki/David_Baszucki,True,2021-03-10,2004-03-23,N,DE,13:33,col10_hhmm
+Industrials,F,Ford Motor,Jim Farley,CEO,1962-06-10,CEO since 2020,Secondary corroboration,https://en.wikipedia.org/wiki/Jim_Farley_(businessman),True,1956-03-07,1919-07-09,N,DE,13:00,col7_hhmm
+Industrials,GM,General Motors,Mary Barra,CEO,1961-12-24,CEO since 2014,Strong,https://www.yahoo.com/news/biographical-information-gm-ceo-mary-152140165.html,True,2010-11-18,2009-08-11,N,DE,09:36,col10_hhmm
+Industrials,DAL,Delta Air Lines,Ed Bastian,CEO,1957-06-06,CEO since 2016,Secondary corroboration,https://www.wikidata.org/wiki/Q32374551,True,2007-05-03,1967-03-16,N,DE,09:32,col10_hhmm
+Industrials,FDX,FedEx,Fred Smith,CEO (historical),1944-08-11,CEO through 2022; deceased 2025,Strong,https://achievement.org/achiever/frederick-w-smith/,True,1978-12-28,1997-10-02,N,DE,09:00,col7_hhmm
+Industrials,BA,Boeing,Dave Calhoun,CEO (historical),1957-04-18,CEO January 2020–August 2024,Strong,https://entities.oclc.org/worldcat/entity/E39PBJjxyDKBvPgFxCwjWB7T73.html,True,1935-09-05,1934-07-19,N,DE,10:01,col10_hhmm
+Industrials,LMT,Lockheed Martin,Marillyn Hewson,CEO (historical),1953-12-27,CEO through June 2020,Secondary corroboration,https://en.wikipedia.org/wiki/Marillyn_Hewson,True,1995-03-16,1994-08-29,N,MD,10:00,col7_hhmm
+Industrials,TM,Toyota Motor,Akio Toyoda,CEO (historical),1956-05-03,CEO through March 2023; chairman afterward,Strong,https://pressroom.toyota.com/biographies/akio-toyoda/,True,1999-09-29,,N,JAP,,
+Industrials,STLA,Stellantis,Carlos Tavares,CEO (historical),1958-08-14,CEO 2021–2024; limited listed history,Strong,https://www.munzinger.de/register/portrait/biographien/Carlos%20Tavares/00/29902,True,2021-01-19,2014-04-01,N,NED,09:31,col10_hhmm
+Industrials,UAL,United Airlines,Oscar Munoz,CEO (historical),1959-01-05,CEO through May 2020; limited matching period,Secondary corroboration,https://en.wikipedia.org/wiki/Oscar_Munoz_(executive),True,2010-10-01,1968-12-30,Q,DE,09:30,col10_hhmm
+Industrials,LUV,Southwest Airlines,Gary Kelly,CEO (historical),1955-03-12,CEO through 2022,Secondary corroboration,https://en.wikipedia.org/wiki/Gary_C._Kelly,True,1977-06-27,1967-03-09,N,TX,17:00,col7_hhmm
+Finance_Health,JPM,JPMorgan Chase,Jamie Dimon,CEO,1956-03-13,Long-tenured CEO,Strong,https://kvia.com/cnn-national/2025/02/27/jamie-dimon-fast-facts-3/,True,1969-04-01,1968-10-28,N,DE,10:00,col7_hhmm
+Finance_Health,BAC,Bank of America,Brian Moynihan,CEO,1959-10-09,CEO since 2010,Strong,https://www.munzinger.de/register/portrait/biographien/Brian%20Moynihan/00/28243,True,1979-06-05,1998-07-31,N,DE,12:30,col7_hhmm
+Finance_Health,BLK,BlackRock,Larry Fink,CEO,1952-11-02,Founder CEO,Secondary corroboration,https://en.wikipedia.org/wiki/Larry_Fink,True,1999-10-01,1998-03-27,N,DE,13:40,col7_hhmm
+Finance_Health,COIN,Coinbase,Brian Armstrong,CEO,1983-01-25,Founder CEO; shorter listed history,Secondary corroboration,https://www.wikidata.org/wiki/Q64705310,True,2021-04-14,2014-01-27,Q,DE,13:26,col10_hhmm
+Finance_Health,HOOD,Robinhood,Vlad Tenev,CEO,1987-02-13,Founder CEO; shorter listed history,DOB needs second source,https://www.wikidata.org/wiki/Q56248473,True,2021-07-29,2013-11-22,Q,DE,12:25,col10_hhmm
+Finance_Health,PFE,Pfizer,Albert Bourla,CEO,1961-10-21,CEO since 2019,Secondary corroboration,https://en.wikipedia.org/wiki/Albert_Bourla,True,1944-01-17,1942-06-02,N,DE,12:00,col7_hhmm
+Finance_Health,BNTX,BioNTech,Uğur Şahin,CEO,1965-09-19,Founder CEO; shorter US history,Strong,https://www.wikidata.org/wiki/Q2505089,True,2019-10-10,2008-06-02,Q,GER,10:35,col10_hhmm
+Finance_Health,MRNA,Moderna,Stéphane Bancel,CEO,1972-07-20,CEO since 2011,Strong,https://www.munzinger.de/register/portrait/biographien/_/00/000032352,True,2018-12-07,2016-07-22,Q,DE,11:41,col10_hhmm
+Finance_Health,MS,Morgan Stanley,James Gorman,CEO (historical),1958-07-14,CEO through December 2023,Strong,https://fortune.com/2011/03/30/can-james-gorman-make-morgan-stanley-great-again/,True,2006-01-17,1981-10-01,N,DE,09:30,col10_hhmm
+Finance_Health,UNH,UnitedHealth Group,Andrew Witty,CEO (historical),1964-08-22,CEO 2021–May 2025,Secondary corroboration,https://en.wikipedia.org/wiki/Andrew_Witty,True,1991-10-10,2015-07-01,N,DE,08:00,col7_hhmm
