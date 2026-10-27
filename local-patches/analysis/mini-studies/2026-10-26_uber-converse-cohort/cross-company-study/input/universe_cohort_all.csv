@@ -1,0 +1,42 @@
+bucket,ticker,company,executive,role,dob,tenure_note,verification_status,dob_source_url
+Technology,MSFT,Microsoft,Satya Nadella,CEO,1967-08-19,Long-tenured CEO,Secondary corroboration,https://www.wikidata.org/wiki/Q7426870
+Technology,AAPL,Apple,Tim Cook,CEO (historical),1960-11-01,CEO through August 2026,Strong,https://encyclopediaofalabama.org/article/tim-cook/
+Technology,NVDA,NVIDIA,Jensen Huang,CEO,1963-02-17,Founder CEO,Secondary corroboration,https://en.wikipedia.org/wiki/Jensen_Huang
+Technology,GOOGL,Alphabet,Sundar Pichai,CEO,1972-06-10,Alphabet CEO from 2019,Secondary corroboration,https://en.wikipedia.org/wiki/Sundar_Pichai
+Technology,META,Meta Platforms,Mark Zuckerberg,CEO,1984-05-14,Founder CEO,Secondary corroboration,https://en.wikipedia.org/wiki/Mark_Zuckerberg
+Technology,AMZN,Amazon,Andy Jassy,CEO,1968-01-13,Amazon CEO from July 2021,DOB needs second source,https://en.wikipedia.org/wiki/Andy_Jassy
+Technology,CRM,Salesforce,Marc Benioff,CEO,1964-09-25,Founder CEO,Secondary corroboration,https://www.wikidata.org/wiki/Q1521908
+Technology,AMD,Advanced Micro Devices,Lisa Su,CEO,1969-11-07,CEO since 2014,Strong,https://www.munzinger.de/register/portrait/biographien/su%20lisa/00/32264
+Technology,ADBE,Adobe,Shantanu Narayen,CEO,1963-05-27,CEO since 2007,Secondary corroboration,https://en.wikipedia.org/wiki/Shantanu_Narayen
+Technology,DELL,Dell Technologies,Michael Dell,CEO,1965-02-23,Founder CEO,Strong,https://achievement.org/achiever/michael-dell/
+Consumer,UBER,Uber Technologies,Dara Khosrowshahi,CEO,1969-05-28,Discovery company; exclude from new-company holdout,Existing study,
+Consumer,ABNB,Airbnb,Brian Chesky,CEO,1981-08-29,Founder CEO,Strong,https://acclad.org/brian-chesky
+Consumer,TSLA,Tesla,Elon Musk,CEO,1971-06-28,CEO since 2008,Secondary corroboration,https://en.wikipedia.org/wiki/Elon_Musk
+Consumer,DIS,Walt Disney,Bob Iger,CEO (historical),1951-02-10,Intermittent CEO; tenure differs across years,Secondary corroboration,https://en.wikipedia.org/wiki/Bob_Iger
+Consumer,WMT,Walmart,Doug McMillon,CEO (historical),1966-10-17,CEO through January 2026,Strong,https://www.ourmidland.com/news/article/Correction-Wal-Mart-CEO-Bio-Box-story-6920291.php
+Consumer,NFLX,Netflix,Reed Hastings,CEO (historical),1960-10-08,CEO through 2023; later chair,Secondary corroboration,https://www.tvinsider.com/people/reed-hastings/
+Consumer,SPOT,Spotify,Daniel Ek,CEO (historical),1983-02-21,CEO through 2025; executive chair 2026,Strong,https://www.musicbusinessworldwide.com/people/daniel-ek/
+Consumer,CMCSA,Comcast,Brian Roberts,CEO,1959-06-28,Long-tenured CEO,Strong,https://www.munzinger.de/register/portrait/biographien/Brian%2BRoberts/00/28764
+Consumer,MCD,McDonald’s,Chris Kempczinski,CEO,1968-09-26,CEO since 2019,DOB needs stronger source,https://www.famousbirthdays.com/people/chris-kempczinski.html
+Consumer,SBUX,Starbucks,Howard Schultz,CEO (historical),1953-07-19,Interim CEO 2022–2023; other periods outside sample,Secondary corroboration,https://www.conference-board.org/bio/howard-schultz
+Consumer,RBLX,Roblox,David Baszucki,CEO,1963-01-20,Founder CEO; shorter listed history,Secondary corroboration,https://en.wikipedia.org/wiki/David_Baszucki
+Industrials,F,Ford Motor,Jim Farley,CEO,1962-06-10,CEO since 2020,Secondary corroboration,https://en.wikipedia.org/wiki/Jim_Farley_(businessman)
+Industrials,GM,General Motors,Mary Barra,CEO,1961-12-24,CEO since 2014,Strong,https://www.yahoo.com/news/biographical-information-gm-ceo-mary-152140165.html
+Industrials,DAL,Delta Air Lines,Ed Bastian,CEO,1957-06-06,CEO since 2016,Secondary corroboration,https://www.wikidata.org/wiki/Q32374551
+Industrials,FDX,FedEx,Fred Smith,CEO (historical),1944-08-11,CEO through 2022; deceased 2025,Strong,https://achievement.org/achiever/frederick-w-smith/
+Industrials,BA,Boeing,Dave Calhoun,CEO (historical),1957-04-18,CEO January 2020–August 2024,Strong,https://entities.oclc.org/worldcat/entity/E39PBJjxyDKBvPgFxCwjWB7T73.html
+Industrials,LMT,Lockheed Martin,Marillyn Hewson,CEO (historical),1953-12-27,CEO through June 2020,Secondary corroboration,https://en.wikipedia.org/wiki/Marillyn_Hewson
+Industrials,TM,Toyota Motor,Akio Toyoda,CEO (historical),1956-05-03,CEO through March 2023; chairman afterward,Strong,https://pressroom.toyota.com/biographies/akio-toyoda/
+Industrials,STLA,Stellantis,Carlos Tavares,CEO (historical),1958-08-14,CEO 2021–2024; limited listed history,Strong,https://www.munzinger.de/register/portrait/biographien/Carlos%20Tavares/00/29902
+Industrials,UAL,United Airlines,Oscar Munoz,CEO (historical),1959-01-05,CEO through May 2020; limited matching period,Secondary corroboration,https://en.wikipedia.org/wiki/Oscar_Munoz_(executive)
+Industrials,LUV,Southwest Airlines,Gary Kelly,CEO (historical),1955-03-12,CEO through 2022,Secondary corroboration,https://en.wikipedia.org/wiki/Gary_C._Kelly
+Finance_Health,JPM,JPMorgan Chase,Jamie Dimon,CEO,1956-03-13,Long-tenured CEO,Strong,https://kvia.com/cnn-national/2025/02/27/jamie-dimon-fast-facts-3/
+Finance_Health,BAC,Bank of America,Brian Moynihan,CEO,1959-10-09,CEO since 2010,Strong,https://www.munzinger.de/register/portrait/biographien/Brian%20Moynihan/00/28243
+Finance_Health,BLK,BlackRock,Larry Fink,CEO,1952-11-02,Founder CEO,Secondary corroboration,https://en.wikipedia.org/wiki/Larry_Fink
+Finance_Health,COIN,Coinbase,Brian Armstrong,CEO,1983-01-25,Founder CEO; shorter listed history,Secondary corroboration,https://www.wikidata.org/wiki/Q64705310
+Finance_Health,HOOD,Robinhood,Vlad Tenev,CEO,1987-02-13,Founder CEO; shorter listed history,DOB needs second source,https://www.wikidata.org/wiki/Q56248473
+Finance_Health,PFE,Pfizer,Albert Bourla,CEO,1961-10-21,CEO since 2019,Secondary corroboration,https://en.wikipedia.org/wiki/Albert_Bourla
+Finance_Health,BNTX,BioNTech,Uğur Şahin,CEO,1965-09-19,Founder CEO; shorter US history,Strong,https://www.wikidata.org/wiki/Q2505089
+Finance_Health,MRNA,Moderna,Stéphane Bancel,CEO,1972-07-20,CEO since 2011,Strong,https://www.munzinger.de/register/portrait/biographien/_/00/000032352
+Finance_Health,MS,Morgan Stanley,James Gorman,CEO (historical),1958-07-14,CEO through December 2023,Strong,https://fortune.com/2011/03/30/can-james-gorman-make-morgan-stanley-great-again/
+Finance_Health,UNH,UnitedHealth Group,Andrew Witty,CEO (historical),1964-08-22,CEO 2021–May 2025,Secondary corroboration,https://en.wikipedia.org/wiki/Andrew_Witty

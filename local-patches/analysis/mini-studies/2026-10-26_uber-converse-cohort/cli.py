@@ -99,7 +99,36 @@ def main() -> None:
     p_i.add_argument("--recompute-decl", action="store_true")
     p_i.add_argument("--build-daily-cache", action="store_true")
 
+    p_x = sub.add_parser(
+        "cross-company-study",
+        help="Validate frozen CEO square-count hypothesis across company universe",
+    )
+    p_x.add_argument("--universe-csv", type=Path, default=None)
+    p_x.add_argument("--output-dir", type=Path, default=None)
+    p_x.add_argument("--exclude-ticker", default="UBER")
+    p_x.add_argument("--feature", default="ceo_square_count_1deg", help="Documentary; frozen square_count_1deg")
+    p_x.add_argument("--seed", type=int, default=20261027)
+    p_x.add_argument("--surrogates", type=int, default=1000)
+    p_x.add_argument(
+        "--pilot-only",
+        action="store_true",
+        help="Engineering pilot: 10-company partition only",
+    )
+
     args = parser.parse_args()
+    if args.command == "cross-company-study":
+        from cross_company_pipeline import run_cross_company_study
+
+        summary = run_cross_company_study(
+            universe_csv=args.universe_csv,
+            output_dir=args.output_dir,
+            exclude_ticker=args.exclude_ticker,
+            seed=args.seed,
+            n_surrogates=args.surrogates,
+            pilot_only=args.pilot_only,
+        )
+        print(json.dumps(summary, indent=2))
+        return
     if args.command == "phase-i":
         from phase_i_pipeline import run_phase_i
 

@@ -1,0 +1,7 @@
+model,stage,accuracy
+majority_direction,development,0.5332182916307161
+historical_company_mean_sign,development,0.5366695427092321
+ceo_square_median_split,development,0.4909404659188956
+majority_direction,holdout,0.5134443021766966
+historical_company_mean_sign,holdout,0.5211267605633803
+ceo_square_median_split,holdout,0.5185659411011524

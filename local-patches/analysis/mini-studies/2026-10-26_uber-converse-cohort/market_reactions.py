@@ -11,6 +11,8 @@ import exchange_calendars as xcals
 import pandas as pd
 
 NYSE = xcals.get_calendar("XNYS")
+# exchange_calendars XNYS coverage floor (older earnings need exclusion, not silent failure).
+NYSE_CALENDAR_MIN_DATE = NYSE.first_session.date()
 NY_TZ = ZoneInfo("America/New_York")
 
 # Converse event time: market open on reaction session (documented assumption).
@@ -89,11 +91,19 @@ def _sessions_index(sessions: pd.DatetimeIndex) -> list[date]:
     return [ts.date() for ts in sessions]
 
 
+def _calendar_covers(day: date) -> bool:
+    return day >= NYSE_CALENDAR_MIN_DATE
+
+
 def is_trading_session(day: date) -> bool:
+    if not _calendar_covers(day):
+        return False
     return bool(NYSE.is_session(day))
 
 
 def next_trading_session(on_or_after: date) -> date | None:
+    if not _calendar_covers(on_or_after):
+        return None
     if NYSE.is_session(on_or_after):
         return on_or_after
     try:
@@ -103,6 +113,8 @@ def next_trading_session(on_or_after: date) -> date | None:
 
 
 def next_session_strictly_after(day: date) -> date | None:
+    if not _calendar_covers(day):
+        return None
     try:
         return NYSE.next_session(day).date()
     except Exception:
@@ -110,6 +122,8 @@ def next_session_strictly_after(day: date) -> date | None:
 
 
 def previous_trading_session(before: date) -> date | None:
+    if not _calendar_covers(before):
+        return None
     try:
         return NYSE.previous_session(before).date()
     except Exception:
@@ -117,6 +131,8 @@ def previous_trading_session(before: date) -> date | None:
 
 
 def map_reaction_session(report_date: date, timing: str) -> tuple[date | None, bool, str]:
+    if not _calendar_covers(report_date):
+        return None, True, f"report_date before XNYS calendar ({NYSE_CALENDAR_MIN_DATE})"
     timing_norm = (timing or "").strip().lower()
     uncertain = False
     note = ""
