@@ -17,6 +17,7 @@ class DailyBar:
     low: float
     close: float
     volume: float | None
+    adj_close: float | None = None
 
 
 def _utc_ts(d: date) -> int:
@@ -54,12 +55,17 @@ def fetch_yahoo_daily_bars(
     lows = q0.get("low") or []
     closes = q0.get("close") or []
     vols = q0.get("volume") or []
+    adj_blocks = (r0.get("indicators") or {}).get("adjclose") or [{}]
+    adjcloses = adj_blocks[0].get("adjclose") if adj_blocks else []
     bars: list[DailyBar] = []
     for i, t in enumerate(ts):
         c = closes[i] if i < len(closes) else None
         if c is None:
             continue
         sess = datetime.fromtimestamp(t, tz=timezone.utc).date()
+        adj = None
+        if adjcloses and i < len(adjcloses) and adjcloses[i] is not None:
+            adj = float(adjcloses[i])
         bars.append(
             DailyBar(
                 session=sess,
@@ -68,6 +74,7 @@ def fetch_yahoo_daily_bars(
                 low=float(lows[i]) if i < len(lows) and lows[i] is not None else float(c),
                 close=float(c),
                 volume=float(vols[i]) if i < len(vols) and vols[i] is not None else None,
+                adj_close=adj,
             )
         )
     bars.sort(key=lambda b: b.session)
@@ -93,6 +100,9 @@ def _fetch_yfinance_fallback(symbol: str, start: date, end: date) -> list[DailyB
     out: list[DailyBar] = []
     for idx, row in df.iterrows():
         sess = idx.date() if hasattr(idx, "date") else idx
+        adj = None
+        if "Adj Close" in row and row["Adj Close"] == row["Adj Close"]:
+            adj = float(row["Adj Close"])
         out.append(
             DailyBar(
                 session=sess,
@@ -101,17 +111,31 @@ def _fetch_yfinance_fallback(symbol: str, start: date, end: date) -> list[DailyB
                 low=float(row["Low"]),
                 close=float(row["Close"]),
                 volume=float(row["Volume"]) if "Volume" in row and row["Volume"] == row["Volume"] else None,
+                adj_close=adj,
             )
         )
     return out
 
 
-def bars_to_return_series(bars: list[DailyBar]) -> dict[date, float]:
-    """Close-to-close % return keyed by session date."""
+def _bars_to_return_series(bars: list[DailyBar], *, price: str) -> dict[date, float]:
     out: dict[date, float] = {}
     for i in range(1, len(bars)):
         prev, cur = bars[i - 1], bars[i]
-        if prev.close <= 0:
+        if price == "adj":
+            p0, p1 = prev.adj_close, cur.adj_close
+        else:
+            p0, p1 = prev.close, cur.close
+        if p0 is None or p1 is None or p0 <= 0:
             continue
-        out[cur.session] = 100.0 * (cur.close / prev.close - 1.0)
+        out[cur.session] = 100.0 * (p1 / p0 - 1.0)
     return out
+
+
+def bars_to_return_series(bars: list[DailyBar]) -> dict[date, float]:
+    """Unadjusted close-to-close % return keyed by session date."""
+    return _bars_to_return_series(bars, price="close")
+
+
+def bars_to_adj_return_series(bars: list[DailyBar]) -> dict[date, float]:
+    """Adjusted close-to-close % return (splits + distributions)."""
+    return _bars_to_return_series(bars, price="adj")

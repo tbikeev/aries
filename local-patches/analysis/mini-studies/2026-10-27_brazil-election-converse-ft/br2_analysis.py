@@ -14,6 +14,12 @@ sys.path.insert(0, str(UBER_STUDY))
 from phase_h_stats import pearson, spearman  # noqa: E402
 
 
+def _ewz_market_col(df: pd.DataFrame) -> str:
+    if "ewz_return_adj_pct" in df.columns and df["ewz_return_adj_pct"].notna().any():
+        return "ewz_return_adj_pct"
+    return "ewz_return_cc_pct"
+
+
 def _episode_aggregates(panel: pd.DataFrame, *, validation_only: bool = True) -> pd.DataFrame:
     p = panel.copy()
     if validation_only:
@@ -24,6 +30,9 @@ def _episode_aggregates(panel: pd.DataFrame, *, validation_only: bool = True) ->
             {
                 "event_date": ed,
                 "episode_id": eid,
+                "ewz_return_adj_pct": grp["ewz_return_adj_pct"].iloc[0]
+                if "ewz_return_adj_pct" in grp
+                else grp["ewz_return_cc_pct"].iloc[0],
                 "ewz_return_cc_pct": grp["ewz_return_cc_pct"].iloc[0],
                 "n_tickers": len(grp),
                 "mean_c2c_hard": grp["c2c_hard_count"].mean(),
@@ -53,7 +62,8 @@ def market_direction_results(panel: pd.DataFrame, pct: pd.DataFrame | None = Non
     def block(df, label):
         if len(df) < 3:
             return
-        y = df["ewz_return_cc_pct"].astype(float)
+        ycol = _ewz_market_col(df)
+        y = df[ycol].astype(float)
         for feat, col in (
             ("mean_c2c_hard", "mean_c2c_hard"),
             ("mean_c2c_sq_opp", "mean_c2c_sq_opp"),
@@ -69,8 +79,8 @@ def market_direction_results(panel: pd.DataFrame, pct: pd.DataFrame | None = Non
                     "n_episodes": len(df),
                 }
             )
-        crashes = df[df["ewz_return_cc_pct"] < 0]
-        rallies = df[df["ewz_return_cc_pct"] > 0]
+        crashes = df[df[ycol] < 0]
+        rallies = df[df[ycol] > 0]
         if len(crashes) and len(rallies):
             rows.append(
                 {
@@ -92,7 +102,7 @@ def market_direction_results(panel: pd.DataFrame, pct: pd.DataFrame | None = Non
         if len(sub) < 3:
             continue
         x = sub["mean_c2c_hard"].astype(float)
-        y = sub["ewz_return_cc_pct"].astype(float)
+        y = sub[_ewz_market_col(sub)].astype(float)
         rows.append(
             {
                 "sample": "loo_validation",
@@ -105,7 +115,7 @@ def market_direction_results(panel: pd.DataFrame, pct: pd.DataFrame | None = Non
     # Bootstrap
     rng = np.random.default_rng(BR2_PLACEBO_SEED)
     xs = val["mean_c2c_hard"].astype(float).to_numpy()
-    ys = val["ewz_return_cc_pct"].astype(float).to_numpy()
+    ys = val[_ewz_market_col(val)].astype(float).to_numpy()
     boots = []
     for _ in range(400):
         idx = rng.integers(0, len(xs), size=len(xs))
@@ -157,7 +167,7 @@ def cross_section_summary(df: pd.DataFrame) -> dict:
 def c2c_vs_c2r_comparison(panel: pd.DataFrame) -> pd.DataFrame:
     val = panel[panel["validation_eligible"] & ~panel["discovery_only"]]
     ep = _episode_aggregates(val, validation_only=False)
-    y = ep["ewz_return_cc_pct"].astype(float)
+    y = ep[_ewz_market_col(ep)].astype(float)
     rows = []
     for name, col in (("c2c_hard", "mean_c2c_hard"), ("c2r_hard", "mean_c2r_hard")):
         x = ep[col].astype(float)
@@ -186,10 +196,11 @@ def walk_forward_episode_results(panel: pd.DataFrame) -> pd.DataFrame:
         train = ep.iloc[:k]
         test = ep.iloc[k : k + 1]
         xtr = train["mean_c2c_hard"].astype(float)
-        ytr = train["ewz_return_cc_pct"].astype(float)
+        ycol = _ewz_market_col(train)
+        ytr = train[ycol].astype(float)
         r = pearson(xtr, ytr)
         pred_sign = -1 if r < 0 else 1
-        actual = float(test["ewz_return_cc_pct"].iloc[0])
+        actual = float(test[ycol].iloc[0])
         rows.append(
             {
                 "test_event_date": test["event_date"].iloc[0],
@@ -208,11 +219,12 @@ def episode_independent_subsample(panel: pd.DataFrame) -> pd.DataFrame:
     val = panel[panel["validation_eligible"] & ~panel["discovery_only"]]
     picks = []
     for _, grp in val.groupby("episode_id"):
-        dates = grp.groupby("event_date")["ewz_return_cc_pct"].first()
+        ycol = _ewz_market_col(grp)
+        dates = grp.groupby("event_date")[ycol].first()
         picks.append(str(dates.idxmin()))
     sub = val[val["event_date"].isin(picks)]
     ep = _episode_aggregates(sub, validation_only=False)
-    y = ep["ewz_return_cc_pct"].astype(float)
+    y = ep[_ewz_market_col(ep)].astype(float)
     x = ep["mean_c2c_hard"].astype(float)
     return pd.DataFrame(
         [

@@ -50,7 +50,8 @@ def build_eligible_panel(shocks: pd.DataFrame, *, use_cache: bool = True) -> pd.
     rows = []
     for _, srow in shocks.iterrows():
         ed = date.fromisoformat(str(srow["event_date"]))
-        ewz_r = float(srow["ewz_return_cc_pct"])
+        ewz_cc = float(srow["ewz_return_cc_pct"])
+        ewz_adj = float(srow.get("ewz_return_adj_pct", ewz_cc))
         for _, trow in reg.iterrows():
             ticker = trow["ticker"]
             ft_d = _parse_ft_date(trow.get("ft_date"))
@@ -75,9 +76,10 @@ def build_eligible_panel(shocks: pd.DataFrame, *, use_cache: bool = True) -> pd.
                     "validation_eligible": bool(srow.get("validation_eligible", True)),
                     "strict_ft_timestamp": strict,
                     "ft_time_convention": conv,
-                    "ewz_return_cc_pct": ewz_r,
+                    "ewz_return_adj_pct": ewz_adj,
+                    "ewz_return_cc_pct": ewz_cc,
                     "company_return_cc_pct": cr,
-                    "return_abnormal_pp": cr - ewz_r,
+                    "return_abnormal_pp": cr - ewz_adj,
                     **{
                         k: v
                         for k, v in feats.items()

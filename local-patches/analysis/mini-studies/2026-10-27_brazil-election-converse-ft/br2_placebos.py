@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from brazil_paths import BR2_PLACEBO_SEED, UBER_STUDY
-from br2_analysis import _episode_aggregates
+from br2_analysis import _episode_aggregates, _ewz_market_col
 from br2_features import frozen_feature_bundle
 from brazil_historical import trading_session_jd
 from datetime import date
@@ -23,7 +23,8 @@ def _primary_stat(panel: pd.DataFrame) -> float:
     ep = _episode_aggregates(panel[panel["validation_eligible"] & ~panel["discovery_only"]], validation_only=False)
     if len(ep) < 3:
         return float("nan")
-    return pearson(ep["mean_c2c_hard"].astype(float), ep["ewz_return_cc_pct"].astype(float))
+    ycol = _ewz_market_col(ep)
+    return pearson(ep["mean_c2c_hard"].astype(float), ep[ycol].astype(float))
 
 
 def run_placebos(panel: pd.DataFrame, ft_jds: dict[str, float], *, n_random: int = 200, n_surrogates: int | None = None) -> pd.DataFrame:
@@ -82,11 +83,14 @@ def run_placebos(panel: pd.DataFrame, ft_jds: dict[str, float], *, n_random: int
     # Circular shift of EWZ returns among validation episodes
     shuffled = panel.copy()
     val_dates = sorted(shuffled[shuffled["validation_eligible"]]["event_date"].unique())
-    rets = [shuffled.loc[shuffled["event_date"] == d, "ewz_return_cc_pct"].iloc[0] for d in val_dates]
+    ycol = _ewz_market_col(shuffled)
+    rets = [shuffled.loc[shuffled["event_date"] == d, ycol].iloc[0] for d in val_dates]
     rets_shift = rets[1:] + rets[:1]
     mapping_r = dict(zip(val_dates, rets_shift, strict=True))
     for d, r in mapping_r.items():
-        shuffled.loc[shuffled["event_date"] == d, "ewz_return_cc_pct"] = r
+        shuffled.loc[shuffled["event_date"] == d, ycol] = r
+        if ycol != "ewz_return_cc_pct":
+            shuffled.loc[shuffled["event_date"] == d, "ewz_return_adj_pct"] = r
         shuffled.loc[shuffled["event_date"] == d, "return_abnormal_pp"] = (
             shuffled.loc[shuffled["event_date"] == d, "company_return_cc_pct"] - r
         )
