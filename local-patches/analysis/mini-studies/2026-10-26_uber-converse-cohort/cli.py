@@ -88,7 +88,17 @@ def main() -> None:
         help="Ignore cached daily_converse_features.csv",
     )
 
+    p_h = sub.add_parser("phase-h", help="Final diagnostics, placebos, hypothesis freeze")
+    p_h.add_argument("--output-dir", type=Path, default=None)
+    p_h.add_argument("--surrogates", type=int, default=1000)
+
     args = parser.parse_args()
+    if args.command == "phase-h":
+        from phase_h_pipeline import run_phase_h
+
+        summary = run_phase_h(output_dir=args.output_dir, n_surrogates=args.surrogates)
+        print(json.dumps(summary, indent=2))
+        return
     if args.command == "daily-study":
         from daily_pipeline import run_daily_study
 

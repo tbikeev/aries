@@ -174,4 +174,12 @@ Outputs: `daily-study/output/` — **Report G**, merged panel, stratum correlati
 
 Earnings discovery remains frozen under `earnings-study/output/`.
 
+## Phase H — final diagnostics & hypothesis freeze
+
+```bash
+.venv/bin/python cli.py phase-h --surrogates 1000
+```
+
+Outputs: `uber-final-diagnostics/output/` (Reports H1–H4, `hypothesis_freeze.json`). Does **not** overwrite Reports A–G.
+
 Converse event time: **09:30 America/New_York** on the mapped NYSE reaction session (not press-release time). Pre-IPO row `2019-02-15` excluded from market analysis.

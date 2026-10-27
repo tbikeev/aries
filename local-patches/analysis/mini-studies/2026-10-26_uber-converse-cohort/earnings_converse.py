@@ -97,12 +97,11 @@ def extract_converse_features(
     }
 
 
-def converse_count_features(radix_key: str, event_jd: float, *, orb_max: float) -> dict[str, int]:
-    """Lightweight directed-aspect counts for daily panel (no full row export)."""
-    r = RADIX_COHORT[radix_key]
-    cjd = mirrored_jd(r.birth_jd, event_jd)
+def converse_count_features_for_birth_jd(birth_jd: float, event_jd: float, *, orb_max: float) -> dict[str, int]:
+    """Directed-aspect counts for arbitrary radix JD (placebo cohorts)."""
+    cjd = mirrored_jd(birth_jd, event_jd)
     conv = positions_at_jd(cjd, include_optional=False)
-    rad = positions_at_jd(r.birth_jd, include_optional=False)
+    rad = positions_at_jd(birth_jd, include_optional=False)
     conv_lon = {k: p.longitude_deg for k, p in conv.items()}
     rad_lon = {k: p.longitude_deg for k, p in rad.items()}
     matrix = full_directed_aspect_matrix(conv_lon, rad_lon, body_names=list(iter_benchmark_names()))
@@ -121,6 +120,12 @@ def converse_count_features(radix_key: str, event_jd: float, *, orb_max: float) 
         if key in counts:
             counts[key] += 1
     return counts
+
+
+def converse_count_features(radix_key: str, event_jd: float, *, orb_max: float) -> dict[str, int]:
+    """Lightweight directed-aspect counts for daily panel (no full row export)."""
+    r = RADIX_COHORT[radix_key]
+    return converse_count_features_for_birth_jd(r.birth_jd, event_jd, orb_max=orb_max)
 
 
 def slow_body_active_signatures(
