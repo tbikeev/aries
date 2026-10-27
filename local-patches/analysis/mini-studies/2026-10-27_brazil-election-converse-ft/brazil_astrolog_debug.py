@@ -12,14 +12,10 @@ from pathlib import Path
 
 from astrolog_paths import STUDY_ROOT
 from astrolog_runner import chart_from_ft, event_chart, run_mirror_bundle
-from brazil_paths import UNIVERSE_TICKERS
+from astrolog_study_config import ELECTION_2026, StudyConfig
 
-DEBUG_TICKERS = tuple(t for t in UNIVERSE_TICKERS if t != "EBR")
-
-EVENTS = (
-    ("2026-10-05", "First-round rally"),
-    ("2026-10-26", "Second-round crash (discovery)"),
-)
+EVENTS = ELECTION_2026.events
+DEBUG_TICKERS = ELECTION_2026.tickers
 
 _POWER_RE = re.compile(r" - power:\s+([0-9.]+)")
 _ASPECT_TYPE_RE = re.compile(
@@ -103,11 +99,16 @@ def _pre(text: str) -> str:
     return f"<pre>{html.escape(text.strip())}</pre>" if text.strip() else "<p><em>empty</em></p>"
 
 
-def build_html(snapshots: dict[str, dict[str, MirrorSnapshot]], out_path: Path) -> None:
+def build_html(
+    snapshots: dict[str, dict[str, MirrorSnapshot]],
+    out_path: Path,
+    *,
+    study: StudyConfig = ELECTION_2026,
+) -> None:
     tickers = sorted(snapshots.keys())
     parts = [
         "<!DOCTYPE html><html><head><meta charset='utf-8'>",
-        "<title>Brazil FT mirror — Astrolog −pd 1.0 (converse)</title>",
+        f"<title>{html.escape(study.html_title)}</title>",
         "<style>",
         "body{font-family:system-ui,sans-serif;margin:1rem;}",
         ".tabs{display:flex;flex-wrap:wrap;gap:0.25rem;margin-bottom:1rem;}",
@@ -120,7 +121,7 @@ def build_html(snapshots: dict[str, dict[str, MirrorSnapshot]], out_path: Path) 
         "td,th{border:1px solid #ddd;padding:0.35rem;}",
         "pre{white-space:pre-wrap;font-size:0.72rem;max-height:24rem;overflow:auto;background:#f6f6f6;}",
         "</style></head><body>",
-        "<h1>Brazil FT — 5 Oct vs 26 Oct 2026 @ 09:30 NY</h1>",
+        f"<h1>{html.escape(study.title)}</h1>",
         "<p>Engine: <code>sa_app/.../ast77src/scripts/reverse_chart.sh --key -1.0</code> "
         "(MC–Sun locked converse progression). C2C = internal <code>-a</code> on mirror chart; "
         "C2R = radix↔mirror <code>-rp0 -pd -1.0 -a</code>.</p>",
@@ -134,7 +135,7 @@ def build_html(snapshots: dict[str, dict[str, MirrorSnapshot]], out_path: Path) 
     for i, t in enumerate(tickers):
         parts.append(f"<div class='panel{' active' if i == 0 else ''}' id='panel-{t}'>")
         parts.append(f"<h2>{html.escape(t)}</h2><div class='dates'>")
-        for ed, _ in EVENTS:
+        for ed, _ in study.events:
             s = snapshots[t][ed]
             parts.append("<div>")
             parts.append(f"<h3>{html.escape(ed)} — {html.escape(s.event_label)}</h3>")
@@ -173,10 +174,14 @@ def _load_ft_rows() -> dict[str, dict[str, str]]:
         return {r["ticker"]: r for r in csv.DictReader(f)}
 
 
-def run_debug(*, tickers: tuple[str, ...] | None = None) -> Path:
+def run_debug(
+    *,
+    tickers: tuple[str, ...] | None = None,
+    study: StudyConfig = ELECTION_2026,
+) -> Path:
     reg = _load_ft_rows()
-    use = tickers or DEBUG_TICKERS
-    out_dir = STUDY_ROOT / "output" / "astrolog_debug"
+    use = tickers or study.tickers
+    out_dir = study.output_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     snapshots: dict[str, dict[str, MirrorSnapshot]] = {}
     for ticker in use:
@@ -188,7 +193,7 @@ def run_debug(*, tickers: tuple[str, ...] | None = None) -> Path:
         except ValueError:
             continue
         snapshots[ticker] = {}
-        for ed, elabel in EVENTS:
+        for ed, elabel in study.events:
             snap = run_mirror_snapshot(ticker, row, ed, elabel)
             snapshots[ticker][ed] = snap
             stem = f"{ticker}_{ed}"
@@ -207,7 +212,7 @@ def run_debug(*, tickers: tuple[str, ...] | None = None) -> Path:
                 encoding="utf-8",
             )
     html_path = out_dir / "brazil_mirror_debug.html"
-    build_html(snapshots, html_path)
+    build_html(snapshots, html_path, study=study)
     return html_path
 
 

@@ -45,6 +45,16 @@ def main() -> None:
         help="Directory with *_c2c.txt / *_c2r.txt",
     )
     pag.add_argument("--strict", action="store_true", help="Exit 1 if validation fails")
+    pag.add_argument(
+        "--study",
+        choices=("election_2026", "covid_2020"),
+        default="election_2026",
+    )
+    pc = sub.add_parser(
+        "astrolog-covid-2020",
+        help="Mar 12 vs Mar 24 2020 COVID dates @ 09:30 NY — mirror + aggregate",
+    )
+    pc.add_argument("--ticker", action="append", help="Limit tickers (default all except EBR)")
     args = p.parse_args()
     if args.cmd == "pags":
         from pags_reproduction import main_pags
@@ -83,8 +93,22 @@ def main() -> None:
         print(f"Wrote {path}")
     elif args.cmd == "astrolog-aggregate":
         from astrolog_power_aggregate import build_report
+        from astrolog_study_config import COVID_2020, ELECTION_2026
 
-        raise SystemExit(build_report(args.debug_dir.resolve(), strict=args.strict))
+        study = ELECTION_2026 if args.study == "election_2026" else COVID_2020
+        debug_dir = args.debug_dir.resolve() if args.debug_dir else None
+        raise SystemExit(build_report(debug_dir, study=study, strict=args.strict))
+    elif args.cmd == "astrolog-covid-2020":
+        from astrolog_study_config import COVID_2020
+        from run_astrolog_study import run_full_study
+
+        tickers = tuple(args.ticker) if args.ticker else None
+        study = COVID_2020
+        if tickers:
+            from dataclasses import replace
+
+            study = replace(study, tickers=tickers)
+        run_full_study(study)
     elif args.cmd == "historical-shocks":
         from brazil_paths import OUTPUT_BR2
         from br2_pipeline import run_br2

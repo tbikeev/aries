@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from astrolog_paths import STUDY_ROOT
+from astrolog_study_config import ELECTION_2026, StudyConfig
+from event_day_returns import load_returns_csv
 
 QUALIFYING = frozenset(
     {
@@ -33,25 +35,13 @@ QUALIFYING = frozenset(
     }
 )
 
-TICKERS = ("ABEV", "BBD", "ERJ", "ITUB", "NU", "PAGS", "PBR", "STNE", "VALE", "XP")
-RUN_DATE = "2026-10-05"
-CRASH_DATE = "2026-10-26"
 MODES = ("c2c", "c2r")
-DATE_LABEL = {RUN_DATE: "run", CRASH_DATE: "crash"}
 
 _ASPECT_RE = re.compile(
     r"(?:\)|\])\s+(Con|Opp|Squ|Tri|Sex|Inc)\s+(?:with\s+)?[(\[]",
     re.I,
 )
 _POWER_LINE = re.compile(r" - power:\s+([0-9.]+)\s*$")
-
-# Reference totals from independent archive verification (two decimal places on sums).
-EXPECTED_OVERALL = {
-    ("c2c", RUN_DATE): (113, 502.36, 4.446),
-    ("c2c", CRASH_DATE): (128, 492.19, 3.845),
-    ("c2r", RUN_DATE): (288, 1089.67, 3.784),
-    ("c2r", CRASH_DATE): (294, 1225.92, 4.170),
-}
 
 EXPECTED_C2C_ASPECT = {
     "con": (114.92, 75.34),
@@ -131,14 +121,19 @@ def _html_pre_block(raw: str) -> str:
     return html.unescape(raw)
 
 
-def verify_html_matches_raw(html_path: Path, debug_dir: Path) -> list[str]:
+def _study_dates(study: StudyConfig) -> tuple[str, str]:
+    return study.rebound_date, study.panic_date
+
+
+def verify_html_matches_raw(html_path: Path, debug_dir: Path, *, study: StudyConfig) -> list[str]:
     """Ensure HTML embeds the same qualifying aspect lines as on-disk raw files."""
     errors: list[str] = []
     if not html_path.is_file():
         return [f"Missing HTML report: {html_path}"]
     page = html.unescape(html_path.read_text(encoding="utf-8", errors="replace"))
-    for ticker in TICKERS:
-        for date in (RUN_DATE, CRASH_DATE):
+    rebound, panic = _study_dates(study)
+    for ticker in study.tickers:
+        for date in (rebound, panic):
             for mode in MODES:
                 raw_path = debug_dir / f"{ticker}_{date}_{mode}.txt"
                 if not raw_path.is_file():
@@ -158,10 +153,11 @@ def verify_html_matches_raw(html_path: Path, debug_dir: Path) -> list[str]:
     return errors
 
 
-def discover_files(debug_dir: Path) -> dict[tuple[str, str, str], Path]:
+def discover_files(debug_dir: Path, *, study: StudyConfig) -> dict[tuple[str, str, str], Path]:
     found: dict[tuple[str, str, str], Path] = {}
-    for ticker in TICKERS:
-        for date in (RUN_DATE, CRASH_DATE):
+    rebound, panic = _study_dates(study)
+    for ticker in study.tickers:
+        for date in (rebound, panic):
             for mode in MODES:
                 p = debug_dir / f"{ticker}_{date}_{mode}.txt"
                 if p.is_file():
@@ -179,7 +175,7 @@ class TickerAgg:
     by_ticker_aspect_count: dict[tuple[str, str, str, str], int]
 
 
-def aggregate(debug_dir: Path) -> TickerAgg:
+def aggregate(debug_dir: Path, *, study: StudyConfig) -> TickerAgg:
     overall: dict[tuple[str, str], dict] = {}
     by_aspect: dict[tuple[str, str, str], float] = {}
     by_ticker_power: dict[tuple[str, str, str], float] = {}
@@ -187,7 +183,7 @@ def aggregate(debug_dir: Path) -> TickerAgg:
     by_ticker_aspect_power: dict[tuple[str, str, str, str], float] = {}
     by_ticker_aspect_count: dict[tuple[str, str, str, str], int] = {}
 
-    files = discover_files(debug_dir)
+    files = discover_files(debug_dir, study=study)
     for (ticker, date, mode), path in sorted(files.items()):
         aspects = parse_qualifying_aspects(_load_raw(path))
         key = (mode, date)
@@ -215,18 +211,22 @@ def aggregate(debug_dir: Path) -> TickerAgg:
     )
 
 
-def load_event_returns(study_root: Path) -> dict[tuple[str, str], float]:
-    """ticker, event_date -> company_return_cc_pct from BR-2 panel."""
-    panel = study_root / "output" / "br2" / "eligible_ticker_event_panel.csv"
-    out: dict[tuple[str, str], float] = {}
+def load_event_returns(study: StudyConfig) -> dict[tuple[str, str], float]:
+    """ticker, event_date -> return_cc_pct (event_day_returns.csv, else BR-2 panel)."""
+    rebound, panic = _study_dates(study)
+    csv_path = study.output_dir / "event_day_returns.csv"
+    out = load_returns_csv(csv_path)
+    if out:
+        return out
+    panel = STUDY_ROOT / "output" / "br2" / "eligible_ticker_event_panel.csv"
     if not panel.is_file():
         return out
     with panel.open(newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            if row.get("event_date") not in (RUN_DATE, CRASH_DATE):
+            if row.get("event_date") not in (rebound, panic):
                 continue
             ticker = row.get("ticker", "")
-            if ticker not in TICKERS:
+            if ticker not in study.tickers:
                 continue
             try:
                 ret = float(row["company_return_cc_pct"])
@@ -242,54 +242,64 @@ ASPECT_ORDER = ("con", "sex", "tri", "squ", "opp", "inc")
 def build_ticker_breakdown(
     agg: TickerAgg,
     returns: dict[tuple[str, str], float],
+    *,
+    study: StudyConfig,
 ) -> tuple[list[dict], list[dict]]:
     """Summary rows (one per ticker) and detail rows (ticker × mode × aspect)."""
+    rebound, panic = _study_dates(study)
     summary: list[dict] = []
     detail: list[dict] = []
-    for ticker in TICKERS:
-        ret_run = returns.get((ticker, RUN_DATE))
-        ret_crash = returns.get((ticker, CRASH_DATE))
+    for ticker in study.tickers:
+        ret_rebound = returns.get((ticker, rebound))
+        ret_panic = returns.get((ticker, panic))
         ret_diff = (
-            (ret_crash - ret_run)
-            if ret_run is not None and ret_crash is not None
+            (ret_panic - ret_rebound)
+            if ret_rebound is not None and ret_panic is not None
             else None
         )
         row: dict = {
             "ticker": ticker,
-            "return_run_pct": round(ret_run, 2) if ret_run is not None else "",
-            "return_crash_pct": round(ret_crash, 2) if ret_crash is not None else "",
-            "return_diff_crash_minus_run_pp": round(ret_diff, 2) if ret_diff is not None else "",
+            f"return_{study.rebound_label}_pct": round(ret_rebound, 2)
+            if ret_rebound is not None
+            else "",
+            f"return_{study.panic_label}_pct": round(ret_panic, 2) if ret_panic is not None else "",
+            f"return_diff_{study.panic_label}_minus_{study.rebound_label}_pp": round(ret_diff, 2)
+            if ret_diff is not None
+            else "",
         }
         for mode in MODES:
-            n_run = agg.by_ticker_count.get((ticker, mode, RUN_DATE), 0)
-            n_crash = agg.by_ticker_count.get((ticker, mode, CRASH_DATE), 0)
-            p_run = agg.by_ticker_power.get((ticker, mode, RUN_DATE), 0.0)
-            p_crash = agg.by_ticker_power.get((ticker, mode, CRASH_DATE), 0.0)
-            row[f"{mode}_aspect_count_run"] = n_run
-            row[f"{mode}_aspect_count_crash"] = n_crash
+            n_run = agg.by_ticker_count.get((ticker, mode, rebound), 0)
+            n_crash = agg.by_ticker_count.get((ticker, mode, panic), 0)
+            p_run = agg.by_ticker_power.get((ticker, mode, rebound), 0.0)
+            p_crash = agg.by_ticker_power.get((ticker, mode, panic), 0.0)
+            row[f"{mode}_aspect_count_{study.rebound_label}"] = n_run
+            row[f"{mode}_aspect_count_{study.panic_label}"] = n_crash
             row[f"{mode}_aspect_count_diff"] = n_crash - n_run
-            row[f"{mode}_power_sum_run"] = round(p_run, 2)
-            row[f"{mode}_power_sum_crash"] = round(p_crash, 2)
+            row[f"{mode}_power_sum_{study.rebound_label}"] = round(p_run, 2)
+            row[f"{mode}_power_sum_{study.panic_label}"] = round(p_crash, 2)
             row[f"{mode}_power_sum_diff"] = round(p_crash - p_run, 2)
+            ret_reb_key = f"return_{study.rebound_label}_pct"
+            ret_pan_key = f"return_{study.panic_label}_pct"
+            ret_diff_key = f"return_diff_{study.panic_label}_minus_{study.rebound_label}_pp"
             for asp in ASPECT_ORDER:
-                cn_r = agg.by_ticker_aspect_count.get((ticker, mode, RUN_DATE, asp), 0)
-                cn_c = agg.by_ticker_aspect_count.get((ticker, mode, CRASH_DATE, asp), 0)
-                pw_r = agg.by_ticker_aspect_power.get((ticker, mode, RUN_DATE, asp), 0.0)
-                pw_c = agg.by_ticker_aspect_power.get((ticker, mode, CRASH_DATE, asp), 0.0)
+                cn_r = agg.by_ticker_aspect_count.get((ticker, mode, rebound, asp), 0)
+                cn_c = agg.by_ticker_aspect_count.get((ticker, mode, panic, asp), 0)
+                pw_r = agg.by_ticker_aspect_power.get((ticker, mode, rebound, asp), 0.0)
+                pw_c = agg.by_ticker_aspect_power.get((ticker, mode, panic, asp), 0.0)
                 detail.append(
                     {
                         "ticker": ticker,
                         "mode": mode,
                         "aspect": asp,
-                        "count_run": cn_r,
-                        "count_crash": cn_c,
+                        f"count_{study.rebound_label}": cn_r,
+                        f"count_{study.panic_label}": cn_c,
                         "count_diff": cn_c - cn_r,
-                        "power_run": round(pw_r, 2),
-                        "power_crash": round(pw_c, 2),
+                        f"power_{study.rebound_label}": round(pw_r, 2),
+                        f"power_{study.panic_label}": round(pw_c, 2),
                         "power_diff": round(pw_c - pw_r, 2),
-                        "return_run_pct": row["return_run_pct"],
-                        "return_crash_pct": row["return_crash_pct"],
-                        "return_diff_pp": row["return_diff_crash_minus_run_pp"],
+                        ret_reb_key: row[ret_reb_key],
+                        ret_pan_key: row[ret_pan_key],
+                        ret_diff_key: row[ret_diff_key],
                     }
                 )
         summary.append(row)
@@ -300,6 +310,8 @@ def write_ticker_breakdown_html(
     path: Path,
     summary: list[dict],
     detail: list[dict],
+    *,
+    study: StudyConfig = ELECTION_2026,
 ) -> None:
     asp_label = {
         "con": "Conjunction",
@@ -309,9 +321,13 @@ def write_ticker_breakdown_html(
         "opp": "Opposition",
         "inc": "Inconjunct",
     }
+    rl, pl = study.rebound_label, study.panic_label
+    ret_reb = f"return_{rl}_pct"
+    ret_pan = f"return_{pl}_pct"
+    ret_diff = f"return_diff_{pl}_minus_{rl}_pp"
     parts = [
         "<!DOCTYPE html><html><head><meta charset='utf-8'>",
-        "<title>Brazil mirror — ticker breakdown (Sun–Pluto power)</title>",
+        f"<title>{html.escape(study.title)} — ticker power breakdown</title>",
         "<style>",
         "body{font-family:system-ui,sans-serif;margin:1rem;font-size:0.9rem;}",
         "table{border-collapse:collapse;width:100%;margin-bottom:1.5rem;}",
@@ -321,61 +337,62 @@ def write_ticker_breakdown_html(
         "h2{margin-top:2rem;border-bottom:1px solid #ccc;}",
         ".neg{color:#b00;}.pos{color:#060;}",
         "</style></head><body>",
-        "<h1>Ticker breakdown — qualifying aspect power vs price (Oct 5 run vs Oct 26 crash)</h1>",
-        "<p>Aspects: both endpoints Sun–Pluto. Price: <code>company_return_cc_pct</code> "
-        "from BR-2 panel (unadj close-to-close). Diff = crash − run (percentage points).</p>",
+        f"<h1>{html.escape(study.title)}</h1>",
+        "<p>Qualifying aspects: Sun–Pluto both ends. Event time 09:30 NY (EDT). "
+        f"Price diff = {pl} − {rl} (pp). See <code>event_day_returns.csv</code>.</p>",
         "<h2>All tickers — totals</h2>",
         "<table><thead><tr>",
-        "<th>Ticker</th><th>Ret run %</th><th>Ret crash %</th><th>Δ price pp</th>",
-        "<th>c2c # run</th><th>c2c # crash</th><th>c2c Σ run</th><th>c2c Σ crash</th>",
-        "<th>c2r # run</th><th>c2r # crash</th><th>c2r Σ run</th><th>c2r Σ crash</th>",
+        f"<th>Ticker</th><th>Ret {rl} %</th><th>Ret {pl} %</th><th>Δ pp</th>",
+        f"<th>c2c # {rl}</th><th>c2c # {pl}</th><th>c2c Σ {rl}</th><th>c2c Σ {pl}</th>",
+        f"<th>c2r # {rl}</th><th>c2r # {pl}</th><th>c2r Σ {rl}</th><th>c2r Σ {pl}</th>",
         "</tr></thead><tbody>",
     ]
     for r in summary:
-        diff = r["return_diff_crash_minus_run_pp"]
+        diff = r.get(ret_diff, "")
         diff_cls = ""
         if diff != "":
             diff_cls = "neg" if float(diff) < 0 else "pos" if float(diff) > 0 else ""
         parts.append(
             f"<tr><td>{r['ticker']}</td>"
-            f"<td>{r['return_run_pct']}</td><td>{r['return_crash_pct']}</td>"
-            f"<td class='{diff_cls}'>{r['return_diff_crash_minus_run_pp']}</td>"
-            f"<td>{r['c2c_aspect_count_run']}</td><td>{r['c2c_aspect_count_crash']}</td>"
-            f"<td>{r['c2c_power_sum_run']}</td><td>{r['c2c_power_sum_crash']}</td>"
-            f"<td>{r['c2r_aspect_count_run']}</td><td>{r['c2r_aspect_count_crash']}</td>"
-            f"<td>{r['c2r_power_sum_run']}</td><td>{r['c2r_power_sum_crash']}</td></tr>"
+            f"<td>{r.get(ret_reb, '')}</td><td>{r.get(ret_pan, '')}</td>"
+            f"<td class='{diff_cls}'>{diff}</td>"
+            f"<td>{r.get(f'c2c_aspect_count_{rl}', '')}</td><td>{r.get(f'c2c_aspect_count_{pl}', '')}</td>"
+            f"<td>{r.get(f'c2c_power_sum_{rl}', '')}</td><td>{r.get(f'c2c_power_sum_{pl}', '')}</td>"
+            f"<td>{r.get(f'c2r_aspect_count_{rl}', '')}</td><td>{r.get(f'c2r_aspect_count_{pl}', '')}</td>"
+            f"<td>{r.get(f'c2r_power_sum_{rl}', '')}</td><td>{r.get(f'c2r_power_sum_{pl}', '')}</td></tr>"
         )
     parts.append("</tbody></table>")
 
-    by_ticker: dict[str, list[dict]] = {t: [] for t in TICKERS}
+    tickers = [r["ticker"] for r in summary]
+    by_ticker: dict[str, list[dict]] = {t: [] for t in tickers}
     for d in detail:
         by_ticker[d["ticker"]].append(d)
 
-    for ticker in TICKERS:
+    for ticker in tickers:
         parts.append(f"<h2>{ticker}</h2>")
-        head = summary[[x["ticker"] for x in summary].index(ticker)]
+        head = next(x for x in summary if x["ticker"] == ticker)
         parts.append(
-            f"<p>Price: run <strong>{head['return_run_pct']}%</strong>, crash "
-            f"<strong>{head['return_crash_pct']}%</strong>, Δ "
-            f"<strong>{head['return_diff_crash_minus_run_pp']}</strong> pp</p>"
+            f"<p>Price: {rl} <strong>{head.get(ret_reb, '')}%</strong>, {pl} "
+            f"<strong>{head.get(ret_pan, '')}%</strong>, Δ "
+            f"<strong>{head.get(ret_diff, '')}</strong> pp</p>"
         )
         for mode in MODES:
             parts.append(f"<h3>{mode}</h3>")
             parts.append(
-                "<table><thead><tr><th>Aspect</th><th># run</th><th># crash</th>"
-                "<th>Δ #</th><th>Σ power run</th><th>Σ power crash</th><th>Δ power</th>"
+                f"<table><thead><tr><th>Aspect</th><th># {rl}</th><th># {pl}</th>"
+                f"<th>Δ #</th><th>Σ {rl}</th><th>Σ {pl}</th><th>Δ power</th>"
                 "</tr></thead><tbody>"
             )
             for asp in ASPECT_ORDER:
                 d = next(
-                    x
-                    for x in by_ticker[ticker]
-                    if x["mode"] == mode and x["aspect"] == asp
+                    x for x in by_ticker[ticker] if x["mode"] == mode and x["aspect"] == asp
                 )
                 parts.append(
                     f"<tr><td>{asp_label[asp]}</td>"
-                    f"<td>{d['count_run']}</td><td>{d['count_crash']}</td><td>{d['count_diff']}</td>"
-                    f"<td>{d['power_run']}</td><td>{d['power_crash']}</td><td>{d['power_diff']}</td></tr>"
+                    f"<td>{d.get(f'count_{rl}', '')}</td><td>{d.get(f'count_{pl}', '')}</td>"
+                    f"<td>{d.get('count_diff', '')}</td>"
+                    f"<td>{d.get(f'power_{rl}', '')}</td><td>{d.get(f'power_{pl}', '')}</td>"
+                    f"<td>{d.get('power_diff', '')}</td></tr>"
                 )
             parts.append("</tbody></table>")
     parts.append("</body></html>")
@@ -435,82 +452,96 @@ def _close(a: float, b: float, *, tol_sum: float = 0.02, tol_avg: float = 0.002)
 def validate(
     overall: dict[tuple[str, str], dict],
     by_aspect: dict[tuple[str, str, str], float],
+    *,
+    study: StudyConfig,
 ) -> list[str]:
     issues: list[str] = []
-    for key, (exp_n, exp_sum, exp_avg) in EXPECTED_OVERALL.items():
-        got = overall.get(key, {"count": 0, "sum": 0.0})
-        n, s = got["count"], got["sum"]
-        avg = s / n if n else 0.0
-        if n != exp_n:
-            issues.append(f"{key}: count {n} != expected {exp_n}")
-        if not _close(s, exp_sum, tol_sum=0.02):
-            issues.append(f"{key}: sum {s:.4f} != expected {exp_sum}")
-        if not _close(avg, exp_avg, tol_avg=0.002):
-            issues.append(f"{key}: avg {avg:.4f} != expected {exp_avg}")
+    rebound, panic = _study_dates(study)
+    if study.expected_overall:
+        for key, (exp_n, exp_sum, exp_avg) in study.expected_overall.items():
+            got = overall.get(key, {"count": 0, "sum": 0.0})
+            n, s = got["count"], got["sum"]
+            avg = s / n if n else 0.0
+            if n != exp_n:
+                issues.append(f"{key}: count {n} != expected {exp_n}")
+            if not _close(s, exp_sum, tol_sum=0.02):
+                issues.append(f"{key}: sum {s:.4f} != expected {exp_sum}")
+            if not _close(avg, exp_avg, tol_avg=0.002):
+                issues.append(f"{key}: avg {avg:.4f} != expected {exp_avg}")
 
-    for aspect, (run_e, crash_e) in EXPECTED_C2C_ASPECT.items():
-        run_g = by_aspect.get(("c2c", RUN_DATE, aspect), 0.0)
-        crash_g = by_aspect.get(("c2c", CRASH_DATE, aspect), 0.0)
-        if not _close(run_g, run_e):
-            issues.append(f"c2c {aspect} run {run_g:.2f} != {run_e}")
-        if not _close(crash_g, crash_e):
-            issues.append(f"c2c {aspect} crash {crash_g:.2f} != {crash_e}")
+        for aspect, (run_e, crash_e) in EXPECTED_C2C_ASPECT.items():
+            run_g = by_aspect.get(("c2c", rebound, aspect), 0.0)
+            crash_g = by_aspect.get(("c2c", panic, aspect), 0.0)
+            if not _close(run_g, run_e):
+                issues.append(f"c2c {aspect} rebound {run_g:.2f} != {run_e}")
+            if not _close(crash_g, crash_e):
+                issues.append(f"c2c {aspect} panic {crash_g:.2f} != {crash_e}")
 
-    for aspect, (run_e, crash_e) in EXPECTED_C2R_ASPECT.items():
-        run_g = by_aspect.get(("c2r", RUN_DATE, aspect), 0.0)
-        crash_g = by_aspect.get(("c2r", CRASH_DATE, aspect), 0.0)
-        if not _close(run_g, run_e):
-            issues.append(f"c2r {aspect} run {run_g:.2f} != {run_e}")
-        if not _close(crash_g, crash_e):
-            issues.append(f"c2r {aspect} crash {crash_g:.2f} != {crash_e}")
+        for aspect, (run_e, crash_e) in EXPECTED_C2R_ASPECT.items():
+            run_g = by_aspect.get(("c2r", rebound, aspect), 0.0)
+            crash_g = by_aspect.get(("c2r", panic, aspect), 0.0)
+            if not _close(run_g, run_e):
+                issues.append(f"c2r {aspect} rebound {run_g:.2f} != {run_e}")
+            if not _close(crash_g, crash_e):
+                issues.append(f"c2r {aspect} panic {crash_g:.2f} != {crash_e}")
 
     return issues
 
 
+def _date_label(study: StudyConfig, iso: str) -> str:
+    if iso == study.rebound_date:
+        return study.rebound_label
+    if iso == study.panic_date:
+        return study.panic_label
+    return iso
+
+
 def build_report(
-    debug_dir: Path,
+    debug_dir: Path | None = None,
     *,
-    strict: bool,
+    study: StudyConfig = ELECTION_2026,
+    strict: bool = False,
 ) -> int:
-    html_path = debug_dir / "brazil_mirror_debug.html"
-    html_errors = verify_html_matches_raw(html_path, debug_dir)
-    files = discover_files(debug_dir)
-    expected_files = len(TICKERS) * len(MODES) * 2
+    out_dir = debug_dir or study.output_dir
+    rebound, panic = _study_dates(study)
+    html_path = out_dir / "brazil_mirror_debug.html"
+    html_errors = verify_html_matches_raw(html_path, out_dir, study=study)
+    files = discover_files(out_dir, study=study)
+    expected_files = len(study.tickers) * len(MODES) * 2
     if len(files) != expected_files:
         html_errors.append(f"File count {len(files)} != expected {expected_files}")
 
-    agg = aggregate(debug_dir)
+    agg = aggregate(out_dir, study=study)
     overall, by_aspect = agg.overall, agg.by_aspect
-    val_errors = validate(overall, by_aspect)
+    val_errors = validate(overall, by_aspect, study=study)
     all_errors = html_errors + val_errors
 
-    returns = load_event_returns(STUDY_ROOT)
-    summary_rows, detail_rows = build_ticker_breakdown(agg, returns)
+    returns = load_event_returns(study)
+    summary_rows, detail_rows = build_ticker_breakdown(agg, returns, study=study)
 
-    out_dir = debug_dir
     overall_rows: list[dict] = []
     for mode in MODES:
-        for date in (RUN_DATE, CRASH_DATE):
+        for date in (rebound, panic):
             b = overall.get((mode, date), {"count": 0, "sum": 0.0})
             n, s = b["count"], b["sum"]
             overall_rows.append(
                 {
                     "mode": mode,
                     "date": date,
-                    "date_label": DATE_LABEL[date],
+                    "date_label": _date_label(study, date),
                     "aspect_count": n,
                     "total_power": round(s, 4),
                     "avg_power": round(s / n, 4) if n else 0.0,
                 }
             )
-    for date in (RUN_DATE, CRASH_DATE):
+    for date in (rebound, panic):
         n = sum(overall.get((m, date), {"count": 0})["count"] for m in MODES)
         s = sum(overall.get((m, date), {"sum": 0.0})["sum"] for m in MODES)
         overall_rows.append(
             {
                 "mode": "combined",
                 "date": date,
-                "date_label": DATE_LABEL[date],
+                "date_label": _date_label(study, date),
                 "aspect_count": n,
                 "total_power": round(s, 4),
                 "avg_power": round(s / n, 4) if n else 0.0,
@@ -518,33 +549,35 @@ def build_report(
         )
 
     aspect_rows: list[dict] = []
-    for mode, expected in (("c2c", EXPECTED_C2C_ASPECT), ("c2r", EXPECTED_C2R_ASPECT)):
-        for aspect in ("con", "sex", "tri", "squ", "opp", "inc"):
-            run_s = by_aspect.get((mode, RUN_DATE, aspect), 0.0)
-            crash_s = by_aspect.get((mode, CRASH_DATE, aspect), 0.0)
-            ch = _pct_change(run_s, crash_s)
+    for mode in MODES:
+        for aspect in ASPECT_ORDER:
+            reb_s = by_aspect.get((mode, rebound, aspect), 0.0)
+            pan_s = by_aspect.get((mode, panic, aspect), 0.0)
+            ch = _pct_change(reb_s, pan_s)
             aspect_rows.append(
                 {
                     "mode": mode,
                     "aspect": aspect,
-                    "run_sum": round(run_s, 2),
-                    "crash_sum": round(crash_s, 2),
-                    "pct_change_crash_vs_run": round(ch, 1) if ch is not None else "",
+                    f"{study.rebound_label}_sum": round(reb_s, 2),
+                    f"{study.panic_label}_sum": round(pan_s, 2),
+                    f"pct_change_{study.panic_label}_vs_{study.rebound_label}": round(ch, 1)
+                    if ch is not None
+                    else "",
                 }
             )
 
     ticker_rows: list[dict] = []
-    for ticker in TICKERS:
+    for ticker in study.tickers:
         for mode in MODES:
-            run_p = agg.by_ticker_power.get((ticker, mode, RUN_DATE), 0.0)
-            crash_p = agg.by_ticker_power.get((ticker, mode, CRASH_DATE), 0.0)
+            reb_p = agg.by_ticker_power.get((ticker, mode, rebound), 0.0)
+            pan_p = agg.by_ticker_power.get((ticker, mode, panic), 0.0)
             ticker_rows.append(
                 {
                     "ticker": ticker,
                     "mode": mode,
-                    "run_total_power": round(run_p, 4),
-                    "crash_total_power": round(crash_p, 4),
-                    "crash_higher": crash_p > run_p,
+                    f"{study.rebound_label}_total_power": round(reb_p, 4),
+                    f"{study.panic_label}_total_power": round(pan_p, 4),
+                    f"{study.panic_label}_higher": pan_p > reb_p,
                 }
             )
 
@@ -552,30 +585,26 @@ def build_report(
     detail_fields = list(detail_rows[0].keys()) if detail_rows else []
     _write_csv(out_dir / "power_ticker_breakdown_summary.csv", summary_rows, summary_fields)
     _write_csv(out_dir / "power_ticker_breakdown_by_aspect.csv", detail_rows, detail_fields)
-    write_ticker_breakdown_html(out_dir / "power_ticker_breakdown.html", summary_rows, detail_rows)
+    write_ticker_breakdown_html(
+        out_dir / "power_ticker_breakdown.html", summary_rows, detail_rows, study=study
+    )
 
     _write_csv(
         out_dir / "power_overall_summary.csv",
         overall_rows,
         ["mode", "date", "date_label", "aspect_count", "total_power", "avg_power"],
     )
-    _write_csv(
-        out_dir / "power_by_aspect_type.csv",
-        aspect_rows,
-        ["mode", "aspect", "run_sum", "crash_sum", "pct_change_crash_vs_run"],
-    )
-    _write_csv(
-        out_dir / "power_by_ticker.csv",
-        ticker_rows,
-        ["ticker", "mode", "run_total_power", "crash_total_power", "crash_higher"],
-    )
+    aspect_fields = list(aspect_rows[0].keys()) if aspect_rows else []
+    ticker_fields = list(ticker_rows[0].keys()) if ticker_rows else []
+    _write_csv(out_dir / "power_by_aspect_type.csv", aspect_rows, aspect_fields)
+    _write_csv(out_dir / "power_by_ticker.csv", ticker_rows, ticker_fields)
 
     _try_write_excel(out_dir, overall_rows, aspect_rows, ticker_rows)
 
     md_lines = [
-        "# Astrolog qualifying power — Oct 5 (run) vs Oct 26 (crash)",
+        f"# Astrolog qualifying power — {study.title}",
         "",
-        f"Source: `{debug_dir}` · Planets: Sun–Pluto only (both endpoints).",
+        f"Source: `{out_dir}` · Planets: Sun–Pluto only (both endpoints).",
         "",
         "## Cross-check",
         f"- Raw files found: **{len(files)}/40**",
@@ -592,24 +621,25 @@ def build_report(
             f"{row['total_power']:.2f} | {row['avg_power']:.3f} |"
         )
 
+    n_t = len(study.tickers)
     c2c_higher = sum(
         1
-        for t in TICKERS
-        if agg.by_ticker_power.get((t, "c2c", CRASH_DATE), 0)
-        > agg.by_ticker_power.get((t, "c2c", RUN_DATE), 0)
+        for t in study.tickers
+        if agg.by_ticker_power.get((t, "c2c", panic), 0)
+        > agg.by_ticker_power.get((t, "c2c", rebound), 0)
     )
     c2r_higher = sum(
         1
-        for t in TICKERS
-        if agg.by_ticker_power.get((t, "c2r", CRASH_DATE), 0)
-        > agg.by_ticker_power.get((t, "c2r", RUN_DATE), 0)
+        for t in study.tickers
+        if agg.by_ticker_power.get((t, "c2r", panic), 0)
+        > agg.by_ticker_power.get((t, "c2r", rebound), 0)
     )
     md_lines.extend(
         [
             "",
-            "## Per-ticker (crash higher total?)",
-            f"- c2c: **{c2c_higher}/10** tickers higher on crash date",
-            f"- c2r: **{c2r_higher}/10** tickers higher on crash date",
+            f"## Per-ticker ({study.panic_label} higher total power?)",
+            f"- c2c: **{c2c_higher}/{n_t}** tickers higher on {study.panic_date}",
+            f"- c2r: **{c2r_higher}/{n_t}** tickers higher on {study.panic_date}",
             "",
             "## Validation",
         ]
@@ -618,8 +648,10 @@ def build_report(
         md_lines.append("**FAILED** — differences:")
         for e in all_errors:
             md_lines.append(f"- {e}")
-    else:
+    elif study.expected_overall:
         md_lines.append("**PASSED** — totals match archive reference tables.")
+    else:
+        md_lines.append("**OK** — no fixed reference totals for this study preset.")
 
     report_path = out_dir / "POWER_AGGREGATE_REPORT.md"
     report_path.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
@@ -636,17 +668,24 @@ def build_report(
         for e in all_errors:
             print(f"  - {e}", file=sys.stderr)
         return 1 if strict else 0
-    print("\nValidation PASSED (matches archive reference totals).")
+    if study.expected_overall and not all_errors:
+        print("\nValidation PASSED (matches archive reference totals).")
     return 0
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Aggregate qualifying astrolog aspect power")
     p.add_argument(
+        "--study",
+        choices=("election_2026", "covid_2020"),
+        default="election_2026",
+        help="Which event pair (sets default output dir and reference totals)",
+    )
+    p.add_argument(
         "--debug-dir",
         type=Path,
-        default=STUDY_ROOT / "output" / "astrolog_debug",
-        help="Directory with *_c2c.txt / *_c2r.txt outputs",
+        default=None,
+        help="Override output directory with *_c2c.txt / *_c2r.txt",
     )
     p.add_argument(
         "--strict",
@@ -654,7 +693,11 @@ def main() -> None:
         help="Exit 1 if validation fails (default: warn only)",
     )
     args = p.parse_args()
-    raise SystemExit(build_report(args.debug_dir.resolve(), strict=args.strict))
+    from astrolog_study_config import COVID_2020
+
+    study = ELECTION_2026 if args.study == "election_2026" else COVID_2020
+    debug_dir = args.debug_dir.resolve() if args.debug_dir else None
+    raise SystemExit(build_report(debug_dir, study=study, strict=args.strict))
 
 
 if __name__ == "__main__":
