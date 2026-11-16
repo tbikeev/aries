@@ -143,7 +143,8 @@ export function useTFallback(): (key: string, fallback: string) => string {
   return useCallback(
     (key, fallback) => {
       const value = t(key);
-      return value === key ? fallback : value;
+      if (!value || value === key) return fallback;
+      return value;
     },
     [t],
   );

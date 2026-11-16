@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 from zet_zeus_import import (
+	build_transit_saved_event,
+	format_zet_trailing_notes,
+	is_zet_event_line,
 	parse_zet_text_best_effort,
 	parse_zeus_text_best_effort,
 	records_to_v1_dicts,
+	zet_event_title,
 )
 
 
@@ -98,3 +102,36 @@ def test_parse_zeus_spain_lines():
 	v1 = records_to_v1_dicts([spain])[0]
 	assert v1["date"] == "1975-11-22"
 	assert v1["time"] == "12:44:16"
+
+
+def test_format_zet_trailing_notes():
+	raw = (
+		"* Short bio paragraph.| Second paragraph.||ASTRODATABANK : #1|"
+		"RODDEN RATING : A|DATA SOURCE   : From memory"
+	)
+	formatted = format_zet_trailing_notes(raw)
+	assert "Short bio paragraph." in formatted
+	assert "Second paragraph." in formatted
+	assert "**RODDEN RATING:** A" in formatted
+	assert "**DATA SOURCE:** From memory" in formatted
+
+
+def test_zet_event_title_strips_parent_prefix():
+	assert zet_event_title("- Beverly Aadland's Marriage", "Beverly Aadland") == "Marriage"
+	assert zet_event_title("- Jan Warren Allen's Published/ Exhibited/ Released", "Jan Warren Allen") == (
+		"Published/ Exhibited/ Released"
+	)
+
+
+def test_build_transit_saved_event_shape():
+	line = "- Beverly Aadland's Marriage; 02.07.1971; 0:00; +0 ; ; 0°00'N; 0°00'W; —; note;"
+	parsed = parse_zet_text_best_effort(line)["records"][0]
+	title = zet_event_title(parsed["name"], "Aadland, Beverly")
+	assert title == "Marriage"
+	event = build_transit_saved_event(parsed, title=title, notes="sidecar only")
+	assert event["name"] == "Marriage"
+	assert event["nodes"][0]["feature"] == "transits"
+	assert event["nodes"][0]["chart"]["type"] == "transit"
+	assert event["nodes"][0]["chart"]["notes"] == ""
+	assert event["nodes"][0]["display"] == [1971, 7, 2, 0, 0, 0]
+	assert is_zet_event_line(line)

@@ -5,8 +5,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
+import uuid
 from typing import Any
+
+import astrology
 
 from aaf_import import _format_tz, _timezone_minutes, record_to_v1_dict
 
@@ -81,6 +86,7 @@ def _parse_zet_line(line: str, lineno: int) -> dict[str, Any]:
 	city, country = _split_place(place)
 	tz_field = parts[3] if len(parts) > 3 else ""
 	tz_info = _parse_zet_timezone(tz_field, lineno, notes)
+	notes = format_zet_trailing_notes(notes)
 	return {
 		"name": name,
 		"type": "radix",
@@ -371,4 +377,158 @@ def _parse_zeus_timezone(text: str, lineno: int) -> dict[str, str]:
 		"tz": f"{sign_char}{abs_minutes // 60:02d}:{abs_minutes % 60:02d}",
 		"tz_name": "",
 		"zt": "zone",
+	}
+
+
+def format_zet_trailing_notes(raw: str) -> str:
+	"""Format Zet field 9 (after sex) into Markdown for Aries note sidecars."""
+	text = str(raw or "").strip()
+	if not text:
+		return ""
+	if "||" in text:
+		bio_part, meta_part = text.split("||", 1)
+	else:
+		bio_part, meta_part = text, ""
+	paragraphs: list[str] = []
+	for chunk in bio_part.split("|"):
+		chunk = chunk.strip()
+		if not chunk:
+			continue
+		if chunk.startswith("*"):
+			chunk = chunk[1:].strip()
+		if chunk.startswith("-"):
+			chunk = chunk[1:].strip()
+		if chunk:
+			paragraphs.append(chunk)
+	lines: list[str] = []
+	if paragraphs:
+		lines.extend(paragraphs)
+		lines.append("")
+	meta_part = str(meta_part or "").strip()
+	if meta_part:
+		lines.append("## Astrodatabank")
+		for segment in meta_part.split("||"):
+			segment = segment.strip()
+			if not segment:
+				continue
+			for field in segment.split("|"):
+				field = field.strip()
+				if not field:
+					continue
+				if ":" in field:
+					key, value = field.split(":", 1)
+					lines.append(f"- **{key.strip()}:** {value.strip()}")
+				else:
+					lines.append(f"- {field}")
+	return "\n".join(lines).strip()
+
+
+def is_zet_event_line(line: str) -> bool:
+	return str(line or "").lstrip().startswith("-")
+
+
+def zet_event_title(raw_name: str, parent_name: str) -> str:
+	"""Turn a Zet ADB event line name into an Events-panel title."""
+	del parent_name  # Zet event lines carry their own person label before "'s".
+	name = str(raw_name or "").strip()
+	if name.startswith("-"):
+		name = name[1:].strip()
+	for suffix in ("'s", "'s", "'S", "’s", "’S"):
+		idx = name.find(suffix)
+		if idx >= 0:
+			rest = name[idx + len(suffix) :].strip()
+			if rest:
+				return rest
+	return name
+
+
+def _iso_tz_hours(tz_str: str) -> float:
+	cleaned = str(tz_str or "Z").strip()
+	if not cleaned or cleaned == "Z":
+		return 0.0
+	sign = 1.0 if cleaned[0] == "+" else -1.0
+	body = cleaned[1:]
+	if ":" in body:
+		hours, minutes = body.split(":", 1)
+		return sign * (int(hours) + int(minutes) / 60.0)
+	return sign * float(body)
+
+
+def cursor_jd_from_parsed_record(record: dict[str, Any]) -> float:
+	"""Approximate UT Julian day for a parsed Zet line (transit event sorting)."""
+	year = int(record["year"])
+	if record.get("bc"):
+		year = 1 - year
+	calflag = astrology.SE_JUL_CAL if record.get("cal") == "julian" else astrology.SE_GREG_CAL
+	local_hours = (
+		float(record["hour"])
+		+ float(record["minute"]) / 60.0
+		+ float(record["second"]) / 3600.0
+	)
+	zt = str(record.get("zt") or "zone")
+	if zt == "greenwich":
+		ut_hours = local_hours
+	elif zt == "lmt":
+		ut_hours = local_hours
+	else:
+		ut_hours = local_hours - _iso_tz_hours(str(record.get("tz") or "Z"))
+	return float(
+		astrology.swe_julday(
+			year,
+			int(record["month"]),
+			int(record["day"]),
+			ut_hours,
+			calflag,
+		)
+	)
+
+
+def _saved_event_signature(nodes: list[dict[str, Any]]) -> str:
+	return hashlib.sha256(
+		json.dumps(nodes, sort_keys=True, separators=(",", ":")).encode()
+	).hexdigest()
+
+
+def build_transit_saved_event(
+	parsed: dict[str, Any],
+	*,
+	title: str,
+	notes: str = "",
+	event_id: str | None = None,
+) -> dict[str, Any]:
+	"""Build one schema-v1 saved event (transits) from a parsed Zet line."""
+	del notes  # Event notes belong in Markdown sidecars, not embedded chart JSON.
+	event_id = str(event_id or uuid.uuid4())
+	payload = {**parsed, "name": title, "type": "transit", "notes": ""}
+	chart = record_to_v1_dict(payload)
+	chart["id"] = event_id
+	chart["type"] = "transit"
+	chart["notes"] = ""
+	display = [
+		int(parsed["year"]),
+		int(parsed["month"]),
+		int(parsed["day"]),
+		int(parsed["hour"]),
+		int(parsed["minute"]),
+		int(parsed["second"]),
+	]
+	node = {
+		"chart": chart,
+		"label": title,
+		"feature": "transits",
+		"launcher": "transits",
+		"binding": None,
+		"display": display,
+		"cursorJd": cursor_jd_from_parsed_record(parsed),
+		"viewMode": 0,
+		"navigationUnits": [],
+		"presentation": {},
+	}
+	nodes = [node]
+	return {
+		"v": 1,
+		"id": event_id,
+		"name": title,
+		"signature": _saved_event_signature(nodes),
+		"nodes": nodes,
 	}

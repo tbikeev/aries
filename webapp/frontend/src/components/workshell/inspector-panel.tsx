@@ -846,8 +846,7 @@ const InterpretationSelector = React.memo(function InterpretationSelector() {
     (theme) => theme.label === lens?.theme || theme.aliases.includes(lens?.theme ?? ""),
   );
   const selectClass = cn(
-    "h-[var(--aries-control-height-compact)] min-w-0 flex-1 rounded-[var(--aries-radius-control-compact)] border border-[color:var(--aries-inspector-divider-color)] bg-transparent px-[var(--aries-control-gap)] outline-none",
-    INSPECTOR_VALUE_COLOR,
+    "h-[var(--aries-control-height-compact)] min-w-0 flex-1 rounded-[var(--aries-radius-control-compact)] border border-[color:var(--aries-inspector-divider-color)] bg-[var(--aries-control-background)] px-[var(--aries-control-gap)] outline-none text-[color:var(--aries-control-text)]",
     TEXT_SMALL,
   );
 
@@ -1573,8 +1572,8 @@ const AlertsZone = React.memo(function AlertsZone({ alerts }: { alerts: Inspecto
           </summary>
           <div className="mt-[var(--aries-control-gap-compact)] space-y-[var(--aries-inspector-card-gap)]">
             {auditAlerts.map((alert, i) => {
-              const title = alert.titleKey ? tf(alert.titleKey, alert.title) : alert.title;
-              const body = alert.bodyKey ? tf(alert.bodyKey, alert.body) : alert.body;
+              const title = localizedAlertField(tf, alert.titleKey, alert.title);
+              const body = localizedAlertField(tf, alert.bodyKey, alert.body);
               const hiddenFromReadings = !visibleReadingSet.has(alert);
               const kindLabel = alert.kind === "source_note"
                 ? t("inspector.sourceNote")
@@ -1622,15 +1621,38 @@ const ALERT_STATUS_COLOUR: Record<string, string> = {
   avoid: "var(--aries-status-avoid)",
 };
 
+/** Tinted fill keyed to verdict severity; text colors stay on the inspector
+ * foreground ramp so cards stay readable even when cardBackground is authored
+ * light in Style Lab (color-mix against transparent used to wash out on WK). */
+function alertCardBackground(status: string | null | undefined): string {
+  const statusColour = status ? ALERT_STATUS_COLOUR[status] : undefined;
+  if (statusColour) {
+    return `color-mix(in srgb, ${statusColour} 14%, var(--aries-surface-subtle))`;
+  }
+  return "var(--aries-inspector-card-background)";
+}
+
+function localizedAlertField(
+  tf: (key: string, fallback: string) => string,
+  key: string | null | undefined,
+  fallback: string,
+): string {
+  const trimmed = fallback.trim();
+  return key ? tf(key, trimmed) : trimmed;
+}
+
 /** A single source-reading card. Authored title/body/citation stay primary;
  * engine provenance is collected once in the zone-level audit disclosure. */
 function AlertCard({ alert }: { alert: InspectorAlert }) {
   const tf = useTFallback();
   const dot = (alert.status && ALERT_STATUS_COLOUR[alert.status]) || "var(--aries-status-neutral)";
-  const title = alert.titleKey ? tf(alert.titleKey, alert.title) : alert.title;
-  const body = alert.bodyKey ? tf(alert.bodyKey, alert.body) : alert.body;
+  const title = localizedAlertField(tf, alert.titleKey, alert.title);
+  const body = localizedAlertField(tf, alert.bodyKey, alert.body);
   return (
-    <div className="rounded-[var(--aries-radius-md)] border border-[color:var(--aries-inspector-card-border-color)] bg-[var(--aries-inspector-card-background)] px-[var(--aries-inspector-card-padding-x)] py-[var(--aries-inspector-card-padding-y)]">
+    <div
+      className="rounded-[var(--aries-radius-md)] border border-[color:var(--aries-inspector-card-border-color)] px-[var(--aries-inspector-card-padding-x)] py-[var(--aries-inspector-card-padding-y)]"
+      style={{ backgroundColor: alertCardBackground(alert.status) }}
+    >
       <div className="flex items-center gap-[var(--aries-inspector-heading-gap)]">
         <span
           className="size-[var(--aries-inspector-status-dot-size)] shrink-0 rounded-full"
