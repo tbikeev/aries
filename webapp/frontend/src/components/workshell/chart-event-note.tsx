@@ -5,8 +5,8 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { LIST_ROW_TEXT_BUTTON } from "@/lib/list-tokens";
 import { useT } from "@/lib/i18n/i18n";
+import { LIST_TEXT_CLASSES } from "@/lib/list-tokens";
 import { EMPTY_EVENT_NOTE, eventNoteKey, useEventNotesStore, type EventNoteTarget } from "@/stores/event-notes-store";
 
 export function ChartEventNote({ target, expanded, onEditing }: {
@@ -66,8 +66,8 @@ export function ChartEventNote({ target, expanded, onEditing }: {
             if (event.key === "Escape") { event.preventDefault(); close(); }
           }} />
       ) : (
-        <div role="button" tabIndex={0} aria-label={label} aria-expanded={false}
-          className={`${LIST_ROW_TEXT_BUTTON} block w-full cursor-text text-left ${preview ? "text-inherit" : "aries-list-secondary-text"}`}
+        <button type="button" aria-label={label} aria-expanded={false}
+          className={`block w-full cursor-text text-left ${LIST_TEXT_CLASSES.secondary}`}
           onPointerDown={(event) => {
             if (event.button !== 0) return;
             // Select before blur collapses the previous row and moves this target.
@@ -76,7 +76,7 @@ export function ChartEventNote({ target, expanded, onEditing }: {
           }}
           onClick={() => onEditing(target.eventId, true)}>
           <span className="block truncate">{preview || t(note.loading ? "notes.loadingNotes" : "editor.notesPlaceholder")}{preview && note.text.trimStart().includes("\n") ? "…" : ""}</span>
-        </div>
+        </button>
       )}
       {note.error ? <div role="alert" className="text-destructive whitespace-normal [overflow-wrap:anywhere]">
         {t(note.error)}

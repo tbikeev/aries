@@ -6,12 +6,12 @@
 import { useEffect } from "react";
 
 import type { ShortcutEntry, WorkspaceManifest } from "@/lib/daemon/client";
-import { spotlightShortcutCoolingDown } from "@/shortcuts/spotlight-cooldown";
-import { shouldReserveCommandDigitFromManifestDismiss } from "@/shortcuts/sidebar-command-switcher";
 import {
-  dismissSidebarCommandSwitcher,
-  useSidebarCommandSwitcherStore,
-} from "@/stores/sidebar-command-switcher-store";
+  glyphShortcutAvailable,
+  isAltGraphEvent,
+  usesAppleShortcuts,
+} from "@/lib/shortcut-display";
+import { spotlightShortcutCoolingDown } from "@/shortcuts/spotlight-cooldown";
 
 type DispatchShortcutCommand = (commandId: string) => void;
 type CommandEnabledPredicate = (commandId: string) => boolean;
@@ -19,60 +19,26 @@ type CommandEnabledPredicate = (commandId: string) => boolean;
 export const EMBEDDED_MANIFEST_SHORTCUT_EVENT =
   "aries://embedded-manifest-shortcut";
 
-type ParsedShortcut = {
+export type ParsedShortcut = {
   key: string;
   requireCommand: boolean;
   requireAlt?: boolean;
   requireShift?: boolean;
+  matchCode?: boolean;
 };
 
-type ShortcutGesture = {
+export type ShortcutGesture = {
   key: string;
+  code?: string;
   metaKey: boolean;
   ctrlKey: boolean;
   altKey: boolean;
   shiftKey: boolean;
 };
 
-type EmbeddedManifestShortcutDetail = Partial<ShortcutGesture> & {
+export type EmbeddedManifestShortcutDetail = Partial<ShortcutGesture> & {
   repeat?: boolean;
-  code?: string;
 };
-
-/** macOS Option chords often rewrite `event.key`; match the physical letter key. */
-export function keyboardGestureFromEvent(event: Pick<
-  KeyboardEvent,
-  "key" | "code" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey"
->): ShortcutGesture {
-  let key = event.key.toLowerCase();
-  if (event.altKey && /^Key[A-Z]$/.test(event.code)) {
-    key = event.code.slice(3).toLowerCase();
-  }
-  return {
-    key,
-    metaKey: event.metaKey,
-    ctrlKey: event.ctrlKey,
-    altKey: event.altKey,
-    shiftKey: event.shiftKey,
-  };
-}
-
-export function keyboardGestureFromEmbeddedDetail(
-  detail: EmbeddedManifestShortcutDetail,
-): ShortcutGesture | null {
-  if (typeof detail.key !== "string" || detail.key.length === 0) return null;
-  let key = detail.key.toLowerCase();
-  if (detail.altKey === true && typeof detail.code === "string" && /^Key[A-Z]$/.test(detail.code)) {
-    key = detail.code.slice(3).toLowerCase();
-  }
-  return {
-    key,
-    metaKey: detail.metaKey === true,
-    ctrlKey: detail.ctrlKey === true,
-    altKey: detail.altKey === true,
-    shiftKey: detail.shiftKey === true,
-  };
-}
 
 function parseShortcut(row: ShortcutEntry): ParsedShortcut | null {
   const keys = row.keys.trim();
@@ -82,6 +48,17 @@ function parseShortcut(row: ShortcutEntry): ParsedShortcut | null {
   const commandMatch = keys.match(/^⌘\s+([A-Za-z])$/u);
   if (commandMatch) {
     return { key: commandMatch[1].toLowerCase(), requireCommand: true };
+  }
+  // Option+letter yields a composed character on macOS (⌥A -> "å"), so this
+  // chord matches the physical key via event.code.
+  const altMatch = keys.match(/^⌥\s+([A-Za-z])$/u);
+  if (altMatch) {
+    return {
+      key: altMatch[1].toLowerCase(),
+      requireCommand: false,
+      requireAlt: true,
+      matchCode: true,
+    };
   }
   const commandAltMatch = keys.match(/^⌘\s+⌥\s+([A-Za-z])$/u);
   if (commandAltMatch) {
@@ -99,18 +76,10 @@ function parseShortcut(row: ShortcutEntry): ParsedShortcut | null {
       requireShift: true,
     };
   }
-  const altMatch = keys.match(/^⌥\s+([A-Za-z])$/u);
-  if (altMatch) {
-    return {
-      key: altMatch[1].toLowerCase(),
-      requireCommand: false,
-      requireAlt: true,
-    };
-  }
   return null;
 }
 
-function targetAllowsShortcut(target: EventTarget | null): boolean {
+export function targetAllowsShortcut(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
   if (!element) return true;
   return !(
@@ -121,7 +90,7 @@ function targetAllowsShortcut(target: EventTarget | null): boolean {
   );
 }
 
-function chartScopeIsClear(): boolean {
+export function chartScopeIsClear(): boolean {
   if (typeof document === "undefined") return true;
   return (
     document.querySelector(
@@ -130,30 +99,56 @@ function chartScopeIsClear(): boolean {
   );
 }
 
+export type ManifestShortcutBinding = { row: ShortcutEntry; parsed: ParsedShortcut };
+
+/** Bound manifest rows the platform can offer, parsed for dispatch. Chords
+ * Windows/Linux keyboards reserve (AltGr, Redo) stay unbound there. */
+export function manifestShortcutBindings(
+  manifest: WorkspaceManifest | null,
+  apple: boolean,
+): ManifestShortcutBinding[] {
+  return (manifest?.shortcuts ?? [])
+    .filter((row) => row.bound && row.commandId)
+    .filter((row) => glyphShortcutAvailable(row.keys, apple))
+    .map((row) => ({ row, parsed: parseShortcut(row) }))
+    .filter((entry): entry is ManifestShortcutBinding => entry.parsed !== null);
+}
+
+/** The manifest row a key gesture triggers, if any. On Apple platforms ⌘ or
+ * Control stands for ⌘; elsewhere only Ctrl does, and the Windows key (which
+ * the browser reports as Meta) belongs to the OS and never forms a chord. */
+export function matchManifestShortcut(
+  bindings: readonly ManifestShortcutBinding[],
+  gesture: ShortcutGesture,
+  apple = true,
+): ShortcutEntry | null {
+  if (!apple && gesture.metaKey) return null;
+  const key = gesture.key.toLowerCase();
+  for (const { row, parsed } of bindings) {
+    if (parsed.matchCode) {
+      if (gesture.code !== `Key${parsed.key.toUpperCase()}`) continue;
+    } else if (parsed.key !== key) continue;
+    const commandHeld = gesture.metaKey || gesture.ctrlKey;
+    if (parsed.requireCommand !== commandHeld) continue;
+    if (Boolean(parsed.requireAlt) !== gesture.altKey) continue;
+    if (Boolean(parsed.requireShift) !== gesture.shiftKey) continue;
+    if (!parsed.requireCommand && (gesture.metaKey || gesture.ctrlKey || (gesture.altKey && !parsed.requireAlt))) {
+      continue;
+    }
+    return row;
+  }
+  return null;
+}
+
 export function useManifestShortcutDispatch(
   manifest: WorkspaceManifest | null,
   dispatch: DispatchShortcutCommand,
   isCommandEnabled: CommandEnabledPredicate = () => true,
 ): void {
   useEffect(() => {
-    const rows = (manifest?.shortcuts ?? [])
-      .filter((row) => row.bound && row.commandId)
-      .map((row) => ({ row, parsed: parseShortcut(row) }))
-      .filter(
-        (entry): entry is { row: ShortcutEntry; parsed: ParsedShortcut } =>
-          entry.parsed !== null,
-      );
-    if (rows.length === 0) return;
-
-    const maybeDismissCommandSwitcher = (event: KeyboardEvent) => {
-      const switcherActive = useSidebarCommandSwitcherStore.getState().active;
-      if (
-        (event.metaKey || event.ctrlKey) &&
-        !shouldReserveCommandDigitFromManifestDismiss(event, switcherActive)
-      ) {
-        dismissSidebarCommandSwitcher();
-      }
-    };
+    const apple = usesAppleShortcuts();
+    const bindings = manifestShortcutBindings(manifest, apple);
+    if (bindings.length === 0) return;
 
     const dispatchGesture = (
       gesture: ShortcutGesture,
@@ -167,54 +162,52 @@ export function useManifestShortcutDispatch(
       ) {
         return;
       }
-      const key = gesture.key.toLowerCase();
-      for (const { row, parsed } of rows) {
-        if (parsed.key !== key) continue;
-        const commandHeld = gesture.metaKey || gesture.ctrlKey;
-        if (parsed.requireCommand !== commandHeld) continue;
-        if (Boolean(parsed.requireAlt) !== gesture.altKey) continue;
-        if (Boolean(parsed.requireShift) !== gesture.shiftKey) continue;
-        if (
-          !parsed.requireCommand &&
-          !parsed.requireAlt &&
-          (gesture.metaKey || gesture.ctrlKey || gesture.altKey)
-        ) {
-          continue;
-        }
-        if (parsed.requireAlt && (gesture.metaKey || gesture.ctrlKey)) {
-          continue;
-        }
-        if (!isCommandEnabled(row.commandId ?? "")) return;
-        preventDefault();
-        dispatch(row.commandId ?? "");
-        return;
-      }
+      const row = matchManifestShortcut(bindings, gesture, apple);
+      if (!row || !isCommandEnabled(row.commandId ?? "")) return;
+      preventDefault();
+      dispatch(row.commandId ?? "");
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat || !targetAllowsShortcut(event.target)) return;
+      // AltGr (Ctrl+Alt on Windows) types characters; it is never a chord.
+      if (!apple && isAltGraphEvent(event)) return;
       if (!chartScopeIsClear()) return;
-      maybeDismissCommandSwitcher(event);
-      dispatchGesture(keyboardGestureFromEvent(event), () => event.preventDefault());
+      dispatchGesture(event, () => event.preventDefault());
     };
 
     const onEmbeddedShortcut = (event: Event) => {
       const detail = (
         event as CustomEvent<EmbeddedManifestShortcutDetail>
       ).detail;
-      if (detail?.repeat || !chartScopeIsClear()) return;
-      const gesture = keyboardGestureFromEmbeddedDetail(detail ?? {});
-      if (!gesture) return;
-      dispatchGesture(gesture, () => undefined);
+      if (
+        detail?.repeat ||
+        typeof detail?.key !== "string" ||
+        detail.key.length === 0 ||
+        !chartScopeIsClear()
+      ) {
+        return;
+      }
+      dispatchGesture(
+        {
+          key: detail.key,
+          code: typeof detail.code === "string" ? detail.code : undefined,
+          metaKey: detail.metaKey === true,
+          ctrlKey: detail.ctrlKey === true,
+          altKey: detail.altKey === true,
+          shiftKey: detail.shiftKey === true,
+        },
+        () => undefined,
+      );
     };
 
-    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keydown", onKeyDown);
     window.addEventListener(
       EMBEDDED_MANIFEST_SHORTCUT_EVENT,
       onEmbeddedShortcut,
     );
     return () => {
-      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener(
         EMBEDDED_MANIFEST_SHORTCUT_EVENT,
         onEmbeddedShortcut,
