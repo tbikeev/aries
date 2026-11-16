@@ -1479,15 +1479,17 @@ export function TransitSearchView(props: TransitSearchViewProps) {
         if (controller.signal.aborted || result.cancelled) return;
         if (result.error) throw new Error(result.error);
         if (!result.cursor && !result.complete) return;
+        const cursor = result.cursor;
+        if (!cursor) return;
         const live = rangeStreamRef.current;
         if (!live || live.queryKey !== current.queryKey) return;
         const nextRows = mergeSearchStreamRows(rowsRef.current, result.rows);
         const nextStream: SearchRangeStream = {
           ...live,
-          coverageFrom: live.coverageFrom || result.cursor.coverageFrom,
-          coverageTo: result.cursor.coverageTo,
-          exhaustedNext: result.cursor.coverageTo >= live.rangeTo
-            ? result.cursor.exhaustedNext
+          coverageFrom: live.coverageFrom || cursor.coverageFrom,
+          coverageTo: cursor.coverageTo,
+          exhaustedNext: cursor.coverageTo >= live.rangeTo
+            ? cursor.exhaustedNext
             : false,
         };
         rowsRef.current = nextRows;
@@ -1899,7 +1901,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                       <SearchPerformanceHeaderStats
                         summary={performanceSummary}
                         horizonDays={performanceLookup.horizonDays}
-                        t={t}
+                        t={(key, ...args) => t(key, ...(args as Parameters<typeof t>[1][]))}
                       />
                     </>
                   ) : null}
@@ -4181,15 +4183,9 @@ function searchRangeFullyLoaded(stream: SearchRangeStream, activeForm: SearchFor
   return stream.exhaustedNext || stream.coverageTo >= activeForm.toDate;
 }
 
-function searchProgressFollowOptions(fromDate: string, toDate: string): {
-  maxStalePolls: number;
-  deadlineMs: number;
-} {
+function searchProgressFollowOptions(fromDate: string, toDate: string): { waitMs?: number } {
   const spanDays = isoDateSpanInclusive(fromDate, toDate);
-  return {
-    maxStalePolls: Math.max(96, Math.min(360, Math.ceil(spanDays / 4))),
-    deadlineMs: Math.min(7_200_000, Math.max(3_600_000, spanDays * 120_000)),
-  };
+  return { waitMs: Math.min(25_000, Math.max(5_000, spanDays * 1_000)) };
 }
 
 function isoDateSpanInclusive(fromDate: string, toDate: string): number {

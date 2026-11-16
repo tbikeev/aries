@@ -3560,6 +3560,9 @@ export type TransitSearchDefaults = {
   lifetimeYears: number;
   limit: number;
   hasSavedState: boolean;
+  declParallel?: boolean;
+  declContraparallel?: boolean;
+  declOrb?: number;
 };
 
 export type TransitSearchMotionFilter = "" | "rx" | "d";
@@ -3649,6 +3652,12 @@ export type TransitSearchRow = {
   sigDisplay: TransitSearchDisplay;
   isSignChange: boolean;
   temporal?: TemporalRowMeta;
+  promDeclination?: number | null;
+  sigDeclination?: number | null;
+  declParallel?: boolean;
+  declContraparallel?: boolean;
+  declOrbDeltaPar?: number | null;
+  declOrbDeltaCpar?: number | null;
 };
 
 export type TransitSearchRequest = {

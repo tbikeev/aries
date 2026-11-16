@@ -24,6 +24,8 @@ type Props = {
   eventId?: string;
   recordId?: string;
   className?: string;
+  /** Kept for workspace-content API compatibility; textarea notes do not use it. */
+  focusChart?: () => void;
 };
 
 /**
@@ -35,7 +37,7 @@ type Props = {
  * not reliably deliver iframe postMessage to the React host. Editing uses the
  * same native textarea surface as chart event notes.
  */
-export function NotesPanel({ sourceName, chart = null, documentId, scratch = false, eventId, recordId, className }: Props) {
+export function NotesPanel({ sourceName, chart = null, documentId, scratch = false, eventId, recordId, className, focusChart: _focusChart }: Props) {
   return (
     <NotesPanelInner
       key={eventId ? `${recordId}:${eventId}` : `${sourceName}:${documentId ?? ""}:${scratch ? "scratch" : "saved"}`}
@@ -336,6 +338,7 @@ const PLANET_LABEL_KEYS: Record<PlanetId, string> = {
   nnode: "notes.planetNnode",
   snode: "notes.planetSnode",
   chiron: "notes.planetChiron",
+  apogee: "astrocart.point.apogee",
 };
 
 function chartInfoMarkdown(snapshot: ChartRenderSnapshot, t: TFunc): string {

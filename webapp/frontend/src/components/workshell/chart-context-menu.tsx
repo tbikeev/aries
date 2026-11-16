@@ -243,7 +243,6 @@ export function ChartContextMenu({ chart, children, dashboardAtPoint, regionAtPo
           const variant =
             payload?.variant === "midpoint" ||
             payload?.variant === "davison" ||
-            payload?.variant === "marr_partnership" ||
             payload?.variant === "synastry"
               ? payload.variant
               : null;

@@ -63,8 +63,9 @@ def test_parse_zet_hms_timezone_and_event_markers():
 	parsed = parse_zet_text_best_effort(line)
 	assert not parsed["errors"]
 	record = parsed["records"][0]
-	assert record["tz"] == "+03:44"
-	assert record["zt"] == "zone"
+	# Offset matches place LMT within tolerance → stored as LMT (clock unchanged, tz Z).
+	assert record["tz"] == "Z"
+	assert record["zt"] == "lmt"
 	assert record["male"] is None
 
 	line_minsk = (

@@ -71,7 +71,7 @@ check: build-ext web-corpus web-runtime-resources web-legal web-check-deps web-t
 	cd webapp/frontend && npm test
 	cd webapp/frontend/src-tauri && cargo test
 	@if find tests aries -type f -name 'test_*.py' -print -quit 2>/dev/null | grep -q .; then \
-		PYTHONPATH=$(SWEP_SRC) $(WEB_PYTHON) -m pytest -q \
+		PYTHONPATH="$(SWEP_SRC)" $(WEB_PYTHON) -m pytest -q \
 			aries/astrology/transit_fast/tests tests/test_chart_event_clipboard.py tests/test_public_readme_shortcuts.py tests/test_zet_zeus_import.py tests/test_partner_horoscope.py; \
 	else \
 		printf '%s\n' 'No Python tests in this source export; running static checks only.'; \
@@ -106,7 +106,7 @@ worktree-bootstrap:
 
 # Native extensions compile with the venv's setuptools (requirements-build.txt).
 build-ext: web-build-deps
-	cd $(SWEP_SRC) && $(abspath $(WEB_PYTHON)) setup.py build_ext --inplace
+	cd "$(SWEP_SRC)" && "$(abspath $(WEB_PYTHON))" setup.py build_ext --inplace
 	$(WEB_PYTHON) scripts/build_transit_kernel.py build_ext --inplace
 
 # Creates the project venv with ARIES_PYTHON. It does not see the interpreter's
