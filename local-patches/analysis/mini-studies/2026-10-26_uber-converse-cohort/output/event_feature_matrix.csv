@@ -1,0 +1,3 @@
+event_key,aspects_le_1deg_total,aspects_le_15arcmin_total,aspects_conj_le_1,aspects_sq_le_1,aspects_tri_le_1,aspects_opp_le_1,aspects_sext_le_1,unique_converse_bodies_le_1,unique_radix_bodies_le_1,top_converse_body,top_radix_body,decl_le_1deg,combined_lon_decl_pairs,registry_structure_hits,cluster_le_15arcmin,consensus_pairs_all_three_radix
+NEG-01,20,9,0,8,4,4,4,10,9,convMoon,radixJupiter,27,0,0,9,0
+POS-01,18,2,2,3,6,2,5,9,9,convMercury,radixJupiter,24,0,0,2,0

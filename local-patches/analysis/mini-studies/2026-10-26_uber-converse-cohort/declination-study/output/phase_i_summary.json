@@ -1,0 +1,134 @@
+{
+  "exploratory": true,
+  "n_earnings": 26,
+  "baseline_DK_sq_orb10_r_cc": -0.5189825030597046,
+  "DK_par_orb05_r_cc": 0.22081102706775338,
+  "DK_decl_total_orb05_r_cc": 0.2835867031712747,
+  "dual_activation_events": 32,
+  "incremental_models": [
+    {
+      "model": "L",
+      "target": "r_cc_pct",
+      "features": "DK_sq_count_orb10",
+      "n": 26,
+      "r2_in_sample": 0.2693428384821165,
+      "delta_r2_vs_L": 0.0,
+      "loo_r2": 0.14178734050708752,
+      "partial_corr_DK_sq_given_decl": NaN
+    },
+    {
+      "model": "D",
+      "target": "r_cc_pct",
+      "features": "DK_par_count_orb05,DK_cpar_count_orb05",
+      "n": 26,
+      "r2_in_sample": 0.08368163311025556,
+      "delta_r2_vs_L": -0.18566120537186093,
+      "loo_r2": -0.13849799722664113,
+      "partial_corr_DK_sq_given_decl": NaN
+    },
+    {
+      "model": "L+D",
+      "target": "r_cc_pct",
+      "features": "DK_sq_count_orb10,DK_par_count_orb05,DK_cpar_count_orb05",
+      "n": 26,
+      "r2_in_sample": 0.3490249578100454,
+      "delta_r2_vs_L": 0.0796821193279289,
+      "loo_r2": 0.08559261237879978,
+      "partial_corr_DK_sq_given_decl": -0.5381221731227714
+    },
+    {
+      "model": "L+R",
+      "target": "r_cc_pct",
+      "features": "DK_sq_count_orb10,DK_double_activation_count",
+      "n": 26,
+      "r2_in_sample": 0.26964942479934784,
+      "delta_r2_vs_L": 0.0003065863172313499,
+      "loo_r2": 0.04373848701095295,
+      "partial_corr_DK_sq_given_decl": NaN
+    },
+    {
+      "model": "L+N",
+      "target": "r_cc_pct",
+      "features": "DK_sq_count_orb10,network_both_endpoints",
+      "n": 26,
+      "r2_in_sample": 0.28748575571929547,
+      "delta_r2_vs_L": 0.01814291723717898,
+      "loo_r2": 0.10015777734135134,
+      "partial_corr_DK_sq_given_decl": NaN
+    },
+    {
+      "model": "L",
+      "target": "r_gap_pct",
+      "features": "DK_sq_count_orb10",
+      "n": 26,
+      "r2_in_sample": 0.21250354312638342,
+      "delta_r2_vs_L": 0.0,
+      "loo_r2": 0.07348318728501957,
+      "partial_corr_DK_sq_given_decl": NaN
+    },
+    {
+      "model": "D",
+      "target": "r_gap_pct",
+      "features": "DK_par_count_orb05,DK_cpar_count_orb05",
+      "n": 26,
+      "r2_in_sample": 0.02149768527665885,
+      "delta_r2_vs_L": -0.19100585784972457,
+      "loo_r2": -0.2064918978846162,
+      "partial_corr_DK_sq_given_decl": NaN
+    },
+    {
+      "model": "L+D",
+      "target": "r_gap_pct",
+      "features": "DK_sq_count_orb10,DK_par_count_orb05,DK_cpar_count_orb05",
+      "n": 26,
+      "r2_in_sample": 0.26136621430508755,
+      "delta_r2_vs_L": 0.04886267117870413,
+      "loo_r2": -0.035231680680852584,
+      "partial_corr_DK_sq_given_decl": -0.4951145705977103
+    },
+    {
+      "model": "L+R",
+      "target": "r_gap_pct",
+      "features": "DK_sq_count_orb10,DK_double_activation_count",
+      "n": 26,
+      "r2_in_sample": 0.25134713807530573,
+      "delta_r2_vs_L": 0.03884359494892231,
+      "loo_r2": 0.03718990740222039,
+      "partial_corr_DK_sq_given_decl": NaN
+    },
+    {
+      "model": "L+N",
+      "target": "r_gap_pct",
+      "features": "DK_sq_count_orb10,network_both_endpoints",
+      "n": 26,
+      "r2_in_sample": 0.23535951243299524,
+      "delta_r2_vs_L": 0.022855969306611823,
+      "loo_r2": 0.0384832213591928,
+      "partial_corr_DK_sq_given_decl": NaN
+    }
+  ],
+  "placebo": {
+    "DK_par_orb05": {
+      "observed_r": 0.22081102706775338,
+      "null_median": 0.0023404808383416355,
+      "empirical_p_two_sided": 0.259
+    },
+    "DK_decl_total_orb05": {
+      "observed_r": 0.2835867031712747,
+      "null_median": -0.0030818871293684528,
+      "empirical_p_two_sided": 0.147
+    },
+    "n_surrogates": 1000,
+    "seed": 20261027
+  },
+  "ordinary_DK_par_r_cc": null,
+  "mercury_neptune_check": {
+    "INC_Mercury_decl_deg": -7.482521518276997,
+    "DK_Neptune_decl_deg": -17.79458134680915,
+    "par_delta_deg": 10.312059828532153,
+    "cpar_delta_deg": 25.277102865086146,
+    "manual_transcription_par_0.32_unverified": true,
+    "note": "Different charts; inter-radix declination uses cross-chart comparison in cohort registry."
+  },
+  "phase_i_plain_answer": "DK longitude squares remain the strongest directional signal (r\u2248-0.519). DK Par density @0.5\u00b0 vs CC: r\u22480.221 (opposite sign to squares; surrogate p\u22480.259). Dual-coordinate pair contacts (26 events): 32; L+R adds negligible \u0394R\u00b2. L+D in-sample \u0394R\u00b2 vs L: 0.080; LOO R\u00b2 L=0.142, L+D=0.086. Recommendation: retain longitude-first freeze; treat declination as explanatory unless OOS confirms."
+}

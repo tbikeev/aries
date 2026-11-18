@@ -36,7 +36,7 @@ import searchbackend
 import searchcatalog
 import searchquery
 import util
-from engine import moment
+from engine import moment, orb_policy
 from engine.supplementary_headless_driver import SupplementaryHeadlessDriver
 from webapp.daemon.chart_service import chart_snapshot_service
 from webapp.daemon.display_palette import (
@@ -50,6 +50,7 @@ from webapp.daemon.event_time import DefaultLocationClock, table_event_clock
 
 
 RESULT_LIMIT = 500
+DECLINATION_ORB_CHOICES = (0.5, 1.0, 2.0, 2.5)
 SEARCH_LIFETIME_DEFAULT_YEARS = 100
 SEARCH_LIFETIME_MIN_YEARS = 1
 SEARCH_LIFETIME_MAX_YEARS = 500
@@ -80,6 +81,11 @@ TECHNIQUE_DEFS = (
     (searchquery.SearchQuery.TECHNIQUE_SECONDARY_DIRECTIONS, "SecProgressions", "Sec. Progressions"),
     (searchquery.SearchQuery.TECHNIQUE_PRIMARY_DIRECTIONS, "PrimaryDirections", "Primary Directions"),
     (searchquery.SearchQuery.TECHNIQUE_MUNDANE_WEATHER, "CelestialWeather", "Celestial Weather"),
+    (
+        searchquery.SearchQuery.TECHNIQUE_CONVERSE_MUNDANE_WEATHER,
+        "ConverseCelestialWeather",
+        "Converse Celestial Weather",
+    ),
     (searchquery.SearchQuery.TECHNIQUE_HELIACAL_PHASES, "HeliacalPhases", "Heliacal Phases"),
     (searchquery.SearchQuery.TECHNIQUE_LUNATIONS, "SynodicCycles", "Synodic Cycles"),
     (searchquery.SearchQuery.TECHNIQUE_ECLIPSES, "Eclipses", "Eclipses"),
@@ -233,7 +239,7 @@ def _temporal_aspect_orb_contribution(
                 orb_index = int(chrt.get_planet_orb_index(int(planet_index)))
             else:
                 orb_index = int(planet_index)
-            value = float(options.orbis[orb_index][int(chart_aspect)])
+            value = float(orb_policy.contributions(options)[orb_index][int(chart_aspect)])
         except (AttributeError, IndexError, TypeError, ValueError):
             return None
         return value if math.isfinite(value) and value >= 0.0 else None
@@ -263,7 +269,7 @@ def _temporal_canonical_aspect_orb(
     sig_orb = _temporal_aspect_orb_contribution(chrt, sig, chart_aspect)
     if prom_orb is None or sig_orb is None:
         return None
-    max_orb = float(prom_orb) + float(sig_orb)
+    max_orb = orb_policy.combiner(chrt.options)(float(prom_orb), float(sig_orb))
     return max_orb if math.isfinite(max_orb) and max_orb > 0.0 else None
 
 
@@ -874,6 +880,9 @@ class TransitSearchService:
                     "standard": standard_promittors,
                     "planets": self._planetary_promittor_ids(catalog),
                     "core7": self._classical_promittor_ids(catalog),
+                    "listDefault": searchcatalog.list_default_point_ids(
+                        self._transit_role_ids(catalog, "promittor"), moon=False,
+                    ),
                     "clear": [],
                 },
                 "significators": {
@@ -881,6 +890,9 @@ class TransitSearchService:
                     "builtins": catalog.builtin_significator_ids[:],
                     "planets": self._planetary_significator_ids(catalog),
                     "fixedStars": self._fixed_star_significator_ids(catalog),
+                    "listDefault": searchcatalog.list_default_point_ids(
+                        self._transit_role_ids(catalog, "significator"),
+                    ),
                     "clear": [],
                 },
             },
@@ -893,7 +905,9 @@ class TransitSearchService:
                 "promittorIds": default_promittors,
                 "significatorIds": default_significators,
                 "aspects": default_aspects,
-                "includeSignChanges": bool(getattr(opts, "search_sign_changes", False)),
+                # Find transits targets the clicked point; ingresses have no
+                # receiving point and belong to the general Search defaults.
+                "includeSignChanges": False if initial_id else bool(getattr(opts, "search_sign_changes", False)),
                 "promittorMotion": self._valid_motion_filter(
                     getattr(opts, "search_promittor_motion", "")
                 ),
@@ -903,6 +917,9 @@ class TransitSearchService:
                 "moonPhase": str(getattr(opts, "search_moon_phase", "") or ""),
                 "lunationOrb": float(getattr(opts, "search_lunation_orb", 3.0)),
                 "partFilter": str(getattr(opts, "search_part_filter", "") or ""),
+                "declParallel": False,
+                "declContraparallel": False,
+                "declOrb": 1.0,
                 "defaultOffsetMonths": self._coerce_month_option("search_default_offset_months", -2, -120, 120),
                 "defaultRangeMonths": self._coerce_month_option("search_default_range_months", 12, 1, 120),
                 "lifetimeYears": lifetime_years,
@@ -954,6 +971,7 @@ class TransitSearchService:
         display_options = effective_display_options(chart_snapshot_service.options)
         include_orb_temporal = bool(payload.get("includeOrbTemporal", False))
         include_temporal = bool(payload.get("includeTemporal", False)) or include_orb_temporal
+        decl_filter = self._parse_declination_filter(payload)
         serialized = self._serialize_rows(
             rows,
             catalog,
@@ -962,6 +980,7 @@ class TransitSearchService:
             display_options=display_options,
             include_temporal=include_temporal,
             include_orb_temporal=include_orb_temporal,
+            decl_filter=decl_filter,
         )
         return {
             "rows": serialized,
@@ -1136,6 +1155,7 @@ class TransitSearchService:
             bool(payload.get("includeTemporal", False))
             or bool(payload.get("includeOrbTemporal", False)),
             bool(payload.get("includeOrbTemporal", False)),
+            self._parse_declination_filter(payload),
         )
         return job.snapshot()
 
@@ -1212,6 +1232,7 @@ class TransitSearchService:
         cursor_maximum_date: Optional[datetime.date],
         include_temporal: bool = False,
         include_orb_temporal: bool = False,
+        decl_filter: Optional[tuple[bool, bool, float]] = None,
     ) -> None:
         try:
             if job.is_cancelled():
@@ -1233,6 +1254,7 @@ class TransitSearchService:
                     minimum_date=cursor_minimum_date,
                     maximum_date=cursor_maximum_date,
                     should_cancel=job.is_cancelled,
+                    progressive=True,
                 ):
                     if job.is_cancelled():
                         return
@@ -1245,6 +1267,7 @@ class TransitSearchService:
                         display_options=display_options,
                         include_temporal=include_temporal,
                         include_orb_temporal=include_orb_temporal,
+                        decl_filter=decl_filter,
                     )
                     # Publish exact civil coverage, not the rounded month span
                     # used by scrolling. Export may reuse only a whole month.
@@ -1285,6 +1308,7 @@ class TransitSearchService:
                         display_options=display_options,
                         include_temporal=include_temporal,
                         include_orb_temporal=include_orb_temporal,
+                        decl_filter=decl_filter,
                     )
                     job.update(
                         rows=serialized,
@@ -1468,10 +1492,23 @@ class TransitSearchService:
         display_options,
         include_temporal: bool = False,
         include_orb_temporal: bool = False,
+        decl_filter: Optional[tuple[bool, bool, float]] = None,
     ) -> list[dict[str, Any]]:
         rows = searchbackend.cheby_finalize_search_rows(catalog, chrt, rows)
         searchbackend.cheby_apply_lazy_display_rows(catalog, chrt, rows)
+        if decl_filter is not None:
+            want_par, want_cpar, orb_deg = decl_filter
+            rows = searchbackend.filter_search_rows_by_declination(
+                rows, catalog, chrt, want_par, want_cpar, orb_deg
+            )
         orb_runtime = searchbackend._SearchRuntime() if include_orb_temporal else None
+        decl_context = None
+        decl_flags = None
+        decl_orb = None
+        if decl_filter is not None:
+            decl_context = searchbackend._planet_ephemeris_context(chrt)
+            decl_flags = searchbackend._planet_flags(chrt)
+            decl_orb = decl_filter[2]
         return [
             self._row_payload(
                 row,
@@ -1483,9 +1520,32 @@ class TransitSearchService:
                 include_temporal=include_temporal,
                 include_orb_temporal=include_orb_temporal,
                 orb_runtime=orb_runtime,
+                decl_state=(
+                    searchbackend.declination_state_for_row(
+                        row, catalog, chrt, decl_orb, context=decl_context, flags=decl_flags
+                    )
+                    if decl_orb is not None
+                    else None
+                ),
             )
             for index, row in enumerate(rows)
         ]
+
+    @staticmethod
+    def _parse_declination_filter(
+        payload: dict[str, Any],
+    ) -> Optional[tuple[bool, bool, float]]:
+        want_par = bool(payload.get("declParallel"))
+        want_cpar = bool(payload.get("declContraparallel"))
+        if not want_par and not want_cpar:
+            return None
+        try:
+            orb = float(payload.get("declOrb", 1.0))
+        except Exception:
+            orb = 1.0
+        if orb not in DECLINATION_ORB_CHOICES:
+            orb = min(DECLINATION_ORB_CHOICES, key=lambda value: abs(value - orb))
+        return want_par, want_cpar, orb
 
     @staticmethod
     def _time_display_for_rows(
@@ -1572,6 +1632,36 @@ class TransitSearchService:
             "lifetimeFrom": lifetime_from.isoformat() if lifetime_from is not None else None,
             "lifetimeTo": lifetime_to.isoformat() if lifetime_to is not None else None,
         }
+
+    def lifetime_range(self, chrt) -> Optional[tuple[datetime.date, datetime.date]]:
+        """The Lifetime button's range for ``chrt``: its own date onward."""
+        start = self._chart_birth_date(chrt)
+        if start is None:
+            return None
+        years = self._coerce_int(
+            getattr(chart_snapshot_service.options, "search_lifetime_years", SEARCH_LIFETIME_DEFAULT_YEARS),
+            SEARCH_LIFETIME_DEFAULT_YEARS,
+            SEARCH_LIFETIME_MIN_YEARS,
+            SEARCH_LIFETIME_MAX_YEARS,
+        )
+        return start, self._add_years(start, years)
+
+    def chart_for_request(self, chrt, radix, payload: dict[str, Any]):
+        """Chart a search request runs against.
+
+        Lifetime always searches the radix.  On a sub chart the range keeps
+        the sub chart's start date (the catalog's ``lifetimeFrom``); only the
+        searched positions switch to the natal radix.  A cursor window inside
+        a Lifetime range carries the full range as ``cursorRange*``.
+        """
+        if radix is None or radix is chrt:
+            return chrt
+        lifetime = self.lifetime_range(chrt)
+        if lifetime is None:
+            return chrt
+        range_from = self._parse_date(payload.get("cursorRangeFrom") or payload.get("fromDate"))
+        range_to = self._parse_date(payload.get("cursorRangeTo") or payload.get("toDate"))
+        return radix if (range_from, range_to) == lifetime else chrt
 
     def export_rows(self, rows_payload: Any, kind: str) -> dict:
         """Clipboard/ICS text for selected result rows.
@@ -1773,7 +1863,8 @@ class TransitSearchService:
             "fixedstarCode": getattr(obj, "fixedstar_code", None),
             "asteroidNumber": getattr(obj, "asteroid_number", None),
             "techniqueRoles": (
-                searchcatalog.ASTEROID_SEARCH_ROLES if obj.id.startswith("asteroid:")
+                searchcatalog.APOGEE_CAPABILITIES if obj.id == "planet:apogee"
+                else searchcatalog.ASTEROID_SEARCH_ROLES if obj.id.startswith("asteroid:")
                 else searchcatalog.HOUSE_CUSP_SEARCH_ROLES if obj.family == searchcatalog.SearchObject.FAMILY_HOUSE_CUSP
                 else None
             ),
@@ -1840,6 +1931,7 @@ class TransitSearchService:
         include_temporal: bool = False,
         include_orb_temporal: bool = False,
         orb_runtime=None,
+        decl_state: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         display_options = display_options or effective_display_options(
             chart_snapshot_service.options
@@ -1951,6 +2043,13 @@ class TransitSearchService:
                     activation_colors,
                 )
             payload["temporal"] = temporal
+        if decl_state is not None:
+            payload["promDeclination"] = decl_state["promDeclination"]
+            payload["sigDeclination"] = decl_state["sigDeclination"]
+            payload["declParallel"] = bool(decl_state["declParallel"])
+            payload["declContraparallel"] = bool(decl_state["declContraparallel"])
+            payload["declOrbDeltaPar"] = decl_state["declOrbDeltaPar"]
+            payload["declOrbDeltaCpar"] = decl_state["declOrbDeltaCpar"]
         return payload
 
     def _aspect_color(self, row: searchquery.SearchResult, display_options=None) -> str:
@@ -2075,6 +2174,7 @@ class TransitSearchService:
                     payload.get("dignity_code"),
                     fallback=payload.get("glyph_color"),
                     source_options=chart_snapshot_service.options,
+                    minor_count=payload.get("minor_dignity_count", 0),
                 )
             )
             payload["glyph_color_role"] = object_glyph_color_role(
@@ -2082,6 +2182,7 @@ class TransitSearchService:
                 obj,
                 payload.get("dignity_code"),
                 resolved_color=payload["glyph_color_css"],
+                minor_count=payload.get("minor_dignity_count", 0),
             )
         return payload
 
@@ -2170,6 +2271,13 @@ class TransitSearchService:
             oid for oid in catalog.promittor_ids
             if oid != "planet:moon" and not oid.startswith("asteroid:")
             and (catalog.get(oid) is None or catalog.get(oid).family != searchcatalog.SearchObject.FAMILY_FIXED_STAR)
+        ]
+
+    @staticmethod
+    def _transit_role_ids(catalog: searchcatalog.SearchCatalog, role: str) -> list[str]:
+        return [
+            obj.id for obj in catalog.objects
+            if searchcatalog.transit_point_role(obj, role) == "supported"
         ]
 
     @staticmethod

@@ -1,0 +1,215 @@
+{
+  "folds": [
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2021-05-05",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.654531505996281,
+      "actual_abs_r_cc": 8.85111371629543,
+      "abs_error": 1.196582210299149,
+      "score": -0.26846092425698065
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2021-08-04",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 5.7434189901975445,
+      "actual_abs_r_cc": 3.0136331021286726,
+      "abs_error": 2.729785888068872,
+      "score": 0.4654775161751512
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2021-11-04",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 5.7434189901975445,
+      "actual_abs_r_cc": 4.2412193505632745,
+      "abs_error": 1.50219963963427,
+      "score": 2.2429051823258366
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2022-02-09",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 5.4930523835918335,
+      "actual_abs_r_cc": 6.071161980592182,
+      "abs_error": 0.5781095970003483,
+      "score": -1.7160353084818267
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2022-05-04",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 5.4930523835918335,
+      "actual_abs_r_cc": 4.6487953851374195,
+      "abs_error": 0.8442569984544139,
+      "score": -2.4830283046818176
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2022-08-02",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 5.148322869424236,
+      "actual_abs_r_cc": 18.902439024390237,
+      "abs_error": 13.754116154966,
+      "score": 2.177441395454044
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2022-11-01",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.408679046563033,
+      "actual_abs_r_cc": 11.968385397064358,
+      "abs_error": 4.559706350501325,
+      "score": 0.26220987919149075
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2023-02-08",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.978642340375699,
+      "actual_abs_r_cc": 5.530085959885386,
+      "abs_error": 2.448556380490313,
+      "score": 3.351196847568861
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2023-05-02",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.173854910728328,
+      "actual_abs_r_cc": 11.545510079413564,
+      "abs_error": 4.371655168685236,
+      "score": 3.35083222552874
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2023-08-01",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.659594373915577,
+      "actual_abs_r_cc": 5.681358673675702,
+      "abs_error": 1.9782357002398747,
+      "score": -2.12817080507332
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2023-11-07",
+      "pred_sign": -1,
+      "actual_sign": 1,
+      "direction_correct": false,
+      "pred_abs_r_cc": 7.659594373915577,
+      "actual_abs_r_cc": 3.6975488159534713,
+      "abs_error": 3.9620455579621057,
+      "score": -1.5788241824425655
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2024-02-07",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 8.090473476230454,
+      "actual_abs_r_cc": 0.25542784163474785,
+      "abs_error": 7.835045634595706,
+      "score": 2.995313817441068
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2024-05-08",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 6.919177720687493,
+      "actual_abs_r_cc": 5.72199346869232,
+      "abs_error": 1.1971842519951732,
+      "score": -2.3680930493286283
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2024-08-06",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.378196600358117,
+      "actual_abs_r_cc": 10.92681258549933,
+      "abs_error": 3.548615985141214,
+      "score": 2.3279519166548015
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2024-10-31",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.283508162943115,
+      "actual_abs_r_cc": 9.291199798564785,
+      "abs_error": 2.0076916356216694,
+      "score": -2.532917124751808
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2025-02-05",
+      "pred_sign": 1,
+      "actual_sign": -1,
+      "direction_correct": false,
+      "pred_abs_r_cc": 7.673914599119885,
+      "actual_abs_r_cc": 7.555555555555549,
+      "abs_error": 0.11835904356433602,
+      "score": 0.8330895890628884
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2025-05-06",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.306178778994151,
+      "actual_abs_r_cc": 0.4682195949900403,
+      "abs_error": 6.837959184004111,
+      "score": 0.7823428901824149
+    },
+    {
+      "model": "model_b_density_dk_sq",
+      "test_report_date": "2025-05-07",
+      "pred_sign": 1,
+      "actual_sign": -1,
+      "direction_correct": false,
+      "pred_abs_r_cc": 6.780181918686143,
+      "actual_abs_r_cc": 2.5399044623092073,
+      "abs_error": 4.240277456376935,
+      "score": 1.354315334353616
+    }
+  ],
+  "summary": {
+    "model": "model_b_density_dk_sq",
+    "features": [
+      "tight_aspect_count",
+      "DK_sq_count"
+    ],
+    "n_events": 26,
+    "n_folds": 18,
+    "direction_accuracy": 0.8333333333333334,
+    "mae_abs_r_cc": 3.539465713200059,
+    "mae_baseline_predict_train_mean_abs": 6.71724248846365,
+    "note": "Exploratory on same sample if features were selected after viewing outcomes."
+  }
+}

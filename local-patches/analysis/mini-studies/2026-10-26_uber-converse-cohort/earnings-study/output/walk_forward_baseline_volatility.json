@@ -1,0 +1,136 @@
+{
+  "folds": [
+    {
+      "test_report_date": "2021-05-05",
+      "pred_abs_r_cc": 6.223858674716039,
+      "actual_abs_r_cc": 8.85111371629543,
+      "abs_error": 2.6272550415793905,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2021-08-04",
+      "pred_abs_r_cc": 6.515775901558194,
+      "actual_abs_r_cc": 3.0136331021286726,
+      "abs_error": 3.5021427994295213,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2021-11-04",
+      "pred_abs_r_cc": 6.165561621615241,
+      "actual_abs_r_cc": 4.2412193505632745,
+      "abs_error": 1.9243422710519669,
+      "direction_correct": true
+    },
+    {
+      "test_report_date": "2022-02-09",
+      "pred_abs_r_cc": 5.990621415155972,
+      "actual_abs_r_cc": 6.071161980592182,
+      "abs_error": 0.08054056543620991,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2022-05-04",
+      "pred_abs_r_cc": 5.997333128942323,
+      "actual_abs_r_cc": 4.6487953851374195,
+      "abs_error": 1.3485377438049033,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2022-08-02",
+      "pred_abs_r_cc": 5.893599456341946,
+      "actual_abs_r_cc": 18.902439024390237,
+      "abs_error": 13.008839568048291,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2022-11-01",
+      "pred_abs_r_cc": 6.822802282631109,
+      "actual_abs_r_cc": 11.968385397064358,
+      "abs_error": 5.145583114433249,
+      "direction_correct": true
+    },
+    {
+      "test_report_date": "2023-02-08",
+      "pred_abs_r_cc": 7.165841156926659,
+      "actual_abs_r_cc": 5.530085959885386,
+      "abs_error": 1.6357551970412727,
+      "direction_correct": true
+    },
+    {
+      "test_report_date": "2023-05-02",
+      "pred_abs_r_cc": 7.06360645711158,
+      "actual_abs_r_cc": 11.545510079413564,
+      "abs_error": 4.481903622301984,
+      "direction_correct": true
+    },
+    {
+      "test_report_date": "2023-08-01",
+      "pred_abs_r_cc": 7.327247846658755,
+      "actual_abs_r_cc": 5.681358673675702,
+      "abs_error": 1.6458891729830532,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2023-11-07",
+      "pred_abs_r_cc": 7.235809559270807,
+      "actual_abs_r_cc": 3.6975488159534713,
+      "abs_error": 3.538260743317336,
+      "direction_correct": true
+    },
+    {
+      "test_report_date": "2024-02-07",
+      "pred_abs_r_cc": 7.049585309622526,
+      "actual_abs_r_cc": 0.25542784163474785,
+      "abs_error": 6.7941574679877785,
+      "direction_correct": true
+    },
+    {
+      "test_report_date": "2024-05-08",
+      "pred_abs_r_cc": 6.709877436223136,
+      "actual_abs_r_cc": 5.72199346869232,
+      "abs_error": 0.9878839675308164,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2024-08-06",
+      "pred_abs_r_cc": 6.662835342531193,
+      "actual_abs_r_cc": 10.92681258549933,
+      "abs_error": 4.263977242968138,
+      "direction_correct": true
+    },
+    {
+      "test_report_date": "2024-10-31",
+      "pred_abs_r_cc": 6.856652489938836,
+      "actual_abs_r_cc": 9.291199798564785,
+      "abs_error": 2.434547308625949,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2025-02-05",
+      "pred_abs_r_cc": 6.962502372922573,
+      "actual_abs_r_cc": 7.555555555555549,
+      "abs_error": 0.5930531826329766,
+      "direction_correct": false
+    },
+    {
+      "test_report_date": "2025-05-06",
+      "pred_abs_r_cc": 6.987212922198949,
+      "actual_abs_r_cc": 0.4682195949900403,
+      "abs_error": 6.518993327208909,
+      "direction_correct": true
+    },
+    {
+      "test_report_date": "2025-05-07",
+      "pred_abs_r_cc": 6.726453189110592,
+      "actual_abs_r_cc": 2.5399044623092073,
+      "abs_error": 4.1865487268013855,
+      "direction_correct": false
+    }
+  ],
+  "summary": {
+    "model": "baseline_history_mean_abs",
+    "n_folds": 18,
+    "direction_accuracy": 0.4444444444444444,
+    "mae_abs_r_cc": 3.5954561701768406
+  }
+}

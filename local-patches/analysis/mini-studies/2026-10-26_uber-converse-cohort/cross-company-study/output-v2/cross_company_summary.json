@@ -1,0 +1,60 @@
+{
+  "run_utc": "2026-10-27T09:49:03.829018Z",
+  "universe_csv": "cross-company-study/input/universe_cohort_v2.csv",
+  "study_version": "v2_ceo_ft_inc",
+  "exclude_ticker": "UBER",
+  "reuse_events": false,
+  "n_events_evaluated": 7360,
+  "radix_summaries": [
+    {
+      "radix_kind": "CEO",
+      "n_events": 2476,
+      "n_companies": 40,
+      "companies_negative_pearson": 25,
+      "companies_positive_pearson": 15,
+      "median_company_pearson_r": -0.043895677722380594,
+      "pooled_fe_beta_square_count_1deg": -0.1769900807858431,
+      "holdout_pearson_r": -0.05107008923447149,
+      "direction_accuracy_dev_sq_median": 0.4909404659188956,
+      "direction_accuracy_holdout_sq_median": 0.5185659411011524,
+      "direction_accuracy_dev_majority": 0.5332182916307161,
+      "placebo_median_p": 0.43564356435643564,
+      "placebo_sig_count_p_lt_0.05": 0,
+      "placebo_n_companies": 1
+    },
+    {
+      "radix_kind": "FT",
+      "n_events": 2476,
+      "n_companies": 40,
+      "companies_negative_pearson": 28,
+      "companies_positive_pearson": 12,
+      "median_company_pearson_r": -0.044742809089852946,
+      "pooled_fe_beta_square_count_1deg": -0.023208491595952063,
+      "holdout_pearson_r": 0.04639847383935771,
+      "direction_accuracy_dev_sq_median": 0.4995685936151855,
+      "direction_accuracy_holdout_sq_median": 0.471190781049936,
+      "direction_accuracy_dev_majority": 0.5332182916307161,
+      "placebo_median_p": null,
+      "placebo_sig_count_p_lt_0.05": 0,
+      "placebo_n_companies": 0
+    },
+    {
+      "radix_kind": "INC",
+      "n_events": 2408,
+      "n_companies": 39,
+      "companies_negative_pearson": 24,
+      "companies_positive_pearson": 15,
+      "median_company_pearson_r": -0.0475582620717368,
+      "pooled_fe_beta_square_count_1deg": -0.2503295203154643,
+      "holdout_pearson_r": -0.02183661626293116,
+      "direction_accuracy_dev_sq_median": 0.5004314063848145,
+      "direction_accuracy_holdout_sq_median": 0.5231416549789621,
+      "direction_accuracy_dev_majority": 0.5332182916307161,
+      "placebo_median_p": null,
+      "placebo_sig_count_p_lt_0.05": 0,
+      "placebo_n_companies": 0
+    }
+  ],
+  "seed": 20261027,
+  "pilot_only": false
+}

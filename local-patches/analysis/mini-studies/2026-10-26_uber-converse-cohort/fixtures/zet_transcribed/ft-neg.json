@@ -1,0 +1,18 @@
+{
+  "chart": "Mirror RH (2) - UBER-negative-2026-02-04",
+  "event_local": "2026-02-04 09:30 GMT-5",
+  "radix_key": "FT",
+  "event_key": "NEG-01",
+  "natal": {
+    "Sun": {"sign": "Taurus", "d": 19, "m": 42, "s": 37, "decl_min": 17, "decl_sign": 1},
+    "Mars": {"sign": "Gemini", "d": 26, "m": 27, "s": 33},
+    "Jupiter": {"sign": "Sagittarius", "d": 22, "m": 59, "s": 43, "retrograde": true}
+  },
+  "mirror": {
+    "Sun": {"sign": "Leo", "d": 20, "m": 22, "s": 53},
+    "Mars": {"sign": "Libra", "d": 23, "m": 7, "s": 44},
+    "Jupiter": {"sign": "Gemini", "d": 12, "m": 8, "s": 41},
+    "Uranus": {"sign": "Aries", "d": 8, "m": 10, "s": 58, "retrograde": true},
+    "Node": {"sign": "Sagittarius", "d": 1, "m": 52, "s": 58}
+  }
+}

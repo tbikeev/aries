@@ -1,0 +1,11 @@
+placebo_type,shift,primary_pearson_r,empirical_p_two_sided_vs_genuine,genuine_r
+genuine,0,0.10819739851663113,,
+event_date_shift_days,-180,-0.13522678183177325,,
+event_date_shift_days,-90,0.01480015203748335,,
+event_date_shift_days,-30,-0.021053893520401514,,
+event_date_shift_days,30,0.14279616373737505,,
+event_date_shift_days,90,0.0614491393425947,,
+event_date_shift_days,180,0.11402103019195049,,
+random_ft_jd,n=200,-0.001681341836856592,0.263681592039801,0.10819739851663113
+cross_company_ft_reassignment,seed,0.1079428286194515,,
+circular_ewz_return_shift,1,-0.047144893014527484,,

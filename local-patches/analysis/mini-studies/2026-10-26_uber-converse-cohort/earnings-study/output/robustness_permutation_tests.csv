@@ -1,0 +1,5 @@
+feature,target,n,observed_corr,permutation_p_two_sided,n_perm,seed
+DK_sq_count,r_cc_pct,26,-0.5189825030597048,0.0074,4999,42
+DK_sq_count,abs_r_cc_pct,26,-0.11786383550265124,0.565,4999,42
+tight_aspect_count,r_cc_pct,26,-0.3846546059548513,0.0586,4999,42
+tight_aspect_count,abs_r_cc_pct,26,0.08516551448630416,0.6852,4999,42

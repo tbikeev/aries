@@ -1,0 +1,216 @@
+{
+  "folds": [
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2021-05-05",
+      "pred_sign": 1,
+      "actual_sign": -1,
+      "direction_correct": false,
+      "pred_abs_r_cc": 6.892001214143208,
+      "actual_abs_r_cc": 8.85111371629543,
+      "abs_error": 1.9591125021522222,
+      "score": 1.5266388730505438
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2021-08-04",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 6.004453096425161,
+      "actual_abs_r_cc": 3.0136331021286726,
+      "abs_error": 2.9908199942964884,
+      "score": 3.777130133760134
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2021-11-04",
+      "pred_sign": -1,
+      "actual_sign": 1,
+      "direction_correct": false,
+      "pred_abs_r_cc": 5.564252606508053,
+      "actual_abs_r_cc": 4.2412193505632745,
+      "abs_error": 1.3230332559447788,
+      "score": -1.5121547584494457
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2022-02-09",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 5.505983097375746,
+      "actual_abs_r_cc": 6.071161980592182,
+      "abs_error": 0.5651788832164355,
+      "score": -0.34801211671684906
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2022-05-04",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 5.648737502188741,
+      "actual_abs_r_cc": 4.6487953851374195,
+      "abs_error": 0.9999421170513214,
+      "score": -0.3274471838013188
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2022-08-02",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 5.505888628324266,
+      "actual_abs_r_cc": 18.902439024390237,
+      "abs_error": 13.39655039606597,
+      "score": 2.4709815216012263
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2022-11-01",
+      "pred_sign": -1,
+      "actual_sign": 1,
+      "direction_correct": false,
+      "pred_abs_r_cc": 7.180457427832513,
+      "actual_abs_r_cc": 11.968385397064358,
+      "abs_error": 4.787927969231845,
+      "score": -1.6701417451319112
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2023-02-08",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.180457427832513,
+      "actual_abs_r_cc": 5.530085959885386,
+      "abs_error": 1.650371467947127,
+      "score": 0.5487655814482428
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2023-05-02",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 6.997082820282832,
+      "actual_abs_r_cc": 11.545510079413564,
+      "abs_error": 4.548427259130732,
+      "score": 0.5057809723485089
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2023-08-01",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.451925546195905,
+      "actual_abs_r_cc": 5.681358673675702,
+      "abs_error": 1.7705668725202024,
+      "score": -0.3308663566011827
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2023-11-07",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.4374016287188685,
+      "actual_abs_r_cc": 3.6975488159534713,
+      "abs_error": 3.739852812765397,
+      "score": 0.6832491081295037
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2024-02-07",
+      "pred_sign": 1,
+      "actual_sign": 1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.097415009376559,
+      "actual_abs_r_cc": 0.25542784163474785,
+      "abs_error": 6.841987167741811,
+      "score": 1.8808785234482785
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2024-05-08",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 6.211738819714926,
+      "actual_abs_r_cc": 5.72199346869232,
+      "abs_error": 0.48974535102260575,
+      "score": -2.4540375038179327
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2024-08-06",
+      "pred_sign": -1,
+      "actual_sign": 1,
+      "direction_correct": false,
+      "pred_abs_r_cc": 6.527249412064741,
+      "actual_abs_r_cc": 10.92681258549933,
+      "abs_error": 4.39956317343459,
+      "score": -1.278996786672745
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2024-10-31",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 7.332990654276293,
+      "actual_abs_r_cc": 9.291199798564785,
+      "abs_error": 1.9582091442884915,
+      "score": -2.416445296925191
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2025-02-05",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 6.527249412064741,
+      "actual_abs_r_cc": 7.555555555555549,
+      "abs_error": 1.0283061434908083,
+      "score": -1.7701703586374167
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2025-05-06",
+      "pred_sign": -1,
+      "actual_sign": 1,
+      "direction_correct": false,
+      "pred_abs_r_cc": 6.527249412064741,
+      "actual_abs_r_cc": 0.4682195949900403,
+      "abs_error": 6.0590298170747,
+      "score": -2.088577389443318
+    },
+    {
+      "model": "model_a_sq_counts",
+      "test_report_date": "2025-05-07",
+      "pred_sign": -1,
+      "actual_sign": -1,
+      "direction_correct": true,
+      "pred_abs_r_cc": 6.360496450750462,
+      "actual_abs_r_cc": 2.5399044623092073,
+      "abs_error": 3.820591988441255,
+      "score": -2.8942079463289385
+    }
+  ],
+  "summary": {
+    "model": "model_a_sq_counts",
+    "features": [
+      "FT_sq_count",
+      "INC_sq_count",
+      "DK_sq_count"
+    ],
+    "n_events": 26,
+    "n_folds": 18,
+    "direction_accuracy": 0.7222222222222222,
+    "mae_abs_r_cc": 3.4627342397675993,
+    "mae_baseline_predict_train_mean_abs": 6.71724248846365,
+    "note": "Exploratory on same sample if features were selected after viewing outcomes."
+  }
+}

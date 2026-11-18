@@ -1,0 +1,120 @@
+ticker,radix_kind,birth_jd_ut,time_convention,birth_time_uncertain,quality_note,source_date
+MSFT,CEO,2439721.7708333335,noon_local_birthplace,True,noon_local_birthplace; Asia/Kolkata; angles/houses excluded from features,
+MSFT,FT,2446503.1305555557,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,1986-03-13
+MSFT,INC,2449253.2916666665,incorporation_noon_local_WA,True,Incorporation date Munkasey col6; state=WA. Birth time unknown — noon civil convention; angles/houses excluded.,1993-09-22
+AAPL,CEO,2437240.25,noon_local_birthplace,True,noon_local_birthplace; America/Chicago; angles/houses excluded from features,
+AAPL,FT,2444586.1041666665,first_trade_exchange_open_default_0930_et,True,Exchange code Q; FT date from Munkasey col9; angles/houses excluded. FT clock unknown — 09:30 ET placeholder.,1980-12-12
+AAPL,INC,2443147.3333333335,incorporation_noon_local_CA,True,Incorporation date Munkasey col6; state=CA. Birth time unknown — noon civil convention; angles/houses excluded.,1977-01-03
+NVDA,CEO,2438077.6666666665,noon_local_birthplace,True,noon_local_birthplace; Asia/Taipei; angles/houses excluded from features,
+NVDA,FT,2451201.21875,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,1999-01-22
+NVDA,INC,2450869.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1998-02-24
+GOOGL,CEO,2441478.7708333335,noon_local_birthplace,True,noon_local_birthplace; Asia/Kolkata; angles/houses excluded from features,
+GOOGL,FT,2456751.063888889,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2014-04-03
+GOOGL,INC,2452570.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2002-10-22
+META,CEO,2445835.1666666665,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+META,FT,2459740.063888889,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2022-06-09
+META,INC,2453216.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2004-07-29
+AMZN,CEO,2439869.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+AMZN,FT,2450584.0416666665,first_trade_time_munkasey_col7_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,1997-05-15
+AMZN,INC,2450232.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1996-05-28
+CRM,CEO,2438664.2916666665,noon_local_birthplace,True,noon_local_birthplace; America/Los_Angeles; angles/houses excluded from features,
+CRM,FT,2453180.0791666666,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,2004-06-23
+CRM,INC,2451213.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1999-02-03
+AMD,CEO,2440533.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+AMD,FT,2444162.0833333335,first_trade_time_munkasey_col7_hhmm,False,Exchange code S; FT date from Munkasey col9; angles/houses excluded.,1979-10-15
+AMD,INC,2440343.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1969-05-01
+ADBE,CEO,2438176.7708333335,noon_local_birthplace,True,noon_local_birthplace; Asia/Kolkata; angles/houses excluded from features,
+ADBE,FT,2446656.0416666665,first_trade_time_munkasey_col7_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,1986-08-13
+ADBE,INC,2450578.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1997-05-09
+DELL,CEO,2438815.25,noon_local_birthplace,True,noon_local_birthplace; America/Chicago; angles/houses excluded from features,
+DELL,FT,2458481.109027778,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,2018-12-28
+DELL,INC,2456324.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2013-01-31
+ABNB,CEO,2444846.1666666665,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+ABNB,FT,2459194.277083333,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2020-12-10
+ABNB,INC,2454645.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2008-06-27
+TSLA,CEO,2441130.9166666665,noon_local_birthplace,True,noon_local_birthplace; Africa/Johannesburg; angles/houses excluded from features,
+TSLA,FT,2455377.142361111,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2010-06-29
+TSLA,INC,2460475.2083333335,incorporation_noon_local_TX,True,Incorporation date Munkasey col6; state=TX. Birth time unknown — noon civil convention; angles/houses excluded.,2024-06-13
+DIS,CEO,2433688.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+DIS,FT,2436155.320138889,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1957-11-12
+DIS,INC,2458284.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2018-06-14
+WMT,CEO,2439416.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/Chicago; angles/houses excluded from features,
+WMT,FT,2441555.0833333335,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1972-08-25
+WMT,INC,2440526.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1969-10-31
+NFLX,CEO,2437216.3333333335,noon_local_birthplace,True,noon_local_birthplace; America/Los_Angeles; angles/houses excluded from features,
+NFLX,FT,2452418.125,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2002-05-23
+NFLX,INC,2450690.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1997-08-29
+SPOT,CEO,2445386.9583333335,noon_local_birthplace,True,noon_local_birthplace; Europe/Stockholm; angles/houses excluded from features,
+SPOT,FT,2458212.1965277777,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,2018-04-03
+SPOT,INC,2454097.0,incorporation_noon_utc_fallback,True,Incorporation date Munkasey col6; state=LUX. Birth time unknown — noon civil convention; angles/houses excluded.,2006-12-27
+CMCSA,CEO,2436748.1666666665,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+CMCSA,FT,2441510.0625,first_trade_exchange_open_default_0930_et,True,Exchange code Q; FT date from Munkasey col9; angles/houses excluded. FT clock unknown — 09:30 ET placeholder.,1972-07-11
+CMCSA,INC,2440286.0,incorporation_noon_utc_fallback,True,Incorporation date Munkasey col6; state=PA. Birth time unknown — noon civil convention; angles/houses excluded.,1969-03-05
+MCD,CEO,2440126.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/Chicago; angles/houses excluded from features,
+MCD,FT,2439312.0833333335,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1966-07-05
+MCD,INC,2438751.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1964-12-21
+SBUX,CEO,2434578.1666666665,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+SBUX,FT,2448800.0625,first_trade_exchange_open_default_0930_et,True,Exchange code Q; FT date from Munkasey col9; angles/houses excluded. FT clock unknown — 09:30 ET placeholder.,1992-06-26
+SBUX,INC,2446374.3333333335,incorporation_noon_local_WA,True,Incorporation date Munkasey col6; state=WA. Birth time unknown — noon civil convention; angles/houses excluded.,1985-11-04
+RBLX,CEO,2438050.3333333335,noon_local_birthplace,True,noon_local_birthplace; America/Los_Angeles; angles/houses excluded from features,
+RBLX,FT,2459284.2729166667,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,2021-03-10
+RBLX,INC,2453088.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2004-03-23
+F,CEO,2437826.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/Detroit; angles/houses excluded from features,
+F,FT,2435540.25,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1956-03-07
+F,INC,2422149.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1919-07-09
+GM,CEO,2437658.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/Detroit; angles/houses excluded from features,
+GM,FT,2455519.1083333334,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,2010-11-18
+GM,INC,2455055.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2009-08-11
+DAL,CEO,2435996.1666666665,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+DAL,FT,2454224.063888889,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,2007-05-03
+DAL,INC,2439566.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1967-03-16
+FDX,CEO,2431314.1666666665,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+FDX,FT,2443871.0833333335,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1978-12-28
+FDX,INC,2450724.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1997-10-02
+BA,CEO,2435947.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+BA,FT,2428051.084027778,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1935-09-05
+BA,INC,2427638.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1934-07-19
+LMT,CEO,2434739.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+LMT,FT,2449793.125,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1995-03-16
+LMT,INC,2449594.0,incorporation_noon_utc_fallback,True,Incorporation date Munkasey col6; state=MD. Birth time unknown — noon civil convention; angles/houses excluded.,1994-08-29
+TM,CEO,2435596.625,noon_local_birthplace,True,noon_local_birthplace; Asia/Tokyo; angles/houses excluded from features,
+TM,FT,2451451.0625,first_trade_exchange_open_default_0930_et,True,Exchange code N; FT date from Munkasey col9; angles/houses excluded. FT clock unknown — 09:30 ET placeholder.,1999-09-29
+STLA,CEO,2436429.9583333335,noon_local_birthplace,True,noon_local_birthplace; Europe/Lisbon; angles/houses excluded from features,
+STLA,FT,2459234.104861111,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,2021-01-19
+STLA,INC,2456749.0,incorporation_noon_utc_fallback,True,Incorporation date Munkasey col6; state=NED. Birth time unknown — noon civil convention; angles/houses excluded.,2014-04-01
+UAL,CEO,2436574.25,noon_local_birthplace,True,noon_local_birthplace; America/Chicago; angles/houses excluded from features,
+UAL,FT,2455471.0625,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2010-10-01
+UAL,INC,2440221.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1968-12-30
+LUV,CEO,2435179.25,noon_local_birthplace,True,noon_local_birthplace; America/Chicago; angles/houses excluded from features,
+LUV,FT,2443322.375,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1977-06-27
+LUV,INC,2439559.25,incorporation_noon_local_TX,True,Incorporation date Munkasey col6; state=TX. Birth time unknown — noon civil convention; angles/houses excluded.,1967-03-09
+JPM,CEO,2435546.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+JPM,FT,2440313.125,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1969-04-01
+JPM,INC,2440158.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1968-10-28
+BAC,CEO,2436851.1666666665,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+BAC,FT,2444030.1875,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1979-06-05
+BAC,INC,2451026.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1998-07-31
+BLK,CEO,2434319.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+BLK,FT,2451453.236111111,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1999-10-01
+BLK,INC,2450900.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1998-03-27
+COIN,CEO,2445360.3333333335,noon_local_birthplace,True,noon_local_birthplace; America/Los_Angeles; angles/houses excluded from features,
+COIN,FT,2459319.226388889,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2021-04-14
+COIN,INC,2456685.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2014-01-27
+HOOD,CEO,2446840.2083333335,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+HOOD,FT,2459425.184027778,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2021-07-29
+HOOD,INC,2456619.2083333335,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2013-11-22
+PFE,CEO,2437593.9166666665,noon_local_birthplace,True,noon_local_birthplace; Europe/Athens; angles/houses excluded from features,
+PFE,FT,2431107.1666666665,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1944-01-17
+PFE,INC,2430513.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1942-06-02
+BNTX,CEO,2439022.9583333335,noon_local_birthplace,True,noon_local_birthplace; Europe/Berlin; angles/houses excluded from features,
+BNTX,FT,2458767.107638889,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2019-10-10
+BNTX,INC,2454620.0,incorporation_noon_utc_fallback,True,Incorporation date Munkasey col6; state=GER. Birth time unknown — noon civil convention; angles/houses excluded.,2008-06-02
+MRNA,CEO,2441518.9583333335,noon_local_birthplace,True,noon_local_birthplace; Europe/Paris; angles/houses excluded from features,
+MRNA,FT,2458460.195138889,first_trade_time_munkasey_col10_hhmm,False,Exchange code Q; FT date from Munkasey col9; angles/houses excluded.,2018-12-07
+MRNA,INC,2457592.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2016-07-22
+MS,CEO,2436399.1666666665,noon_local_birthplace,True,noon_local_birthplace; America/New_York; angles/houses excluded from features,
+MS,FT,2453753.1041666665,first_trade_time_munkasey_col10_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,2006-01-17
+MS,INC,2444879.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,1981-10-01
+UNH,CEO,2438629.9583333335,noon_local_birthplace,True,noon_local_birthplace; Europe/London; angles/houses excluded from features,
+UNH,FT,2448540.0,first_trade_time_munkasey_col7_hhmm,False,Exchange code N; FT date from Munkasey col9; angles/houses excluded.,1991-10-10
+UNH,INC,2457205.1666666665,incorporation_noon_local_DE,True,Incorporation date Munkasey col6; state=DE. Birth time unknown — noon civil convention; angles/houses excluded.,2015-07-01

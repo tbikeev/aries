@@ -1,0 +1,11 @@
+kind,pair,bodies,aspect,expected_max_orb_deg,found_orb_deg,ok,contact,expected_max_delta_deg,found_delta_deg,verified
+longitude,FT-DK,Uranus-Saturn,conj,0.1,0.09122381129657242,True,,,,
+longitude,INC-DK,Jupiter-Mercury,conj,0.85,0.861612881476276,True,,,,
+longitude,FT-DK,Venus-Venus,conj,1.27,1.2466149723587705,True,,,,
+longitude,FT-DK,Jupiter-Pluto,sq,0.58,0.5797142985232995,True,,,,
+declination,INC-DK,Jupiter-Sun,,,,True,par,0.05,0.05560806784935579,True
+declination,FT-INC,Mercury-Moon,,,,True,par,0.08,0.07576416860107749,True
+declination,FT-INC,Saturn-Jupiter,,,,True,cpar,0.1,0.09950977611609702,True
+declination,INC-DK,Node-Pluto,,,,True,cpar,0.17,0.1620133857945305,True
+declination,FT-DK,Venus-Venus,,,,True,par,0.48,0.4751493604605841,True
+declination,FT-DK,Mars-Mars,,,,True,cpar,0.57,0.5646182322683764,True

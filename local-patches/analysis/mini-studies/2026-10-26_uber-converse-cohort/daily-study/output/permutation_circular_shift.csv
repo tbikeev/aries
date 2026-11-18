@@ -1,0 +1,3 @@
+feature,target,observed_r,null,p_two_sided,n_perm
+DK_sq_count_orb10,r_cc_pct,-0.025984570169404943,circular_shift,0.1795,1999
+tight_aspect_count_orb10,r_cc_pct,-0.010222874331507339,circular_shift,0.695,1999

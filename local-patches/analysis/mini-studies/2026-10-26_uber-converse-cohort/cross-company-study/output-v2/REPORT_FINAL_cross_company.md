@@ -1,0 +1,15 @@
+# Final — Cross-company v2 (CEO / FT / INC separate radices)
+
+Frozen hypothesis: directed converse major-square count @1° vs earnings CC (negative sign preregistered). CEO, FT, and INC are **separate radices** — not merged. **CEO**: median company r≈-0.044, pooled FE β≈-0.177, holdout r≈-0.051, sq-direction accuracy (holdout)≈0.519, random-radix placebo median p≈0.451. **FT**: median company r≈-0.045, pooled FE β≈-0.023, holdout r≈0.046, sq-direction accuracy (holdout)≈0.471, random-radix placebo median p≈0.500. **INC**: median company r≈-0.048, pooled FE β≈-0.250, holdout r≈-0.022, sq-direction accuracy (holdout)≈0.523, random-radix placebo median p≈0.451. **Conclusion:** None of the three radix families reproduce UBER-scale associations; CEO remains the strongest exploratory parallel but effect sizes stay near noise for prediction. FT and INC do not systematically outperform CEO on pooled sign or holdout metrics.
+
+## Per-radix metrics
+
+| radix_kind   |   n_events |   n_companies |   companies_negative_pearson |   companies_positive_pearson |   median_company_pearson_r |   pooled_fe_beta_square_count_1deg |   holdout_pearson_r |   direction_accuracy_dev_sq_median |   direction_accuracy_holdout_sq_median |   direction_accuracy_dev_majority |   placebo_median_p |   placebo_sig_count_p_lt_0.05 |   placebo_n_companies |
+|:-------------|-----------:|--------------:|-----------------------------:|-----------------------------:|---------------------------:|-----------------------------------:|--------------------:|-----------------------------------:|---------------------------------------:|----------------------------------:|-------------------:|------------------------------:|----------------------:|
+| CEO          |       2476 |            40 |                           25 |                           15 |                 -0.0438957 |                         -0.17699   |          -0.0510701 |                           0.49094  |                               0.518566 |                          0.533218 |            0.45098 |                             1 |                    40 |
+| FT           |       2476 |            40 |                           28 |                           12 |                 -0.0447428 |                         -0.0232085 |           0.0463985 |                           0.499569 |                               0.471191 |                          0.533218 |            0.5     |                             2 |                    40 |
+| INC          |       2408 |            39 |                           24 |                           15 |                 -0.0475583 |                         -0.25033   |          -0.0218366 |                           0.500431 |                               0.523142 |                          0.533218 |            0.45098 |                             1 |                    39 |
+
+Placebos: random radix JD offsets (50 surrogates, seed 20261027); index alignment fix applied.
+
+See `radix_time_conventions.csv` for FT/INC/CEO time assumptions.

@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Max Lange
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import type { ScrollBarStyle } from "@tauri-apps/api/window";
+
 export type ShellHostKind = "tauri" | "browser";
 export type NativeShellPlatform = "windows" | "macos" | "linux" | "other";
 
@@ -93,6 +95,8 @@ export type ShellHost = {
   capabilities: ShellHostCapabilities;
   closeChartPickerWindow: () => Promise<void>;
   confirmQuit: () => Promise<void>;
+  copyText: (text: string) => Promise<void>;
+  readClipboardText: () => Promise<string>;
   copyImage: (bytes: Uint8Array, mimeType: string) => Promise<void>;
   downloadBytes: (filename: string, bytes: Uint8Array, mimeType: string) => Promise<void>;
   installBeforeUnloadGuard: (shouldBlock: () => boolean) => () => void;
@@ -118,6 +122,9 @@ export type ShellHost = {
   selectSavePath: (options: NativeSaveDialogOptions) => Promise<string | null>;
   closeCurrentChartPickerWindow: () => Promise<void>;
   setWindowTitle: (title: string, shouldApply?: () => boolean) => Promise<void>;
+  /** Desktop only: this launch runs as a fresh install (src-tauri/src/vanilla.rs). */
+  vanillaMode: () => Promise<boolean>;
+  restartVanillaMode: (vanilla: boolean) => Promise<void>;
   syncMenuChecked: (states: ShellMenuCheckedState[]) => Promise<void>;
   syncMenuEnablement: (states: ShellMenuEnabledState[]) => Promise<void>;
   syncMenuLabels: (labels: ShellMenuLabelState[]) => Promise<void>;
@@ -183,9 +190,53 @@ export async function sampleScreenColor(): Promise<string | null> {
   return result.sRGBHex;
 }
 
+/** macOS and Linux show the daemon menu as the native menu bar. Windows draws
+ * it in the unified titlebar instead (the in-page app menu): a Win32 menu bar
+ * would sit beneath the extended DWM frame, attach to every tool window, and
+ * carry macOS-only app-menu items (Hide = Ctrl+H, Quit bypassing the guard). */
+export function hasNativeMenuBar(): boolean {
+  return hasTauriInternals() && resolveNativeShellPlatform() !== "windows";
+}
+
 export function resolveWindowsCaptionInset(): number {
   const inset = runtimeWindow()?.__ARIES_WINDOWS_CAPTION_INSET__;
-  return Number.isFinite(inset) && (inset ?? 0) > 0 ? Math.round(inset as number) : 0;
+  return validCaptionInset(inset) ?? 0;
+}
+
+function validCaptionInset(inset: unknown): number | null {
+  return typeof inset === "number" && Number.isFinite(inset) && inset > 0
+    ? Math.round(inset)
+    : null;
+}
+
+/** Follows the width DWM measures for the main window's caption buttons
+ * (shown, maximized, DPI or theme change). The startup estimate from
+ * `resolveWindowsCaptionInset` stays in place until a measurement arrives. */
+export function subscribeWindowsCaptionInset(onInset: (inset: number) => void): () => void {
+  if (resolveNativeShellPlatform() !== "windows") return () => {};
+  let disposed = false;
+  let unlisten: (() => void) | null = null;
+  const report = (inset: unknown) => {
+    const valid = validCaptionInset(inset);
+    if (!disposed && valid !== null) onInset(valid);
+  };
+  void (async () => {
+    const [{ invoke }, { listen }] = await Promise.all([
+      import("@tauri-apps/api/core"),
+      import("@tauri-apps/api/event"),
+    ]);
+    const stop = await listen<number>("aries://windows-caption-inset", (event) => report(event.payload));
+    if (disposed) {
+      stop();
+      return;
+    }
+    unlisten = stop;
+    report(await invoke<number>("get_windows_caption_inset"));
+  })().catch((error) => console.error("[windows-caption-inset]", error));
+  return () => {
+    disposed = true;
+    unlisten?.();
+  };
 }
 
 const emptyShellMenuState: ShellMenuStateSnapshot = { enabled: {}, checked: {} };
@@ -237,6 +288,34 @@ function downloadBytesInBrowser(filename: string, bytes: Uint8Array, mimeType: s
   anchor.click();
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function copyTextInBrowser(text: string): Promise<void> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch {
+    // Chromium can reject toolbar writes; fall back to a transient textarea.
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) throw new Error("Clipboard write was blocked");
+}
+
+async function readClipboardTextInBrowser(): Promise<string> {
+  if (!navigator.clipboard?.readText) {
+    throw new Error("Clipboard read is unavailable");
+  }
+  return navigator.clipboard.readText();
 }
 
 async function copyImageInBrowser(bytes: Uint8Array, mimeType: string): Promise<void> {
@@ -328,6 +407,8 @@ export const browserShellHost: ShellHost = {
     throw new Error("native chart picker window is unavailable in browser runtime");
   },
   confirmQuit: async () => {},
+  copyText: copyTextInBrowser,
+  readClipboardText: readClipboardTextInBrowser,
   copyImage: copyImageInBrowser,
   downloadBytes: async (filename: string, bytes: Uint8Array, mimeType: string) => {
     downloadBytesInBrowser(filename, bytes, mimeType);
@@ -369,6 +450,8 @@ export const browserShellHost: ShellHost = {
     throw new Error("native save dialog is unavailable in browser runtime");
   },
   setWindowTitle: async () => {},
+  vanillaMode: async () => false,
+  restartVanillaMode: async () => {},
   syncMenuChecked: async (states: ShellMenuCheckedState[]) => {
     mirrorShellMenuChecked(states);
   },
@@ -382,12 +465,14 @@ export const browserShellHost: ShellHost = {
 
 export const tauriShellHost: ShellHost = {
   kind: "tauri",
-  capabilities: {
-    nativeMenu: true,
-    nativeFileDialogs: true,
-    nativeWindowChrome: true,
-    chartPickerWindow: true,
-    crossWindowCommandAckOptional: true,
+  get capabilities() {
+    return {
+      nativeMenu: hasNativeMenuBar(),
+      nativeFileDialogs: true,
+      nativeWindowChrome: true,
+      chartPickerWindow: true,
+      crossWindowCommandAckOptional: true,
+    };
   },
   closeChartPickerWindow: async () => {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -396,6 +481,14 @@ export const tauriShellHost: ShellHost = {
   confirmQuit: async () => {
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("confirm_quit");
+  },
+  copyText: async (text: string) => {
+    const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
+    await writeText(text);
+  },
+  readClipboardText: async () => {
+    const { readText } = await import("@tauri-apps/plugin-clipboard-manager");
+    return readText();
   },
   copyImage: async (bytes: Uint8Array) => {
     const { Image } = await import("@tauri-apps/api/image");
@@ -460,6 +553,9 @@ export const tauriShellHost: ShellHost = {
       shadow: true,
       skipTaskbar: true,
       center: true,
+      // WebView2 needs one value for every webview in the data directory;
+      // matches tauri.conf.json and the Rust-built windows.
+      scrollBarStyle: "fluentOverlay" as ScrollBarStyle,
     });
 
     await new Promise<void>((resolve, reject) => {
@@ -533,6 +629,14 @@ export const tauriShellHost: ShellHost = {
     const selected = await save(options);
     return selected ? String(selected) : null;
   },
+  vanillaMode: async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return invoke<boolean>("vanilla_mode");
+  },
+  restartVanillaMode: async (vanilla: boolean) => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("restart_vanilla_mode", { vanilla });
+  },
   setWindowTitle: async (title: string, shouldApply?: () => boolean) => {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
     if (shouldApply && !shouldApply()) return;
@@ -540,24 +644,28 @@ export const tauriShellHost: ShellHost = {
   },
   syncMenuChecked: async (states: ShellMenuCheckedState[]) => {
     mirrorShellMenuChecked(states);
+    if (!hasNativeMenuBar()) return;
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("set_native_menu_checked", { states });
   },
   syncMenuEnablement: async (states: ShellMenuEnabledState[]) => {
     mirrorShellMenuEnablement(states);
+    if (!hasNativeMenuBar()) return;
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("set_native_menu_enabled", { states });
   },
   syncMenuLabels: async (labels: ShellMenuLabelState[]) => {
-    if (labels.length === 0) return;
+    if (labels.length === 0 || !hasNativeMenuBar()) return;
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("set_native_menu_labels", { labels });
   },
   syncRecentCharts: async (entries: ShellRecentChartEntry[]) => {
+    if (!hasNativeMenuBar()) return;
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("set_recent_charts", { entries });
   },
   syncWheelStyles: async (entries: ShellWheelStyleEntry[]) => {
+    if (!hasNativeMenuBar()) return;
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("set_wheel_styles", { entries });
   },

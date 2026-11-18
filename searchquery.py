@@ -10,6 +10,7 @@ class SearchQuery(object):
 	TECHNIQUE_SECONDARY_DIRECTIONS = 'secondary_directions'
 	TECHNIQUE_PRIMARY_DIRECTIONS = 'primary_directions'
 	TECHNIQUE_MUNDANE_WEATHER = 'mundane_weather'
+	TECHNIQUE_CONVERSE_MUNDANE_WEATHER = 'converse_mundane_weather'
 	TECHNIQUE_HELIACAL_PHASES = 'heliacal_phases'
 	TECHNIQUE_LUNATIONS = 'lunations'
 	TECHNIQUE_ECLIPSES = 'eclipses'
@@ -21,6 +22,7 @@ class SearchQuery(object):
 		TECHNIQUE_SECONDARY_DIRECTIONS,
 		TECHNIQUE_PRIMARY_DIRECTIONS,
 		TECHNIQUE_MUNDANE_WEATHER,
+		TECHNIQUE_CONVERSE_MUNDANE_WEATHER,
 	)
 
 	ASPECT_CONJUNCTION = 'conjunction'

@@ -34,12 +34,17 @@ def _normalize_readme_key(key: str) -> str:
         if key.startswith(prefix):
             return replacement + key.removeprefix(prefix)
     replacements = {
+        "Alt/Option + A": "⌥ A",
+        "Alt/Option + E": "⌥ E",
+        "Shift + Alt/Option + Left / Shift + Alt/Option + Right": "⇧ + ⌥ + ← / →",
         "Shift, then Shift": "⇧ ⇧",
         "Shift + Left / Shift + Right": "⇧ + ← / →",
         "Alt/Option + Left / Alt/Option + Right": "⌥ + ← / →",
         "Shift + Up / Shift + Down": "⇧ + ↑ / ↓",
         "Left / Right": "← / →",
         "Up / Down": "↑ / ↓",
+        "Alt/Option + E": "⌥ E",
+        "Alt/Option + R": "⌥ R",
     }
     return replacements.get(key, key)
 

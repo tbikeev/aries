@@ -1,0 +1,136 @@
+{
+  "folds": [
+    {
+      "test_report_date": "2021-05-05",
+      "baseline_pred_sign": 1,
+      "actual_sign": -1,
+      "baseline_correct": false,
+      "actual_r_cc": -8.85111371629543
+    },
+    {
+      "test_report_date": "2021-08-04",
+      "baseline_pred_sign": -1,
+      "actual_sign": 1,
+      "baseline_correct": false,
+      "actual_r_cc": 3.0136331021286726
+    },
+    {
+      "test_report_date": "2021-11-04",
+      "baseline_pred_sign": 1,
+      "actual_sign": 1,
+      "baseline_correct": true,
+      "actual_r_cc": 4.2412193505632745
+    },
+    {
+      "test_report_date": "2022-02-09",
+      "baseline_pred_sign": 1,
+      "actual_sign": -1,
+      "baseline_correct": false,
+      "actual_r_cc": -6.071161980592182
+    },
+    {
+      "test_report_date": "2022-05-04",
+      "baseline_pred_sign": 1,
+      "actual_sign": -1,
+      "baseline_correct": false,
+      "actual_r_cc": -4.6487953851374195
+    },
+    {
+      "test_report_date": "2022-08-02",
+      "baseline_pred_sign": -1,
+      "actual_sign": 1,
+      "baseline_correct": false,
+      "actual_r_cc": 18.902439024390237
+    },
+    {
+      "test_report_date": "2022-11-01",
+      "baseline_pred_sign": 1,
+      "actual_sign": 1,
+      "baseline_correct": true,
+      "actual_r_cc": 11.968385397064358
+    },
+    {
+      "test_report_date": "2023-02-08",
+      "baseline_pred_sign": 1,
+      "actual_sign": 1,
+      "baseline_correct": true,
+      "actual_r_cc": 5.530085959885386
+    },
+    {
+      "test_report_date": "2023-05-02",
+      "baseline_pred_sign": 1,
+      "actual_sign": 1,
+      "baseline_correct": true,
+      "actual_r_cc": 11.545510079413564
+    },
+    {
+      "test_report_date": "2023-08-01",
+      "baseline_pred_sign": 1,
+      "actual_sign": -1,
+      "baseline_correct": false,
+      "actual_r_cc": -5.681358673675702
+    },
+    {
+      "test_report_date": "2023-11-07",
+      "baseline_pred_sign": 1,
+      "actual_sign": 1,
+      "baseline_correct": true,
+      "actual_r_cc": 3.6975488159534713
+    },
+    {
+      "test_report_date": "2024-02-07",
+      "baseline_pred_sign": 1,
+      "actual_sign": 1,
+      "baseline_correct": true,
+      "actual_r_cc": 0.25542784163474785
+    },
+    {
+      "test_report_date": "2024-05-08",
+      "baseline_pred_sign": 1,
+      "actual_sign": -1,
+      "baseline_correct": false,
+      "actual_r_cc": -5.72199346869232
+    },
+    {
+      "test_report_date": "2024-08-06",
+      "baseline_pred_sign": 1,
+      "actual_sign": 1,
+      "baseline_correct": true,
+      "actual_r_cc": 10.92681258549933
+    },
+    {
+      "test_report_date": "2024-10-31",
+      "baseline_pred_sign": 1,
+      "actual_sign": -1,
+      "baseline_correct": false,
+      "actual_r_cc": -9.291199798564785
+    },
+    {
+      "test_report_date": "2025-02-05",
+      "baseline_pred_sign": 1,
+      "actual_sign": -1,
+      "baseline_correct": false,
+      "actual_r_cc": -7.555555555555549
+    },
+    {
+      "test_report_date": "2025-05-06",
+      "baseline_pred_sign": 1,
+      "actual_sign": 1,
+      "baseline_correct": true,
+      "actual_r_cc": 0.4682195949900403
+    },
+    {
+      "test_report_date": "2025-05-07",
+      "baseline_pred_sign": 1,
+      "actual_sign": -1,
+      "baseline_correct": false,
+      "actual_r_cc": -2.5399044623092073
+    }
+  ],
+  "summary": {
+    "n_events": 26,
+    "n_folds": 18,
+    "majority_sign_accuracy": 0.4444444444444444,
+    "note": "Astrological features not used in this baseline fold; use feature_reduction for exploratory assoc."
+  }
+}

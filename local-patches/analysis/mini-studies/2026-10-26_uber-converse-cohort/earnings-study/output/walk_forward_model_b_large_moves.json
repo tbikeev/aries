@@ -1,0 +1,48 @@
+{
+  "folds": [
+    {
+      "model": "model_b_large_moves_only",
+      "test_report_date": "2021-05-05",
+      "train_abs_p75": 7.587470163138582,
+      "actual_abs_r_cc": 8.85111371629543,
+      "direction_correct": true
+    },
+    {
+      "model": "model_b_large_moves_only",
+      "test_report_date": "2022-08-02",
+      "train_abs_p75": 6.935176358436598,
+      "actual_abs_r_cc": 18.902439024390237,
+      "direction_correct": true
+    },
+    {
+      "model": "model_b_large_moves_only",
+      "test_report_date": "2022-11-01",
+      "train_abs_p75": 8.372129376830722,
+      "actual_abs_r_cc": 11.968385397064358,
+      "direction_correct": true
+    },
+    {
+      "model": "model_b_large_moves_only",
+      "test_report_date": "2023-05-02",
+      "train_abs_p75": 9.024423181532706,
+      "actual_abs_r_cc": 11.545510079413564,
+      "direction_correct": true
+    },
+    {
+      "model": "model_b_large_moves_only",
+      "test_report_date": "2024-08-06",
+      "train_abs_p75": 8.85111371629543,
+      "actual_abs_r_cc": 10.92681258549933,
+      "direction_correct": true
+    }
+  ],
+  "summary": {
+    "model": "model_b_large_moves_only",
+    "features": [
+      "tight_aspect_count",
+      "DK_sq_count"
+    ],
+    "n_folds_large_moves_only": 5,
+    "direction_accuracy": 1.0
+  }
+}

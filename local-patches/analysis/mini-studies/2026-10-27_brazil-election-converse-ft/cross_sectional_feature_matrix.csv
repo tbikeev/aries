@@ -1,0 +1,11 @@
+ticker,c2r_sq_count_1deg,c2r_sq_opp_count_1deg,c2r_hard_count_1deg,c2c_sq_count_1deg,c2c_sq_opp_count_1deg,c2c_hard_count_1deg,c2r_decl_contact_count_1deg,c2c_decl_contact_count_1deg,c2r_sq_count_0p5deg,c2r_sq_opp_count_0p5deg,c2r_hard_count_0p5deg,c2c_sq_count_0p5deg,c2c_sq_opp_count_0p5deg,c2c_hard_count_0p5deg,c2r_decl_contact_count_0p5deg,c2c_decl_contact_count_0p5deg,c2r_outer_hard_1deg,strict_timestamp,ft_jd_ut
+PAGS,1,1,2,3,3,4,9,3,0,0,0,1,1,2,5,1,2,True,2458144.105555556
+XP,0,0,1,2,3,3,11,6,0,0,0,1,2,2,5,2,1,True,2458829.1958333333
+STNE,1,2,5,0,0,0,13,4,1,1,3,0,0,0,6,3,5,True,2458417.134722222
+NU,0,0,2,0,0,0,9,5,0,0,1,0,0,0,3,2,1,True,2459558.2555555557
+ITUB,1,2,3,0,0,0,16,3,0,1,2,0,0,0,9,2,2,True,2452327.109722222
+BBD,1,4,5,1,1,2,14,4,1,1,2,0,0,0,7,2,3,False,2452235.2083333335
+PBR,2,2,2,1,1,1,12,7,2,2,2,1,1,1,6,4,2,False,2451766.1666666665
+ABEV,0,0,0,0,1,1,8,6,0,0,0,0,1,1,4,2,0,False,2456608.2083333335
+VALE,1,1,3,1,1,1,11,9,0,0,0,0,0,0,4,5,2,False,2454974.1666666665
+ERJ,1,2,2,0,0,0,10,3,1,1,1,0,0,0,5,1,1,True,2460983.104861111

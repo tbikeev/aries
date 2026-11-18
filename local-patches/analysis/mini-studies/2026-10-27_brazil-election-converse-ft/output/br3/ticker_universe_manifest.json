@@ -1,0 +1,19 @@
+{
+  "phase": "BR-3",
+  "tickers": [
+    "ABEV",
+    "BBD",
+    "ERJ",
+    "ITUB",
+    "NU",
+    "PAGS",
+    "PBR",
+    "STNE",
+    "VALE",
+    "XP"
+  ],
+  "excluded": {
+    "EBR": "FT and OHLC unresolved"
+  },
+  "frozen": true
+}

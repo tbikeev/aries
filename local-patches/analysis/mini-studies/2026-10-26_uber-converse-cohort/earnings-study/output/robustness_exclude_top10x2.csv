@@ -1,0 +1,5 @@
+subset,n,feature,corr_with_r_cc,corr_with_abs_r_cc
+excluding_declared_extremes,6,DK_sq_count,0.27742797457986307,-0.19226422753795364
+excluding_declared_extremes,6,tight_aspect_count,0.06741553603453816,0.5807403184944766
+excluding_declared_extremes,6,FT_sq_count,0.7522986341346046,-0.0690751210561611
+excluding_declared_extremes,6,INC_sq_count,-0.469664038897112,0.35785133116914236

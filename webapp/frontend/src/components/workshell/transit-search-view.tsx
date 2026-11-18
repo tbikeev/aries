@@ -86,6 +86,27 @@ import {
 } from "@/lib/table/payload-cache";
 import { semanticChartColor } from "@/lib/theme/semantic-color";
 import { radixPaneOwner } from "@/lib/radix-pane-state";
+import {
+  buildSearchPerformanceLookup,
+  formatPerformanceAnchorTitle,
+  parseSearchPerformanceAnchorRoll,
+  parseSearchPerformanceHorizonDays,
+  SEARCH_PERFORMANCE_ANCHOR_ROLLS,
+  SEARCH_PERFORMANCE_HORIZONS,
+  formatPerformancePct,
+  formatMeanReturnPct,
+  formatSearchPerformanceSummaryLine,
+  listingIsoDateFromRow,
+  ohlcCloseDateSpan,
+  parseSearchOhlcFile,
+  searchPerformanceAnomalies,
+  summarizeSearchPerformance,
+  type SearchOhlcSeries,
+  type SearchPerformanceAnchorRoll,
+  type SearchPerformanceHorizonDays,
+  type SearchPerformanceSummary,
+  type SearchPerformanceLookup,
+} from "@/lib/search-ohlc";
 import { cn } from "@/lib/utils";
 import { type ListFollowPolicy } from "@/lib/list-follow-policy";
 import { useDaemonWorkspaceStore } from "@/stores/daemon-workspace-store";
@@ -107,6 +128,9 @@ type SearchForm = {
   promittorIds: string[];
   significatorIds: string[];
   aspects: string[];
+  declParallel: boolean;
+  declContraparallel: boolean;
+  declOrb: SearchDeclOrb;
   includeSignChanges: boolean;
   promittorMotion: TransitSearchMotionFilter;
   significatorMotion: TransitSearchMotionFilter;
@@ -117,7 +141,34 @@ type SearchForm = {
 };
 
 type SelectionKey = "techniques" | "promittorIds" | "significatorIds" | "aspects";
-type SearchColumnKey = "date" | "time" | "aspect" | "mz" | "dc" | "from" | "to" | "technique";
+type SearchColumnKey =
+  | "date"
+  | "time"
+  | "aspect"
+  | "promDecl"
+  | "sigDecl"
+  | "declMatch"
+  | "mz"
+  | "dc"
+  | "from"
+  | "to"
+  | "technique"
+  | "performance";
+
+const SEARCH_DECL_ORBS = [0.5, 1, 2, 2.5] as const;
+type SearchDeclOrb = (typeof SEARCH_DECL_ORBS)[number];
+
+function parseSearchDeclOrb(value: unknown): SearchDeclOrb {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (numeric === 0.5 || numeric === 1 || numeric === 2 || numeric === 2.5) return numeric;
+  return 1;
+}
+
+function formatDeclinationDegrees(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}°`;
+}
 type SearchSortState = {
   column: SearchColumnKey;
   ascending: boolean;
@@ -139,6 +190,9 @@ type TransitSearchCacheEntry = {
   summary: string;
   timeDisplay: EventTimeDisplayMeta | null;
   rangeStream: SearchRangeStream | null;
+  ohlc?: SearchOhlcSeries | null;
+  ohlcHorizonDays?: SearchPerformanceHorizonDays;
+  ohlcAnchorRoll?: SearchPerformanceAnchorRoll;
 };
 type SearchRangeStream = {
   queryKey: string;
@@ -178,11 +232,15 @@ const SEARCH_COLUMNS: Record<SearchColumnKey, { labelKey: string; headClass: str
   date: { labelKey: "search.date", headClass: "text-center" },
   time: { labelKey: "search.time", headClass: "text-center" },
   aspect: { labelKey: "search.fromTo", headClass: "text-center" },
+  promDecl: { labelKey: "search.promDecl", headClass: "text-center" },
+  sigDecl: { labelKey: "search.sigDecl", headClass: "text-center" },
+  declMatch: { labelKey: "search.declMatch", headClass: "text-center" },
   mz: { labelKey: "search.mz", headClass: "text-center" },
   dc: { labelKey: "search.dc", headClass: "text-center" },
   from: { labelKey: "search.from", headClass: "text-center" },
   to: { labelKey: "search.to", headClass: "text-center" },
   technique: { labelKey: "search.tech", headClass: "text-center" },
+  performance: { labelKey: "search.performance", headClass: "text-center" },
 };
 
 const TECHNIQUE_DISPLAY_LABEL_KEYS: Record<string, string> = {
@@ -192,6 +250,7 @@ const TECHNIQUE_DISPLAY_LABEL_KEYS: Record<string, string> = {
   secondary_directions: "search.techSecondaryProgressions",
   primary_directions: "search.techPrimaryDirections",
   mundane_weather: "search.techCelestialWeather",
+  converse_mundane_weather: "search.techConverseCelestialWeather",
   heliacal_phases: "search.techHeliacalPhases",
   lunations: "search.techLunations",
   eclipses: "search.techEclipses",
@@ -278,6 +337,23 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(initialCache?.ui?.settingsOpen ?? false);
   const [filtersOpen, setFiltersOpen] = React.useState(initialCache?.ui?.filtersOpen ?? true);
+  const [ohlcSeries, setOhlcSeries] = React.useState<SearchOhlcSeries | null>(() => initialCache?.ohlc ?? null);
+  const [ohlcHorizonDays, setOhlcHorizonDays] = React.useState<SearchPerformanceHorizonDays>(() =>
+    parseSearchPerformanceHorizonDays(initialCache?.ohlcHorizonDays),
+  );
+  const [ohlcAnchorRoll, setOhlcAnchorRoll] = React.useState<SearchPerformanceAnchorRoll>(() =>
+    parseSearchPerformanceAnchorRoll(initialCache?.ohlcAnchorRoll),
+  );
+  const [ohlcError, setOhlcError] = React.useState<string | null>(null);
+  const ohlcInputRef = React.useRef<HTMLInputElement | null>(null);
+  const performanceLookup = React.useMemo(
+    () => buildSearchPerformanceLookup(ohlcSeries?.closes, ohlcHorizonDays, ohlcAnchorRoll),
+    [ohlcAnchorRoll, ohlcHorizonDays, ohlcSeries],
+  );
+  const ohlcSpan = React.useMemo(
+    () => ohlcCloseDateSpan(ohlcSeries?.closes ?? null),
+    [ohlcSeries],
+  );
   const filtersDock = useFrameLayoutStore((state) => state.searchFiltersDock);
   const setFiltersDock = useFrameLayoutStore((state) => state.setSearchFiltersDock);
   const [rangeDraft, setRangeDraft] = React.useState(() => ({
@@ -314,9 +390,12 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           contextMode, significatorId, chartRole, customPointsKey, optionsSeq, form: entry.form,
         }),
         ui: { sort, selectedRowKeys: [...selectedRowKeys], filtersOpen, settingsOpen, scrollTop: retainedScrollTopRef.current },
+        ohlc: ohlcSeries,
+        ohlcHorizonDays,
+        ohlcAnchorRoll,
       });
     },
-    [catalogContextKey, optionsSeq, searchLoading, sort, selectedRowKeys, filtersOpen, settingsOpen, contextMode, significatorId, chartRole, customPointsKey],
+    [catalogContextKey, optionsSeq, searchLoading, sort, selectedRowKeys, filtersOpen, settingsOpen, contextMode, significatorId, chartRole, customPointsKey, ohlcAnchorRoll, ohlcHorizonDays, ohlcSeries],
   );
 
   React.useEffect(() => {
@@ -345,6 +424,9 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       promittorIds: nextForm.promittorIds,
       significatorIds: nextForm.significatorIds,
       aspects: nextForm.aspects,
+      declParallel: nextForm.declParallel,
+      declContraparallel: nextForm.declContraparallel,
+      declOrb: nextForm.declOrb,
       includeSignChanges: nextForm.includeSignChanges,
       promittorMotion: nextForm.promittorMotion,
       significatorMotion: nextForm.significatorMotion,
@@ -398,6 +480,8 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       searchControllerRef.current = controller;
       setSearchLoading(true);
       setError(null);
+      setRows([]);
+      setSelectedRowKeys(new Set());
       const seed = searchSeedRange(nextForm.fromDate, nextForm.toDate);
       const nextRangeStream = seed
         ? {
@@ -447,7 +531,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           result.cursor?.coverageFrom ?? "",
           result.cursor?.coverageTo ?? "",
         ].join(":");
-        if (progressKey === lastProgressKey) return;
+        if (progressKey === lastProgressKey && !result.complete) return;
         lastProgressKey = progressKey;
         const nextTimeDisplay = result.timeDisplay ?? catalogRef.current?.timeDisplay ?? null;
         const nextRows = normalizeSearchStreamRows(result.rows);
@@ -504,7 +588,15 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           }
           startedSessionId = initial.sessionId;
           currentSearchSessionRef.current = initial.sessionId;
-          await followTransitSearchProgress(initial, controller.signal, applyProgress);
+          const final = await followTransitSearchProgress(
+            initial,
+            controller.signal,
+            applyProgress,
+            searchProgressFollowOptions(nextForm.fromDate, nextForm.toDate),
+          );
+          if (!controller.signal.aborted && searchRequestSeqRef.current === requestSeq) {
+            applyProgress(final);
+          }
         })
         .catch((err) => {
           if (
@@ -516,8 +608,11 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           setSummary(t("search.searchFailed"));
         })
         .finally(() => {
-          if (searchControllerRef.current === controller) {
+          if (searchRequestSeqRef.current === requestSeq) {
             setSearchLoading(false);
+          }
+          if (searchControllerRef.current === controller) {
+            searchControllerRef.current = null;
           }
           if (startedSessionId && currentSearchSessionRef.current === startedSessionId) {
             currentSearchSessionRef.current = null;
@@ -635,6 +730,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                 mergedRows = mergeSearchStreamRows(mergedRows, result.rows);
                 nextTimeDisplay = result.timeDisplay ?? nextTimeDisplay;
               },
+              searchProgressFollowOptions(plan.universeForm.fromDate, plan.universeForm.toDate),
             );
             if (final.error) throw new Error(final.error);
             const coverageTo = final.cursor?.coverageTo ?? slice.toDate;
@@ -685,8 +781,11 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           setError((err as Error).message);
         })
         .finally(() => {
-          if (searchControllerRef.current === controller) {
+          if (searchRequestSeqRef.current === requestSeq) {
             setSearchLoading(false);
+          }
+          if (searchControllerRef.current === controller) {
+            searchControllerRef.current = null;
           }
           const sessionId = currentSearchSessionRef.current;
           if (sessionId) {
@@ -702,6 +801,14 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     (activeForm: SearchForm, options?: { persistSettings?: boolean }) => {
       const currentStream = rangeStreamRef.current;
       const sourceForm = currentStream?.queryForm ?? null;
+      if (sourceForm && searchDeclinationFilterKey(sourceForm) !== searchDeclinationFilterKey(activeForm)) {
+        if (options?.persistSettings ?? true) saveSettings(activeForm);
+        executeSearch(retainedSearchSourceForm(activeForm), {
+          persistSettings: false,
+          displayForm: activeForm,
+        });
+        return;
+      }
       if (sourceForm && currentStream && retainedSearchNeedsRangeReplacement(currentStream, activeForm)) {
         if (options?.persistSettings ?? true) saveSettings(activeForm);
         executeSearch(retainedSearchSourceForm(activeForm), {
@@ -712,25 +819,30 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       }
       const plan = retainedSearchDeltaPlan(sourceForm, activeForm);
       if (plan && plan.deltaForms.length === 0 && plan.rangeForms.length === 0) {
-        if (options?.persistSettings ?? true) saveSettings(activeForm);
-        setSummary(t("search.resultCount").replace(
-          "{count}",
-          String(projectTransitSearchRows(rowsRef.current, activeForm).length),
-        ));
         const current = rangeStreamRef.current;
-        if (current && searchRangeQueryKey(current.queryForm ?? activeForm) !== searchRangeQueryKey(plan.universeForm)) {
-          const nextStream: SearchRangeStream = {
-            ...current,
-            queryKey: searchRangeQueryKey(plan.universeForm),
-            queryForm: plan.universeForm,
-            rangeFrom: plan.universeForm.fromDate,
-            rangeTo: plan.universeForm.toDate,
-            exhaustedNext: plan.extendsRangeAfter ? false : current.exhaustedNext,
-          };
-          rangeStreamRef.current = nextStream;
-          setRangeStream(nextStream);
+        const rangeFullyLoaded = current
+          ? searchRangeFullyLoaded(current, activeForm)
+          : false;
+        if (rangeFullyLoaded) {
+          if (options?.persistSettings ?? true) saveSettings(activeForm);
+          setSummary(t("search.resultCount").replace(
+            "{count}",
+            String(projectTransitSearchRows(rowsRef.current, activeForm).length),
+          ));
+          if (current && searchRangeQueryKey(current.queryForm ?? activeForm) !== searchRangeQueryKey(plan.universeForm)) {
+            const nextStream: SearchRangeStream = {
+              ...current,
+              queryKey: searchRangeQueryKey(plan.universeForm),
+              queryForm: plan.universeForm,
+              rangeFrom: plan.universeForm.fromDate,
+              rangeTo: plan.universeForm.toDate,
+              exhaustedNext: plan.extendsRangeAfter ? false : current.exhaustedNext,
+            };
+            rangeStreamRef.current = nextStream;
+            setRangeStream(nextStream);
+          }
+          return;
         }
-        return;
       }
       if (plan && extendRetainedSearchUniverse(activeForm, plan)) return;
       if (options?.persistSettings ?? true) saveSettings(activeForm);
@@ -810,6 +922,9 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           promittorIds: data.defaults.promittorIds,
           significatorIds: data.defaults.significatorIds,
           aspects: data.defaults.aspects,
+          declParallel: data.defaults.declParallel ?? false,
+          declContraparallel: data.defaults.declContraparallel ?? false,
+          declOrb: parseSearchDeclOrb(data.defaults.declOrb),
           includeSignChanges: data.defaults.includeSignChanges,
           promittorMotion: data.defaults.promittorMotion,
           significatorMotion: data.defaults.significatorMotion,
@@ -960,7 +1075,10 @@ export function TransitSearchView(props: TransitSearchViewProps) {
 
   const layoutPreset = useListLayoutPreset();
   const searchRowHeight = useListRowHeight("dense");
-  const sortedSourceRows = React.useMemo(() => sortTransitSearchRows(rows, sort), [rows, sort]);
+  const sortedSourceRows = React.useMemo(
+    () => sortTransitSearchRows(rows, sort, performanceLookup),
+    [rows, sort, performanceLookup],
+  );
   const sortedRows = React.useMemo(
     () => projectTransitSearchRows(sortedSourceRows, form),
     [form, sortedSourceRows],
@@ -1061,6 +1179,49 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     saveSettings(next);
   }, [catalog, form, prepareObjectFilterChange, saveSettings]);
 
+  const ohlcParseErrorMessage = React.useCallback(
+    (code: string) => {
+      switch (code) {
+        case "empty_file":
+          return t("search.ohlcParseEmpty");
+        case "invalid_json":
+          return t("search.ohlcParseInvalidJson");
+        case "no_rows":
+          return t("search.ohlcParseNoRows");
+        case "insufficient_closes":
+          return t("search.ohlcParseInsufficient");
+        default:
+          return code;
+      }
+    },
+    [t],
+  );
+
+  const loadOhlcFile = React.useCallback(
+    (file: File) => {
+      setOhlcError(null);
+      void file.text().then((text) => {
+        const parsed = parseSearchOhlcFile(file.name, text);
+        if (!parsed.ok) {
+          setOhlcError(ohlcParseErrorMessage(parsed.error));
+          return;
+        }
+        setOhlcSeries(parsed.series);
+      }).catch(() => {
+        setOhlcError(t("search.ohlcParseInvalidJson"));
+      });
+    },
+    [ohlcParseErrorMessage, t],
+  );
+
+  const clearOhlcSeries = React.useCallback(() => {
+    setOhlcSeries(null);
+    setOhlcError(null);
+    if (ohlcInputRef.current) {
+      ohlcInputRef.current.value = "";
+    }
+  }, []);
+
   const changePartFilter = React.useCallback((partFilter: string) => {
     if (!form) return;
     const next = { ...form, partFilter };
@@ -1133,6 +1294,23 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     [runDateRangeSearch],
   );
 
+  const runTodaySearch = React.useCallback(() => {
+    const today = new Date();
+    const fromDate = isoDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    runDateRangeSearch(fromDate, fromDate);
+  }, [runDateRangeSearch]);
+
+  const runYesterdayTodayTomorrowSearch = React.useCallback(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const fromDate = isoDate(yesterday.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate());
+    const toDate = isoDate(tomorrow.getFullYear(), tomorrow.getMonth() + 1, tomorrow.getDate());
+    runDateRangeSearch(fromDate, toDate);
+  }, [runDateRangeSearch]);
+
   const runThisMonthSearch = React.useCallback(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -1148,21 +1326,44 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   }, [runYearSearch]);
 
   const runLifetimeSearch = React.useCallback(() => {
-    if (!catalog?.lifetimeFrom || !catalog.lifetimeTo) return;
+    if (!catalog?.lifetimeFrom || !catalog?.lifetimeTo || !form) return;
+    const next: SearchForm = {
+      ...form,
+      fromDate: catalog.lifetimeFrom,
+      toDate: catalog.lifetimeTo,
+    };
+    if (!canRunSearch(next)) return;
     prepareObjectFilterChange();
-    setForm((prev) => {
-      if (!prev) return prev;
-      const next = {
-        ...prev,
-        fromDate: catalog.lifetimeFrom ?? prev.fromDate,
-        toDate: catalog.lifetimeTo ?? prev.toDate,
-      };
-      if (canRunSearch(next)) {
-        refreshRetainedSearch(next);
-      }
-      return next;
+    formRef.current = next;
+    setForm(next);
+    saveSettings(next);
+    rangeStreamRef.current = null;
+    setRangeStream(null);
+    executeSearch(retainedSearchSourceForm(next), {
+      persistSettings: false,
+      displayForm: next,
     });
-  }, [catalog, prepareObjectFilterChange, refreshRetainedSearch]);
+  }, [catalog, executeSearch, form, prepareObjectFilterChange, saveSettings]);
+
+  const runOhlcSpanSearch = React.useCallback(() => {
+    if (!form || !ohlcSpan) return;
+    const next: SearchForm = {
+      ...form,
+      fromDate: ohlcSpan.fromDate,
+      toDate: ohlcSpan.toDate,
+    };
+    if (!canRunSearch(next)) return;
+    prepareObjectFilterChange();
+    formRef.current = next;
+    setForm(next);
+    saveSettings(next);
+    rangeStreamRef.current = null;
+    setRangeStream(null);
+    executeSearch(retainedSearchSourceForm(next), {
+      persistSettings: false,
+      displayForm: next,
+    });
+  }, [executeSearch, form, ohlcSpan, prepareObjectFilterChange, saveSettings]);
 
   const saveDefaultRange = React.useCallback(() => {
     setError(null);
@@ -1260,7 +1461,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       setError(null);
       const sourceForm = current.queryForm ?? form;
       const request: TransitSearchRequest = {
-        ...buildRequest(sourceForm, false),
+        ...buildRequest(mergeSearchDeclinationFilter(sourceForm, form), false),
         fromDate: seed.fromDate,
         toDate: seed.toDate,
         ownerScope: "search:range",
@@ -1277,16 +1478,18 @@ export function TransitSearchView(props: TransitSearchViewProps) {
       const applyProgress = (result: TransitSearchProgressResult) => {
         if (controller.signal.aborted || result.cancelled) return;
         if (result.error) throw new Error(result.error);
-        if (!result.cursor) return;
+        if (!result.cursor && !result.complete) return;
+        const cursor = result.cursor;
+        if (!cursor) return;
         const live = rangeStreamRef.current;
         if (!live || live.queryKey !== current.queryKey) return;
         const nextRows = mergeSearchStreamRows(rowsRef.current, result.rows);
         const nextStream: SearchRangeStream = {
           ...live,
-          coverageFrom: live.coverageFrom || result.cursor.coverageFrom,
-          coverageTo: result.cursor.coverageTo,
-          exhaustedNext: result.cursor.coverageTo >= live.rangeTo
-            ? result.cursor.exhaustedNext
+          coverageFrom: live.coverageFrom || cursor.coverageFrom,
+          coverageTo: cursor.coverageTo,
+          exhaustedNext: cursor.coverageTo >= live.rangeTo
+            ? cursor.exhaustedNext
             : false,
         };
         rowsRef.current = nextRows;
@@ -1306,7 +1509,12 @@ export function TransitSearchView(props: TransitSearchViewProps) {
             return;
           }
           startedSessionId = initial.sessionId;
-          await followTransitSearchProgress(initial, controller.signal, applyProgress);
+          await followTransitSearchProgress(
+            initial,
+            controller.signal,
+            applyProgress,
+            form ? searchProgressFollowOptions(form.fromDate, form.toDate) : undefined,
+          );
         })
         .catch((err) => {
           if ((err as { name?: string }).name === "AbortError") return;
@@ -1318,6 +1526,8 @@ export function TransitSearchView(props: TransitSearchViewProps) {
             rangeExtendInFlightRef.current = false;
             setSearchLoading(false);
             setEdgeCheckNonce((value) => value + 1);
+          } else if (!rangeExtendInFlightRef.current && !searchControllerRef.current) {
+            setSearchLoading(false);
           }
           if (controller.signal.aborted && startedSessionId) {
             void cancelTransitSearch(startedSessionId).catch(() => undefined);
@@ -1380,15 +1590,18 @@ export function TransitSearchView(props: TransitSearchViewProps) {
     onExtend: extendRange,
     recheckToken: edgeCheckNonce,
   });
-  const sourceQueryForm = rangeStream?.queryForm ?? form;
   const visibleColumns = React.useMemo(
     () =>
-      listKeyDisplayOrder(getVisibleColumns(rows, sourceQueryForm, t), layoutPreset, {
-        dateKeys: ["date"],
-        timeKeys: ["time"],
-        eventKeys: ["aspect"],
-      }),
-    [layoutPreset, rows, sourceQueryForm, t],
+      listKeyDisplayOrder(
+        getVisibleColumns(rows, form, t, Boolean(ohlcSeries)),
+        layoutPreset,
+        {
+          dateKeys: ["date"],
+          timeKeys: ["time"],
+          eventKeys: ["aspect", "promDecl", "sigDecl", "declMatch"],
+        },
+      ),
+    [layoutPreset, ohlcSeries, rows, form, t],
   );
   const tableResize = useResizableTableColumns({
     storageKey: "transit-search",
@@ -1481,7 +1694,13 @@ export function TransitSearchView(props: TransitSearchViewProps) {
   const projectedSummary = sortedRows.length === rows.length
     ? summary
     : t("search.resultCount").replace("{count}", String(sortedRows.length));
-  const displayedSummary = rangeStatus ? `${projectedSummary} · ${rangeStatus}` : projectedSummary;
+  const performanceSummary = ohlcSeries
+    ? summarizeSearchPerformance(sortedRows, performanceLookup, form.fromDate, form.toDate)
+    : null;
+  const resultStatusLine = rangeStatus ? `${projectedSummary} · ${rangeStatus}` : projectedSummary;
+  const loadingSummaryLabel = performanceSummary
+    ? `${resultStatusLine} · ${t("search.performanceHeader")} ${formatSearchPerformanceSummaryLine(performanceSummary)}`
+    : resultStatusLine;
   const paneSeedGlyph = props.mode === "context" ? (props.glyph ?? "") : "";
   const paneSeedLabel = props.mode === "context" ? (props.label ?? "") : "";
   const seedGlyph = catalog.initialSignificatorGlyph || paneSeedGlyph;
@@ -1503,46 +1722,59 @@ export function TransitSearchView(props: TransitSearchViewProps) {
         catalog={catalog}
         lunationOrb={form.lunationOrb}
         lunarEventsEnabled={form.techniques.includes("lunations") || form.techniques.includes("eclipses")}
+        declParallel={form.declParallel}
+        declContraparallel={form.declContraparallel}
+        declOrb={form.declOrb}
         onToggle={(id, checked) => toggleSelected("aspects", id, checked)}
         onSetAll={() => setSelected("aspects", catalog.presets.aspects.all)}
         onSetMajor={() => setSelected("aspects", catalog.presets.aspects.major)}
         onClear={() => setSelected("aspects", catalog.presets.aspects.clear)}
         onLunationOrbChange={changeLunationOrb}
+        onDeclParallelChange={(checked) => updateForm({ declParallel: checked })}
+        onDeclContraparallelChange={(checked) => updateForm({ declContraparallel: checked })}
+        onDeclOrbChange={(orb) => updateForm({ declOrb: orb })}
       />
-      <SelectionGroup
-        title={t("search.promissors")}
-        selected={form.promittorIds}
-        items={promittors}
-        compact
-        motionFilter={form.promittorMotion}
-        moonPhase={form.moonPhase}
-        onMotionFilterChange={(value) => changeMotionFilter("promittorMotion", value)}
-        onMoonPhaseChange={changeMoonPhase}
-        onToggle={togglePromittor}
-        actions={[
-          [t("search.all"), () => setSelected("promittorIds", catalog.presets.promittors.all)],
-          [t("search.planets"), () => setSelected("promittorIds", catalog.presets.promittors.planets)],
-          [t("search.core7"), () => setSelected("promittorIds", catalog.presets.promittors.core7)],
-          [t("chartmenu.asteroids"), () => toggleAsteroids("promittorIds")],
-          [t("search.clear"), () => setSelected("promittorIds", catalog.presets.promittors.clear)],
-        ]}
-      />
-      <SelectionGroup
-        title={t("search.significators")}
-        selected={form.significatorIds}
-        items={builtinSignificators}
-        compact
-        motionFilter={form.significatorMotion}
-        onMotionFilterChange={(value) => changeMotionFilter("significatorMotion", value)}
-        onToggle={(id, checked) => toggleSelected("significatorIds", id, checked)}
-        actions={[
-          [t("search.builtins"), () => setSelected("significatorIds", catalog.presets.significators.builtins)],
-          [t("search.planets"), () => setSelected("significatorIds", catalog.presets.significators.planets)],
-          [t("table.fixed_stars"), toggleFixedStarSignificators],
-          [t("chartmenu.asteroids"), () => toggleAsteroids("significatorIds")],
-          [t("search.clear"), () => setSelected("significatorIds", catalog.presets.significators.clear)],
-        ]}
-      />
+      <div
+        className={cn(
+          "grid min-w-0 grid-cols-2 gap-[var(--aries-pane-content-padding)]",
+          filtersDock === "bottom" && "col-span-2",
+        )}
+      >
+        <SelectionGroup
+          title={t("search.promissors")}
+          selected={form.promittorIds}
+          items={promittors}
+          compact
+          motionFilter={form.promittorMotion}
+          moonPhase={form.moonPhase}
+          onMotionFilterChange={(value) => changeMotionFilter("promittorMotion", value)}
+          onMoonPhaseChange={changeMoonPhase}
+          onToggle={togglePromittor}
+          actions={[
+            [t("search.all"), () => setSelected("promittorIds", catalog.presets.promittors.all)],
+            [t("search.planets"), () => setSelected("promittorIds", catalog.presets.promittors.planets)],
+            [t("search.core7"), () => setSelected("promittorIds", catalog.presets.promittors.core7)],
+            [t("chartmenu.asteroids"), () => toggleAsteroids("promittorIds")],
+            [t("search.clear"), () => setSelected("promittorIds", catalog.presets.promittors.clear)],
+          ]}
+        />
+        <SelectionGroup
+          title={t("search.significators")}
+          selected={form.significatorIds}
+          items={builtinSignificators}
+          compact
+          motionFilter={form.significatorMotion}
+          onMotionFilterChange={(value) => changeMotionFilter("significatorMotion", value)}
+          onToggle={(id, checked) => toggleSelected("significatorIds", id, checked)}
+          actions={[
+            [t("search.builtins"), () => setSelected("significatorIds", catalog.presets.significators.builtins)],
+            [t("search.planets"), () => setSelected("significatorIds", catalog.presets.significators.planets)],
+            [t("table.fixed_stars"), toggleFixedStarSignificators],
+            [t("chartmenu.asteroids"), () => toggleAsteroids("significatorIds")],
+            [t("search.clear"), () => setSelected("significatorIds", catalog.presets.significators.clear)],
+          ]}
+        />
+      </div>
       {createdSignificators.length > 0 ? (
         <SelectionGroup
           title={t("search.createdPoints")}
@@ -1566,6 +1798,18 @@ export function TransitSearchView(props: TransitSearchViewProps) {
           ]}
         />
       ) : null}
+      <OhlcFilterGroup
+        series={ohlcSeries}
+        horizonDays={ohlcHorizonDays}
+        onHorizonChange={setOhlcHorizonDays}
+        anchorRoll={ohlcAnchorRoll}
+        onAnchorRollChange={setOhlcAnchorRoll}
+        error={ohlcError}
+        inputRef={ohlcInputRef}
+        onChooseFile={() => ohlcInputRef.current?.click()}
+        onFileSelected={(file) => loadOhlcFile(file)}
+        onClear={clearOhlcSeries}
+      />
       {partObjects.length > 0 ? (
         <SelectionGroup
           title={t("search.arabicParts")}
@@ -1640,12 +1884,53 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                 {seedLabel ? <span className="max-w-20 truncate">{seedLabel}</span> : null}
               </span>
             ) : null}
-            <span className="shrink-0 whitespace-nowrap">
-              {searchLoading ? <LoadingLabel label={rows.length > 0 ? displayedSummary : t("search.computing")} /> : displayedSummary}
+            <span
+              className={cn(
+                "min-w-0",
+                performanceSummary ? "whitespace-normal break-words" : "shrink-0 whitespace-nowrap",
+              )}
+            >
+              {searchLoading ? (
+                <LoadingLabel label={rows.length > 0 ? loadingSummaryLabel : t("search.computing")} />
+              ) : (
+                <>
+                  {resultStatusLine}
+                  {performanceSummary ? (
+                    <>
+                      {" · "}
+                      <SearchPerformanceHeaderStats
+                        summary={performanceSummary}
+                        horizonDays={performanceLookup.horizonDays}
+                        t={(key, ...args) => t(key, ...(args as Parameters<typeof t>[1][]))}
+                      />
+                    </>
+                  ) : null}
+                </>
+              )}
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-[var(--aries-control-gap-compact)]">
             <ListLayoutPresetControl />
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              className="px-[var(--aries-control-gap)] text-[length:var(--aries-font-size-small)] tabular-nums whitespace-nowrap"
+              onClick={runTodaySearch}
+              title={t("search.todayTooltip")}
+            >
+              {t("search.todayShort")}
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              className="px-[var(--aries-control-gap)] text-[length:var(--aries-font-size-small)] tabular-nums whitespace-nowrap"
+              onClick={runYesterdayTodayTomorrowSearch}
+              title={t("search.yesterdayTodayTomorrowTooltip")}
+            >
+              {t("search.yesterdayTodayTomorrowShort")}
+            </Button>
             <Button
               type="button"
               size="xs"
@@ -1675,6 +1960,34 @@ export function TransitSearchView(props: TransitSearchViewProps) {
             >
               {t("search.lifetime")}
             </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              className="px-[var(--aries-control-gap)] text-[length:var(--aries-font-size-small)] tabular-nums whitespace-nowrap"
+              disabled={!ohlcSpan || searchLoading}
+              onClick={runOhlcSpanSearch}
+              title={
+                ohlcSpan
+                  ? t("search.ohlcSpanTooltip")
+                      .replace("{from}", ohlcSpan.fromDate)
+                      .replace("{to}", ohlcSpan.toDate)
+                      .replace("{days}", String(ohlcSpan.dayCount))
+                  : t("search.ohlcSpanDisabledTooltip")
+              }
+            >
+              {t("search.ohlcSpan")}
+            </Button>
+            <OhlcHorizonToggle
+              disabled={!ohlcSeries || searchLoading}
+              horizonDays={ohlcHorizonDays}
+              onChange={setOhlcHorizonDays}
+            />
+            <OhlcAnchorRollRadio
+              disabled={!ohlcSeries || searchLoading}
+              anchorRoll={ohlcAnchorRoll}
+              onChange={setOhlcAnchorRoll}
+            />
             {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
               <Button
                 key={year}
@@ -1821,6 +2134,7 @@ export function TransitSearchView(props: TransitSearchViewProps) {
                           contextMenuActive={contextRowKey === row.key}
                           contextMenuRows={contextRowKey === row.key ? selectedRows : EMPTY_SEARCH_ROWS}
                           visibleColumns={visibleColumns}
+                          performanceLookup={performanceLookup}
                           onSelect={selectRow}
                           onContextSelect={selectRowForContextMenu}
                           onSelectAll={selectAllRows}
@@ -1936,14 +2250,15 @@ export function TransitSearchView(props: TransitSearchViewProps) {
 function sortTransitSearchRows(
   rows: TransitSearchRow[],
   sort: SearchSortState | null,
+  performanceLookup: SearchPerformanceLookup,
 ): TransitSearchRow[] {
   if (!sort) return rows;
   return rows
     .map((row, originalIndex) => ({ row, originalIndex }))
     .sort((a, b) => {
       const cmp = compareSearchValues(
-        transitSearchSortValue(a.row, sort.column),
-        transitSearchSortValue(b.row, sort.column),
+        transitSearchSortValue(a.row, sort.column, performanceLookup),
+        transitSearchSortValue(b.row, sort.column, performanceLookup),
       );
       if (cmp !== 0) return sort.ascending ? cmp : -cmp;
       return a.originalIndex - b.originalIndex;
@@ -2146,7 +2461,21 @@ function LoadingDots() {
   );
 }
 
-function transitSearchSortValue(row: TransitSearchRow, column: SearchColumnKey): string | number {
+function performanceRetForRow(isoDate: string, lookup: SearchPerformanceLookup): number | null {
+  return lookup.returnForEventDay(isoDate);
+}
+
+function performanceTitleForRow(isoDate: string, lookup: SearchPerformanceLookup): string | undefined {
+  const detail = lookup.returnDetailForEventDay(isoDate);
+  if (!detail) return undefined;
+  return formatPerformanceAnchorTitle(detail, lookup.horizonDays);
+}
+
+function transitSearchSortValue(
+  row: TransitSearchRow,
+  column: SearchColumnKey,
+  performanceLookup: SearchPerformanceLookup,
+): string | number {
   switch (column) {
     case "date":
       return typeof row.eventJd === "number" ? row.eventJd : sortableDateTime(row.eventDate, row.eventTime);
@@ -2164,6 +2493,17 @@ function transitSearchSortValue(row: TransitSearchRow, column: SearchColumnKey):
       return row.primaryMode;
     case "dc":
       return row.primaryDirection;
+    case "performance": {
+      const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
+      const ret = iso ? performanceRetForRow(iso, performanceLookup) : null;
+      return ret ?? Number.NEGATIVE_INFINITY;
+    }
+    case "promDecl":
+      return row.promDeclination ?? Number.NEGATIVE_INFINITY;
+    case "sigDecl":
+      return row.sigDeclination ?? Number.NEGATIVE_INFINITY;
+    case "declMatch":
+      return (row.declParallel ? 2 : 0) + (row.declContraparallel ? 1 : 0);
   }
 }
 
@@ -2359,6 +2699,237 @@ function SelectionGroup({
   );
 }
 
+function OhlcHorizonToggle({
+  horizonDays,
+  onChange,
+  disabled,
+}: {
+  horizonDays: SearchPerformanceHorizonDays;
+  onChange: (horizon: SearchPerformanceHorizonDays) => void;
+  disabled?: boolean;
+}) {
+  const t = useT();
+  return (
+    <span
+      className="inline-flex items-center gap-px rounded-[var(--aries-radius-control-compact)] border border-border/50 p-px"
+      title={t("search.ohlcHorizonTooltip")}
+    >
+      {SEARCH_PERFORMANCE_HORIZONS.map((days) => (
+        <Button
+          key={days}
+          type="button"
+          size="xs"
+          variant={horizonDays === days ? "secondary" : "ghost"}
+          disabled={disabled}
+          className="h-[var(--aries-control-height-compact)] px-[var(--aries-control-gap)] text-[length:var(--aries-font-size-small)] tabular-nums"
+          onClick={() => onChange(days)}
+        >
+          {t("search.ohlcHorizonDays").replace("{days}", String(days))}
+        </Button>
+      ))}
+    </span>
+  );
+}
+
+function OhlcAnchorRollRadio({
+  anchorRoll,
+  onChange,
+  disabled,
+}: {
+  anchorRoll: SearchPerformanceAnchorRoll;
+  onChange: (roll: SearchPerformanceAnchorRoll) => void;
+  disabled?: boolean;
+}) {
+  const t = useT();
+  const groupName = React.useId();
+  return (
+    <fieldset
+      disabled={disabled}
+      className="inline-flex min-w-0 flex-wrap items-center gap-[var(--aries-control-gap-compact)] border-0 p-0 m-0"
+      title={t("search.ohlcAnchorRollTooltip")}
+    >
+      <legend className="sr-only">{t("search.ohlcAnchorRollLegend")}</legend>
+      {SEARCH_PERFORMANCE_ANCHOR_ROLLS.map((roll) => (
+        <label
+          key={roll}
+          className={cn(
+            "inline-flex cursor-pointer items-center gap-1 rounded-[var(--aries-radius-control-compact)] border px-[var(--aries-control-gap)] py-0.5 text-[length:var(--aries-font-size-small)] tabular-nums",
+            anchorRoll === roll
+              ? "border-border bg-[var(--aries-control-background)] font-medium text-foreground"
+              : "border-transparent text-muted-foreground",
+            disabled && "cursor-not-allowed opacity-50",
+          )}
+        >
+          <input
+            type="radio"
+            name={groupName}
+            className="size-3 shrink-0 accent-[var(--aries-accent)]"
+            checked={anchorRoll === roll}
+            onChange={() => onChange(roll)}
+          />
+          {t(`search.ohlcAnchorRoll.${roll}`)}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+function SearchPerformanceHeaderStats({
+  summary,
+  horizonDays,
+  t,
+}: {
+  summary: SearchPerformanceSummary;
+  horizonDays: SearchPerformanceHorizonDays;
+  t: (key: string, ...args: unknown[]) => string;
+}) {
+  const anomalies = searchPerformanceAnomalies(summary);
+  const posSum = summary.sumPosPct >= 0 ? `+${summary.sumPosPct.toFixed(1)}` : summary.sumPosPct.toFixed(1);
+  const negSum = summary.sumNegPct.toFixed(1);
+  const excessSign = summary.excessMeanPct > 0 ? "+" : "";
+  const excessPositive = summary.excessMeanPct > 0;
+  const excessNegative = summary.excessMeanPct < 0;
+
+  return (
+    <span className="inline text-foreground">
+      <span className="font-medium">
+        {t("search.performanceHeader")}
+        {" "}
+        <span className="text-muted-foreground font-normal">
+          ({t("search.ohlcHorizonDays").replace("{days}", String(horizonDays))})
+        </span>
+      </span>
+      {" "}
+      <span
+        className={cn(
+          "tabular-nums",
+          anomalies.count
+            && "rounded-[var(--aries-radius-control-compact)] bg-amber-500/15 px-1 py-px font-semibold text-amber-950 ring-1 ring-amber-500/45 dark:text-amber-100",
+        )}
+        title={anomalies.count ? t("search.performanceCountAnomalyTooltip") : undefined}
+      >
+        {summary.nPos}+/{summary.nNeg}−
+        {" · "}
+        {summary.posSharePct.toFixed(1)}/{summary.negSharePct.toFixed(1)}%
+        {" · "}
+        ∑ {posSum}/{negSum}%
+        {" · "}
+        p={summary.pBinomTwoSided.toFixed(3)}
+      </span>
+      {" · "}
+      <span
+        className={cn(
+          "tabular-nums",
+          anomalies.return
+            && excessPositive
+            && "rounded-[var(--aries-radius-control-compact)] bg-emerald-500/20 px-1 py-px font-semibold text-emerald-900 ring-1 ring-emerald-500/45 dark:text-emerald-200",
+          anomalies.return
+            && excessNegative
+            && "rounded-[var(--aries-radius-control-compact)] bg-red-500/20 px-1 py-px font-semibold text-red-900 ring-1 ring-red-500/45 dark:text-red-200",
+          anomalies.return
+            && !excessPositive
+            && !excessNegative
+            && "rounded-[var(--aries-radius-control-compact)] bg-amber-500/15 px-1 py-px font-semibold text-amber-950 ring-1 ring-amber-500/45 dark:text-amber-100",
+        )}
+        title={
+          anomalies.return
+            ? t("search.performanceReturnAnomalyTooltip")
+            : t("search.performanceReturnTooltip")
+        }
+      >
+        μ {formatMeanReturnPct(summary.hitMeanReturn)} vs {formatMeanReturnPct(summary.baselineMeanReturn)}
+        {" · "}
+        Δ {excessSign}
+        {summary.excessMeanPct.toFixed(2)}%
+        {summary.pReturnTwoSided !== null ? (
+          <>
+            {" · "}
+            pμ={summary.pReturnTwoSided.toFixed(3)}
+          </>
+        ) : null}
+      </span>
+    </span>
+  );
+}
+
+function OhlcFilterGroup({
+  series,
+  horizonDays,
+  onHorizonChange,
+  anchorRoll,
+  onAnchorRollChange,
+  error,
+  inputRef,
+  onChooseFile,
+  onFileSelected,
+  onClear,
+}: {
+  series: SearchOhlcSeries | null;
+  horizonDays: SearchPerformanceHorizonDays;
+  onHorizonChange: (horizon: SearchPerformanceHorizonDays) => void;
+  anchorRoll: SearchPerformanceAnchorRoll;
+  onAnchorRollChange: (roll: SearchPerformanceAnchorRoll) => void;
+  error: string | null;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onChooseFile: () => void;
+  onFileSelected: (file: File) => void;
+  onClear: () => void;
+}) {
+  const t = useT();
+  const dayCount = series ? Object.keys(series.closes).length : 0;
+  return (
+    <section className="grid gap-[var(--aries-form-field-gap)]">
+      <h2 className="aries-search-panel-heading text-xs">{t("search.ohlcTitle")}</h2>
+      <p className="text-[11px] leading-snug text-muted-foreground">{t("search.ohlcHelp")}</p>
+      <div className="flex min-w-0 flex-wrap items-center gap-[var(--aries-control-gap-compact)]">
+        <Button type="button" variant="outline" size="sm" onClick={onChooseFile}>
+          {t("search.ohlcChooseFile")}
+        </Button>
+        {series ? (
+          <>
+            <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={series.fileName}>
+              {series.fileName}
+              {" · "}
+              {dayCount}
+              d
+            </span>
+            <Button type="button" variant="ghost" size="sm" onClick={onClear}>
+              {t("search.ohlcClear")}
+            </Button>
+          </>
+        ) : null}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".json,.csv,.txt,application/json,text/csv"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          if (file) onFileSelected(file);
+        }}
+      />
+      <div className="flex flex-wrap items-center gap-[var(--aries-control-gap-compact)]">
+        <span className="text-xs text-muted-foreground">{t("search.ohlcHorizonLabel")}</span>
+        <OhlcHorizonToggle
+          disabled={!series}
+          horizonDays={horizonDays}
+          onChange={onHorizonChange}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-[var(--aries-control-gap-compact)]">
+        <span className="text-xs text-muted-foreground">{t("search.ohlcAnchorRollLabel")}</span>
+        <OhlcAnchorRollRadio
+          disabled={!series}
+          anchorRoll={anchorRoll}
+          onChange={onAnchorRollChange}
+        />
+      </div>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </section>
+  );
+}
+
 function TechniqueGroup({
   techniques,
   selected,
@@ -2385,6 +2956,7 @@ function TechniqueGroup({
     { id: "sign_changes", label: t("search.techIngressSynodic") },
     byId.get("profections"),
     byId.get("mundane_weather"),
+    byId.get("converse_mundane_weather"),
     byId.get("heliacal_phases"),
     byId.get("lunations"),
     byId.get("eclipses"),
@@ -2412,26 +2984,105 @@ function TechniqueGroup({
   );
 }
 
+function DeclinationAspectControls({
+  declParallel,
+  declContraparallel,
+  declOrb,
+  onDeclParallelChange,
+  onDeclContraparallelChange,
+  onDeclOrbChange,
+}: {
+  declParallel: boolean;
+  declContraparallel: boolean;
+  declOrb: SearchDeclOrb;
+  onDeclParallelChange: (checked: boolean) => void;
+  onDeclContraparallelChange: (checked: boolean) => void;
+  onDeclOrbChange: (orb: SearchDeclOrb) => void;
+}) {
+  const t = useT();
+  const orbGroupName = React.useId();
+  const active = declParallel || declContraparallel;
+  return (
+    <div className="grid gap-[var(--aries-form-field-gap)] border-t border-border/60 pt-[var(--aries-form-field-gap)]">
+      <div>
+        <h3 className="text-xs font-medium text-foreground">{t("search.declinationAspects")}</h3>
+        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t("search.declinationAspectsHelp")}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-[var(--aries-control-gap)]">
+        <CheckRow
+          checked={declParallel}
+          label={t("settings.parallel")}
+          onChange={onDeclParallelChange}
+        />
+        <CheckRow
+          checked={declContraparallel}
+          label={t("settings.contraparallel")}
+          onChange={onDeclContraparallelChange}
+        />
+      </div>
+      <fieldset
+        disabled={!active}
+        className="flex flex-wrap items-center gap-[var(--aries-control-gap-compact)] border-0 p-0 m-0"
+      >
+        <legend className="text-xs text-muted-foreground">{t("search.declOrbLabel")}</legend>
+        {SEARCH_DECL_ORBS.map((orb) => (
+          <label
+            key={orb}
+            className={cn(
+              "inline-flex cursor-pointer items-center gap-1 rounded-[var(--aries-radius-control-compact)] border px-[var(--aries-control-gap)] py-0.5 text-[length:var(--aries-font-size-small)] tabular-nums",
+              declOrb === orb
+                ? "border-border bg-[var(--aries-control-background)] font-medium"
+                : "border-transparent text-muted-foreground",
+              !active && "cursor-not-allowed opacity-50",
+            )}
+          >
+            <input
+              type="radio"
+              name={orbGroupName}
+              className="size-3 accent-[var(--aries-accent)]"
+              checked={declOrb === orb}
+              onChange={() => onDeclOrbChange(orb)}
+            />
+            {t("search.declOrbDegrees").replace("{degrees}", String(orb))}
+          </label>
+        ))}
+      </fieldset>
+    </div>
+  );
+}
+
 function AspectGroup({
   selected,
   catalog,
   lunationOrb,
   lunarEventsEnabled,
+  declParallel,
+  declContraparallel,
+  declOrb,
   onToggle,
   onSetAll,
   onSetMajor,
   onClear,
   onLunationOrbChange,
+  onDeclParallelChange,
+  onDeclContraparallelChange,
+  onDeclOrbChange,
 }: {
   selected: string[];
   catalog: TransitSearchCatalog;
   lunationOrb: number;
   lunarEventsEnabled: boolean;
+  declParallel: boolean;
+  declContraparallel: boolean;
+  declOrb: SearchDeclOrb;
   onToggle: (id: string, checked: boolean) => void;
   onSetAll: () => void;
   onSetMajor: () => void;
   onClear: () => void;
   onLunationOrbChange: (orb: number) => void;
+  onDeclParallelChange: (checked: boolean) => void;
+  onDeclContraparallelChange: (checked: boolean) => void;
+  onDeclOrbChange: (orb: SearchDeclOrb) => void;
 }) {
   const t = useT();
   const selectedSet = React.useMemo(() => new Set(selected), [selected]);
@@ -2492,6 +3143,14 @@ function AspectGroup({
           <span aria-hidden="true">°</span>
         </span>
       </label>
+      <DeclinationAspectControls
+        declParallel={declParallel}
+        declContraparallel={declContraparallel}
+        declOrb={declOrb}
+        onDeclParallelChange={onDeclParallelChange}
+        onDeclContraparallelChange={onDeclContraparallelChange}
+        onDeclOrbChange={onDeclOrbChange}
+      />
     </section>
   );
 }
@@ -2673,6 +3332,7 @@ const SearchRow = React.memo(function SearchRow({
   contextMenuActive,
   contextMenuRows,
   visibleColumns,
+  performanceLookup,
   onSelect,
   onContextSelect,
   onSelectAll,
@@ -2685,6 +3345,7 @@ const SearchRow = React.memo(function SearchRow({
   contextMenuActive: boolean;
   contextMenuRows: TransitSearchRow[];
   visibleColumns: SearchColumnKey[];
+  performanceLookup: SearchPerformanceLookup;
   onSelect: (row: TransitSearchRow, event?: React.MouseEvent) => void;
   onContextSelect: (row: TransitSearchRow) => void;
   onSelectAll: () => void;
@@ -2707,7 +3368,7 @@ const SearchRow = React.memo(function SearchRow({
         onClick={(event) => onSelect(row, event)}
         onContextMenu={() => onContextSelect(row)}
       >
-        {renderSearchCells(row, visibleColumns, onOpenTimedChart)}
+        {renderSearchCells(row, visibleColumns, onOpenTimedChart, performanceLookup)}
       </tr>
     </SearchRowContextMenu>
   );
@@ -2718,11 +3379,13 @@ function SearchCell({
   row,
   colSpan,
   onOpenTimedChart,
+  performanceLookup,
 }: {
   column: SearchColumnKey;
   row: TransitSearchRow;
   colSpan?: number;
   onOpenTimedChart: SearchOpenTimedChart;
+  performanceLookup: SearchPerformanceLookup;
 }) {
   const t = useT();
   switch (column) {
@@ -2772,6 +3435,56 @@ function SearchCell({
         </td>
       );
     }
+    case "performance": {
+      const iso = listingIsoDateFromRow(row.displayDatetime, row.displayDate);
+      const ret = iso ? performanceRetForRow(iso, performanceLookup) : null;
+      if (ret === null) {
+        return (
+          <td className="aries-list-cell border-0 text-center text-muted-foreground tabular-nums" colSpan={colSpan}>
+            —
+          </td>
+        );
+      }
+      const positive = ret > 0;
+      const negative = ret < 0;
+      const title = iso ? performanceTitleForRow(iso, performanceLookup) : undefined;
+      return (
+        <td
+          className={cn(
+            "aries-list-cell border-0 text-center tabular-nums font-medium",
+            positive && "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300",
+            negative && "bg-red-500/15 text-red-800 dark:text-red-300",
+            !positive && !negative && "text-muted-foreground",
+          )}
+          title={title}
+          colSpan={colSpan}
+        >
+          {formatPerformancePct(ret)}
+        </td>
+      );
+    }
+    case "promDecl":
+      return (
+        <td className="aries-list-cell border-0 text-center tabular-nums text-muted-foreground" colSpan={colSpan}>
+          {formatDeclinationDegrees(row.promDeclination)}
+        </td>
+      );
+    case "sigDecl":
+      return (
+        <td className="aries-list-cell border-0 text-center tabular-nums text-muted-foreground" colSpan={colSpan}>
+          {formatDeclinationDegrees(row.sigDeclination)}
+        </td>
+      );
+    case "declMatch": {
+      const tags: string[] = [];
+      if (row.declParallel) tags.push(t("search.declParShort"));
+      if (row.declContraparallel) tags.push(t("search.declCparShort"));
+      return (
+        <td className="aries-list-cell border-0 text-center tabular-nums text-foreground" colSpan={colSpan}>
+          {tags.length > 0 ? tags.join(" · ") : "—"}
+        </td>
+      );
+    }
   }
 }
 
@@ -2779,6 +3492,7 @@ function renderSearchCells(
   row: TransitSearchRow,
   visibleColumns: SearchColumnKey[],
   onOpenTimedChart: SearchOpenTimedChart,
+  performanceLookup: SearchPerformanceLookup,
 ) {
   const singleObject = isSingleObjectSearchRow(row);
   const spansTargetTrack = singleObject && visibleColumns.includes("from") && visibleColumns.includes("to");
@@ -2792,6 +3506,7 @@ function renderSearchCells(
         row={row}
         colSpan={colSpan}
         onOpenTimedChart={onOpenTimedChart}
+        performanceLookup={performanceLookup}
       />
     );
   });
@@ -3195,8 +3910,17 @@ function Glyph({
   );
 }
 
-function getVisibleColumns(rows: TransitSearchRow[], form: SearchForm | null | undefined, t: TFunc): SearchColumnKey[] {
+function getVisibleColumns(
+  rows: TransitSearchRow[],
+  form: SearchForm | null | undefined,
+  t: TFunc,
+  showPerformance: boolean,
+): SearchColumnKey[] {
   const columns: SearchColumnKey[] = ["aspect"];
+  const showDeclColumns = Boolean(form?.declParallel || form?.declContraparallel);
+  if (showDeclColumns) {
+    columns.push("promDecl", "sigDecl", "declMatch");
+  }
   const hasPrimaryMode = rows.some((row) => row.primaryMode);
   const hasPrimaryDirection = rows.some((row) => row.primaryDirection);
   if (hasPrimaryMode) columns.push("mz");
@@ -3207,7 +3931,9 @@ function getVisibleColumns(rows: TransitSearchRow[], form: SearchForm | null | u
   }
   const techniqueLabels = new Set(rows.map((row) => techniqueDisplayLabel(row, t)).filter(Boolean));
   if (techniqueLabels.size > 1) columns.push("technique");
-  columns.push("date", "time");
+  columns.push("date");
+  if (showPerformance) columns.push("performance");
+  columns.push("time");
   return columns;
 }
 
@@ -3293,7 +4019,14 @@ function techniqueDisplayLabel(row: TransitSearchRow, t: TFunc): string {
   }
   const key = TECHNIQUE_DISPLAY_LABEL_KEYS[row.technique];
   const base = key ? t(key) : row.techniqueLabel;
-  if (row.isSignChange || row.metadata.station || row.metadata.cazimi || row.metadata.heliacal || row.technique === "mundane_weather") {
+  if (
+    row.isSignChange
+    || row.metadata.station
+    || row.metadata.cazimi
+    || row.metadata.heliacal
+    || row.technique === "mundane_weather"
+    || row.technique === "converse_mundane_weather"
+  ) {
     return base;
   }
   return row.techniqueLabel || base;
@@ -3437,8 +4170,30 @@ function retainedSearchNeedsRangeReplacement(
   activeForm: SearchForm,
 ): boolean {
   if (!stream.coverageFrom || !stream.coverageTo) return true;
-  if (activeForm.fromDate === stream.rangeFrom) return false;
-  return activeForm.fromDate < stream.coverageFrom || activeForm.fromDate > stream.coverageTo;
+  if (activeForm.fromDate < stream.rangeFrom || activeForm.toDate > stream.rangeTo) return true;
+  if (activeForm.fromDate < stream.coverageFrom || activeForm.fromDate > stream.coverageTo) return true;
+  return false;
+}
+
+function searchRangeFullyLoaded(stream: SearchRangeStream, activeForm: SearchForm): boolean {
+  if (!stream.coverageFrom || !stream.coverageTo) return false;
+  if (stream.rangeFrom !== activeForm.fromDate || stream.rangeTo !== activeForm.toDate) return false;
+  if (stream.coverageFrom > activeForm.fromDate) return false;
+  if (stream.coverageTo < activeForm.toDate && !stream.exhaustedNext) return false;
+  return stream.exhaustedNext || stream.coverageTo >= activeForm.toDate;
+}
+
+function searchProgressFollowOptions(fromDate: string, toDate: string): { waitMs?: number } {
+  const spanDays = isoDateSpanInclusive(fromDate, toDate);
+  return { waitMs: Math.min(25_000, Math.max(5_000, spanDays * 1_000)) };
+}
+
+function isoDateSpanInclusive(fromDate: string, toDate: string): number {
+  if (!isIsoDate(fromDate) || !isIsoDate(toDate) || fromDate > toDate) return 31;
+  const start = Date.parse(`${fromDate}T00:00:00Z`);
+  const end = Date.parse(`${toDate}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return 31;
+  return Math.max(1, Math.floor((end - start) / 86_400_000) + 1);
 }
 
 function searchViewportRowCount(scroller: HTMLDivElement | null, rowHeight: number): number {
@@ -3494,6 +4249,9 @@ function searchSemanticQuery(form: SearchForm) {
     significatorMotion: form.significatorMotion,
     moonPhase: form.moonPhase,
     lunationOrb: form.lunationOrb,
+    declParallel: form.declParallel,
+    declContraparallel: form.declContraparallel,
+    declOrb: form.declOrb,
     limit: form.limit,
   };
 }
@@ -3638,7 +4396,11 @@ function projectTransitSearchRows(
     const signIngress = row.metadata.sign_change === true;
     // Celestial Weather emits each moving pair once in catalog order, which
     // can be the reverse of the selected From/To roles.
-    if (row.technique === "mundane_weather" && row.promittorId && row.significatorId) {
+    if (
+      (row.technique === "mundane_weather" || row.technique === "converse_mundane_weather")
+      && row.promittorId
+      && row.significatorId
+    ) {
       const selectedPair = promittors.has(row.promittorId) && significators.has(row.significatorId);
       const selectedReversePair = promittors.has(row.significatorId) && significators.has(row.promittorId);
       if (!selectedPair && !selectedReversePair) return false;
@@ -3670,8 +4432,47 @@ function projectTransitSearchRows(
     ) return false;
     const lunationContactOrb = numberValue(row.metadata.lunation_contact_orb);
     if (lunarEvent && lunationContactOrb != null && lunationContactOrb > form.lunationOrb) return false;
+    if (form.declParallel || form.declContraparallel) {
+      if (!searchRowPassesDeclinationFilter(row, form)) return false;
+    }
     return true;
   });
+}
+
+function searchDeclinationFilterKey(form: SearchForm): string {
+  return JSON.stringify({
+    declParallel: form.declParallel,
+    declContraparallel: form.declContraparallel,
+    declOrb: form.declOrb,
+  });
+}
+
+function mergeSearchDeclinationFilter(source: SearchForm, active: SearchForm): SearchForm {
+  return {
+    ...source,
+    declParallel: active.declParallel,
+    declContraparallel: active.declContraparallel,
+    declOrb: active.declOrb,
+  };
+}
+
+function searchRowPassesDeclinationFilter(row: TransitSearchRow, form: SearchForm): boolean {
+  const wantPar = form.declParallel;
+  const wantCpar = form.declContraparallel;
+  if (!wantPar && !wantCpar) return true;
+  if (
+    row.declParallel == null
+    && row.declContraparallel == null
+    && row.declOrbDeltaPar == null
+    && row.declOrbDeltaCpar == null
+  ) {
+    return true;
+  }
+  const par = row.declParallel === true;
+  const cpar = row.declContraparallel === true;
+  if (wantPar && wantCpar) return par || cpar;
+  if (wantPar) return par;
+  return cpar;
 }
 
 function searchRowMatchesMotion(

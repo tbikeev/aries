@@ -45,6 +45,14 @@ test("legacy cached ThemeState receives compatible style identity", () => {
   });
 });
 
+test("inspector text preference survives cache normalization with a legacy default", () => {
+  assert.equal(normalizeThemeState(legacyTheme).inspectorTextSize, "normal");
+  for (const inspectorTextSize of ["normal", "larger", "extra-large"]) {
+    assert.equal(normalizeThemeState({ ...legacyTheme, inspectorTextSize }).inspectorTextSize, inspectorTextSize);
+  }
+  assert.equal(normalizeThemeState({ ...legacyTheme, inspectorTextSize: "huge" }).inspectorTextSize, "normal");
+});
+
 test("current ThemeState preserves explicit style identity", () => {
   const normalized = normalizeThemeState({
     ...legacyTheme,
@@ -113,6 +121,8 @@ test("theme appearance and independent wheel presets reach live canvas and expor
   assert.match(chartExport, /resolveWheelGeometryPresetStyle\(/);
   assert.match(chartExport, /presets: chart\.primaryChart\.options\.wheelGeometryPresets/);
   assert.match(chartExport, /resolvedTheme\?\.profileOverrides\?\.wheelAuthoring/);
+  assert.match(canvas, /normalizeWheelChartStyle\(chart\.primaryChart\.options\.wheelChartStyle\)/);
+  assert.match(chartExport, /normalizeWheelChartStyle\(chart\.primaryChart\.options\.wheelChartStyle\)/);
 });
 
 test("chart export receives the live transient aspect visibility state", () => {
@@ -244,5 +254,6 @@ test("the programmatic chart focus anchor never paints a native WKWebView outlin
   const tagEnd = source.indexOf(">", anchorIndex);
   const anchorTag = source.slice(tagStart, tagEnd);
   assert.match(anchorTag, /className="[^"]*\boutline-none\b[^"]*"/);
-  assert.match(source, /chartPaneElement\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(source, /const focusTarget = keyboardFocusTarget \?\? chartPaneElement/);
+  assert.match(source, /focusTarget\??\.focus\(\{ preventScroll: true \}\)/);
 });

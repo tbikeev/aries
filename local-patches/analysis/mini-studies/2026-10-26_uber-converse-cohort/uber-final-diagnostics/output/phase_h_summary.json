@@ -1,0 +1,208 @@
+{
+  "exploratory": true,
+  "n_earnings": 26,
+  "cc_identity_max_err_bps": 2.1316282072803006e-14,
+  "h1_conclusion": {
+    "exploratory": true,
+    "dk_sq_orb10_pearson_gap": -0.46098106590876736,
+    "dk_sq_orb10_pearson_intra": -0.26899143917589774,
+    "dk_sq_orb10_pearson_cc": -0.5189825030597046,
+    "interpretation_hint": "Compare |r| on gap vs intra; stronger gap suggests overnight repricing channel."
+  },
+  "h2_shifted_radix": [
+    {
+      "design": "genuine",
+      "offset_days": 0,
+      "direction": "real",
+      "DK_sq_r": -0.5189825030597046,
+      "FT_sq_r": 0.17863425046767006,
+      "INC_sq_r": 0.09436723103884528,
+      "tight_r": -0.38465460595485124,
+      "converse_shift_note": NaN
+    },
+    {
+      "design": "shifted_radix",
+      "offset_days": -30,
+      "direction": "-1",
+      "DK_sq_r": 0.0554012818363928,
+      "FT_sq_r": -0.015131489911336152,
+      "INC_sq_r": 0.1206692070194285,
+      "tight_r": 0.12592772935890165,
+      "converse_shift_note": "converse JD moves +-60 days vs genuine at same event"
+    },
+    {
+      "design": "shifted_radix",
+      "offset_days": 30,
+      "direction": "+1",
+      "DK_sq_r": -0.0009133634508785102,
+      "FT_sq_r": -0.07886226178362928,
+      "INC_sq_r": 0.07832744313458724,
+      "tight_r": -0.15896332713234138,
+      "converse_shift_note": "converse JD moves +60 days vs genuine at same event"
+    },
+    {
+      "design": "shifted_radix",
+      "offset_days": -90,
+      "direction": "-1",
+      "DK_sq_r": 0.2541950555055028,
+      "FT_sq_r": 0.17459706846595235,
+      "INC_sq_r": 0.16488262491171668,
+      "tight_r": 0.1781597271107671,
+      "converse_shift_note": "converse JD moves +-180 days vs genuine at same event"
+    },
+    {
+      "design": "shifted_radix",
+      "offset_days": 90,
+      "direction": "+1",
+      "DK_sq_r": -0.21697031914740086,
+      "FT_sq_r": 0.11925638734394758,
+      "INC_sq_r": -0.319895559757411,
+      "tight_r": 0.054162912477860904,
+      "converse_shift_note": "converse JD moves +180 days vs genuine at same event"
+    },
+    {
+      "design": "shifted_radix",
+      "offset_days": -180,
+      "direction": "-1",
+      "DK_sq_r": -0.11781487664884285,
+      "FT_sq_r": -0.26447291532517936,
+      "INC_sq_r": 0.015200884835179824,
+      "tight_r": -0.2522330143643321,
+      "converse_shift_note": "converse JD moves +-360 days vs genuine at same event"
+    },
+    {
+      "design": "shifted_radix",
+      "offset_days": 180,
+      "direction": "+1",
+      "DK_sq_r": -0.30013777061301766,
+      "FT_sq_r": 0.0597768268236811,
+      "INC_sq_r": 0.01870081897550119,
+      "tight_r": -0.002862940859869682,
+      "converse_shift_note": "converse JD moves +360 days vs genuine at same event"
+    },
+    {
+      "design": "shifted_radix",
+      "offset_days": -365,
+      "direction": "-1",
+      "DK_sq_r": 0.07855990860199286,
+      "FT_sq_r": -0.4624739696599296,
+      "INC_sq_r": 0.21458664406546177,
+      "tight_r": 0.19877285543739875,
+      "converse_shift_note": "converse JD moves +-730 days vs genuine at same event"
+    },
+    {
+      "design": "shifted_radix",
+      "offset_days": 365,
+      "direction": "+1",
+      "DK_sq_r": 0.07044688532610557,
+      "FT_sq_r": 0.267227275426022,
+      "INC_sq_r": 0.0696591089020843,
+      "tight_r": 0.19120263481553387,
+      "converse_shift_note": "converse JD moves +730 days vs genuine at same event"
+    }
+  ],
+  "h2_random_surrogate_summary": {
+    "independent_random_radix_DK_sq": {
+      "observed_r": -0.5189825030597046,
+      "null_median": 0.012326355313079806,
+      "null_p05": -0.3064601006503251,
+      "null_p95": 0.3462492291348701,
+      "empirical_p_two_sided": 0.003,
+      "rank_percentile": 0.001
+    },
+    "independent_random_radix_tight": {
+      "observed_r": -0.38465460595485124,
+      "null_median": 0.00812548702130226,
+      "null_p05": -0.31851742493590873,
+      "null_p95": 0.35866780671930326,
+      "empirical_p_two_sided": 0.053,
+      "rank_percentile": 0.017
+    },
+    "joint_shift_DK_sq": {
+      "observed_r": -0.5189825030597046,
+      "null_median": -0.01275270043622818,
+      "null_p05": -0.31098605151532904,
+      "null_p95": 0.3493757629716276,
+      "empirical_p_two_sided": 0.011,
+      "rank_percentile": 0.003
+    },
+    "joint_shift_tight": {
+      "observed_r": -0.38465460595485124,
+      "null_median": 0.007435082472134719,
+      "null_p05": -0.3284368662859728,
+      "null_p95": 0.3419676517690178,
+      "empirical_p_two_sided": 0.065,
+      "rank_percentile": 0.028
+    },
+    "n_surrogates": 1000,
+    "seed": 20261027
+  },
+  "h2_event_alignment": {
+    "circular_return_shift": {
+      "observed_r": -0.5189825030597048,
+      "null_median": 0.025023265168774712,
+      "empirical_p_two_sided": 0.0,
+      "null": "circular_shift_returns"
+    },
+    "misaligned_event_jd_90d": 0.04879077126572673
+  },
+  "h4_incremental_cc": {
+    "exploratory": true,
+    "n": 26,
+    "target": "r_cc_pct",
+    "pearson_DK": -0.5189825030597046,
+    "pearson_FT": 0.17863425046767006,
+    "pearson_INC": 0.09436723103884528,
+    "r2_DK_only": 0.2693428384821165,
+    "r2_DK_FT_INC": 0.29268552791688585,
+    "delta_r2_adding_FT_INC": 0.02334268943476936,
+    "partial_corr_DK_given_FT_INC": -0.508309309176359,
+    "partial_corr_FT_given_DK_INC": -0.02115824985502938,
+    "partial_corr_INC_given_DK_FT": -0.17540312898890092,
+    "note": "Large delta_r2 on N=26 is not validated; signs of FT/INC partials indicate incremental direction only."
+  },
+  "h4_incremental_gap": {
+    "exploratory": true,
+    "n": 26,
+    "target": "r_gap_pct",
+    "pearson_DK": -0.46098106590876736,
+    "pearson_FT": -0.02790508635376138,
+    "pearson_INC": 0.09239837101772376,
+    "r2_DK_only": 0.21250354312638342,
+    "r2_DK_FT_INC": 0.27552464275053123,
+    "delta_r2_adding_FT_INC": 0.06302109962414781,
+    "partial_corr_DK_given_FT_INC": -0.5187577922908742,
+    "partial_corr_FT_given_DK_INC": -0.24766837188960647,
+    "partial_corr_INC_given_DK_FT": -0.21368801611175242,
+    "note": "Large delta_r2 on N=26 is not validated; signs of FT/INC partials indicate incremental direction only."
+  },
+  "h4_incremental_intra": {
+    "exploratory": true,
+    "n": 26,
+    "target": "r_intra_pct",
+    "pearson_DK": -0.26899143917589774,
+    "pearson_FT": 0.4288661789039139,
+    "pearson_INC": 0.04696719909715766,
+    "r2_DK_only": 0.0723563943499207,
+    "r2_DK_FT_INC": 0.20801145169612745,
+    "delta_r2_adding_FT_INC": 0.13565505734620675,
+    "partial_corr_DK_given_FT_INC": -0.1260292634644945,
+    "partial_corr_FT_given_DK_INC": 0.3744090501394452,
+    "partial_corr_INC_given_DK_FT": 0.0380410768891349,
+    "note": "Large delta_r2 on N=26 is not validated; signs of FT/INC partials indicate incremental direction only."
+  },
+  "hypothesis_freeze": {
+    "status": "frozen_exploratory_hypotheses",
+    "as_of_utc": "2026-10-27T06:51:29.856653Z",
+    "primary_directional": "DK converse major-square count at orb 1.0\u00b0 on earnings-reaction sessions",
+    "secondary_density": "All-cohort tight major-aspect count at orb 1.0\u00b0 on earnings-reaction sessions",
+    "cohort_specificity": "Retain FT/INC/DK separately; do not pool squares without preregistration",
+    "event_scope": "Earnings-reaction days only until prospective OOS earnings validate",
+    "daily_panel_finding": "No meaningful DK square association on ordinary days (see daily-study Report G)",
+    "forbidden_until_oos": [
+      "New aspect combinations from mining",
+      "Orb threshold tuning beyond {0.5\u00b0, 1.0\u00b0}",
+      "DK birth-time optimization"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+feature,target,n_train,n_test,embargo_sessions,corr_train,corr_test
+DK_sq_count_orb05,r_cc_pct,1277,543,5,-0.03117166075662552,0.011766267322032923
+DK_sq_count_orb10,r_cc_pct,1277,543,5,-0.018074576401930637,-0.047837392300659955
+tight_aspect_count_orb10,r_cc_pct,1277,543,5,0.0005523231689067478,-0.04599734556583839
